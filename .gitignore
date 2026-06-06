@@ -1,0 +1,16 @@
+*.tar
+*.tar.gz
+*.zip
+*.bak
+*.old
+*.tmp
+*~
+*.log
+.cache/
+__pycache__/
+*.key
+*.pem
+id_rsa
+id_ed25519
+*.pub
+*.sock

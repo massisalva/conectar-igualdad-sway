@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Audio" "$1"
+  fi
+}
+
+mapfile -t sinks < <(
+  pactl list short sinks | awk -F '\t' '{print $1 "\t" $2}'
+)
+
+if [ "${#sinks[@]}" -eq 0 ]; then
+  notify "No se encontraron salidas de audio."
+  exit 1
+fi
+
+default="$(pactl get-default-sink 2>/dev/null || true)"
+
+menu="$(
+  for line in "${sinks[@]}"; do
+    id="${line%%$'\t'*}"
+    name="${line#*$'\t'}"
+
+    desc="$(pactl list sinks | awk -v sink="Sink #$id" '
+      $0 == sink {inside=1; next}
+      /^Sink #/ {inside=0}
+      inside && /^[[:space:]]*Description:/ {
+        sub(/^[[:space:]]*Description:[[:space:]]*/, "")
+        print
+        exit
+      }
+    ')"
+
+    [ -n "$desc" ] || desc="$name"
+
+    marker=""
+    if [ "$name" = "$default" ]; then
+      marker="  [actual]"
+    fi
+
+    printf '%s\t%s%s\n' "$id" "$desc" "$marker"
+  done
+)"
+
+choice="$(
+  printf '%s\n' "$menu" \
+    | cut -f2- \
+    | fuzzel --dmenu --prompt="Salida de audio: "
+)"
+
+[ -n "$choice" ] || exit 0
+
+selected_id="$(
+  printf '%s\n' "$menu" \
+    | awk -F '\t' -v c="$choice" '$2 == c {print $1; exit}'
+)"
+
+[ -n "$selected_id" ] || exit 1
+
+wpctl set-default "$selected_id"
+
+clean_choice="${choice%  [actual]}"
+notify "Salida seleccionada: $clean_choice"

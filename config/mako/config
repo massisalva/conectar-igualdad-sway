@@ -1,0 +1,35 @@
+font=Lexend 10.5
+
+background-color=#11111b
+text-color=#cdd6f4
+border-color=#89b4fa
+progress-color=over #1e1e2e
+
+border-size=2
+border-radius=12
+
+padding=10
+margin=8
+outer-margin=8
+
+width=330
+height=90
+
+default-timeout=4500
+max-visible=4
+
+icons=1
+markup=1
+anchor=top-right
+
+[urgency=low]
+border-color=#94e2d5
+default-timeout=3000
+
+[urgency=normal]
+border-color=#89b4fa
+default-timeout=4500
+
+[urgency=high]
+border-color=#f38ba8
+default-timeout=0

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+exec foot \
+  --app-id battery-floating \
+  --title "Batería" \
+  --override=main.font="JetBrainsMono Nerd Font:size=8.5" \
+  --override=main.pad=6x4 \
+  --override=colors.alpha=1.0 \
+  --window-size-chars=92x28 \
+  -e bash -lc '
+clear
+echo "===== BATERÍA ====="
+echo
+
+found=0
+
+for bat in /sys/class/power_supply/BAT*; do
+  [ -d "$bat" ] || continue
+  found=1
+
+  name="$(basename "$bat")"
+  status="$(cat "$bat/status" 2>/dev/null)"
+  capacity="$(cat "$bat/capacity" 2>/dev/null)"
+
+  echo "Dispositivo: $name"
+  echo "Estado:      $status"
+  echo "Carga:       ${capacity}%"
+  echo
+
+  if [ -r "$bat/energy_full_design" ] && [ -r "$bat/energy_full" ]; then
+    design="$(cat "$bat/energy_full_design")"
+    full="$(cat "$bat/energy_full")"
+
+    if [ "$design" -gt 0 ] 2>/dev/null; then
+      health=$(( full * 100 / design ))
+      echo "Salud aprox.: ${health}%"
+    fi
+  elif [ -r "$bat/charge_full_design" ] && [ -r "$bat/charge_full" ]; then
+    design="$(cat "$bat/charge_full_design")"
+    full="$(cat "$bat/charge_full")"
+
+    if [ "$design" -gt 0 ] 2>/dev/null; then
+      health=$(( full * 100 / design ))
+      echo "Salud aprox.: ${health}%"
+    fi
+  fi
+
+  echo
+  echo "Datos técnicos:"
+  grep -H . "$bat"/{manufacturer,model_name,technology,cycle_count,voltage_now,power_now,current_now,energy_now,energy_full,energy_full_design,charge_now,charge_full,charge_full_design} 2>/dev/null \
+    | sed "s|$bat/||" \
+    | sed "s/:/: /"
+  echo
+done
+
+if [ "$found" -eq 0 ]; then
+  echo "No se detectó batería en /sys/class/power_supply."
+fi
+
+echo
+read -rp "Presioná Enter para cerrar..."
+'

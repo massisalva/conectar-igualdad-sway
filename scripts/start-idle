@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_TYPE=wayland
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
+# Permite ejecutar este script también desde SSH:
+# si no existen las variables gráficas, las reconstruye desde los sockets activos.
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  WAYLAND_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' | head -n1)"
+  if [ -n "$WAYLAND_SOCKET" ]; then
+    export WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+  fi
+fi
+
+if [ -z "${SWAYSOCK:-}" ]; then
+  SWAY_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'sway-ipc.*.sock' | head -n1)"
+  if [ -n "$SWAY_SOCKET" ]; then
+    export SWAYSOCK="$SWAY_SOCKET"
+  fi
+fi
+
+pkill -x swayidle 2>/dev/null || true
+
+swayidle -w \
+  timeout 600 "$HOME/.local/bin/lock-screen" \
+  timeout 660 'swaymsg "output * dpms off"' \
+  resume 'swaymsg "output * dpms on"' \
+  timeout 1800 'systemctl suspend' \
+  before-sleep "$HOME/.local/bin/lock-screen"

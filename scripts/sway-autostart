@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+set -u
+
+LOG_DIR="$HOME/.cache"
+LOG="$LOG_DIR/sway-autostart.log"
+
+mkdir -p "$LOG_DIR"
+
+find_sway_env() {
+  export XDG_CURRENT_DESKTOP=sway
+  export XDG_SESSION_TYPE=wayland
+  export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+  export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
+  if [ -z "${SWAYSOCK:-}" ]; then
+    SWAY_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'sway-ipc.*.sock' 2>/dev/null | sort -V | tail -n1)"
+    if [ -n "$SWAY_SOCKET" ]; then
+      export SWAYSOCK="$SWAY_SOCKET"
+    fi
+  fi
+
+  if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    if [ -S "$XDG_RUNTIME_DIR/wayland-1" ]; then
+      export WAYLAND_DISPLAY="wayland-1"
+    else
+      WAYLAND_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' -printf '%T@ %p\n' 2>/dev/null | sort -n | awk 'NR==1{print $2}')"
+      if [ -n "$WAYLAND_SOCKET" ]; then
+        export WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+      fi
+    fi
+  fi
+}
+
+sway_exec() {
+  local cmd="$1"
+
+  if command -v swaymsg >/dev/null 2>&1 && [ -n "${SWAYSOCK:-}" ]; then
+    swaymsg exec "$cmd" >/dev/null 2>&1
+  else
+    echo "No pude lanzar vía swaymsg: $cmd"
+  fi
+}
+
+{
+  echo
+  echo "===== SWAY AUTOSTART $(date) ====="
+
+  find_sway_env
+
+  systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE SWAYSOCK
+  dbus-update-activation-environment --systemd \
+    WAYLAND_DISPLAY \
+    XDG_CURRENT_DESKTOP \
+    XDG_SESSION_TYPE \
+    SWAYSOCK
+
+  mkdir -p "$HOME/Imágenes"
+
+  pkill -x mako 2>/dev/null || true
+  pkill -x waybar 2>/dev/null || true
+  pkill -f '/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1' 2>/dev/null || true
+  pkill -f '/usr/bin/.*udiskie' 2>/dev/null || true
+  pkill -f "$HOME/.local/bin/disk-notify" 2>/dev/null || true
+
+  for _ in 1 2 3 4 5; do
+    pgrep -x waybar >/dev/null || break
+    sleep 0.2
+  done
+
+  sleep 0.3
+
+  command -v mako >/dev/null 2>&1 && sway_exec "mako"
+  command -v waybar >/dev/null 2>&1 && sway_exec "waybar"
+
+  if [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
+    sway_exec "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+  else
+    echo "No encontrado: polkit-gnome-authentication-agent-1"
+  fi
+
+  command -v udiskie >/dev/null 2>&1 && sway_exec "udiskie --no-automount --no-notify"
+
+  if [ -x "$HOME/.local/bin/disk-notify" ]; then
+    sway_exec "$HOME/.local/bin/disk-notify"
+  fi
+
+} >> "$LOG" 2>&1

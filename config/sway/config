@@ -1,0 +1,10 @@
+# ============================================================
+# Sway - Arch Linux / Conectar Igualdad
+# Estilo: Catppuccin Mocha
+# Usuario: massisalva
+# ============================================================
+
+include ~/.config/sway/config.d/*.conf
+
+# Includes del sistema
+include /etc/sway/config.d/*

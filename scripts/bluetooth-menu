@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+exec foot \
+  --app-id bluetui-floating \
+  --title "Bluetooth" \
+  --override=main.font="JetBrainsMono Nerd Font:size=8.5" \
+  --override=main.pad=6x4 \
+  --override=colors.alpha=1.0 \
+  --window-size-chars=92x28 \
+  -e bluetui

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+export NEWT_COLORS='
+root=white,black
+roottext=white,black
+window=white,black
+border=brightblue,black
+shadow=black,black
+title=brightmagenta,black
+textbox=white,black
+acttextbox=black,brightcyan
+entry=white,black
+disentry=gray,black
+label=white,black
+listbox=white,black
+actlistbox=black,brightblue
+sellistbox=white,black
+actsellistbox=black,brightmagenta
+checkbox=white,black
+actcheckbox=black,brightcyan
+button=black,brightmagenta
+actbutton=black,brightcyan
+compactbutton=white,black
+helpline=gray,black
+emptyscale=brightmagenta,black
+fullscale=brightcyan,black
+'
+
+exec nmtui

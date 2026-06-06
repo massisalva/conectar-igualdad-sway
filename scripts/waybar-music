@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+# Si Waybar se reinicia y cierra la tubería, salimos sin ensuciar el log.
+trap 'exit 0' PIPE
+exec 2>/dev/null
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
+
+shorten() {
+  local text="$1"
+  local max="${2:-36}"
+
+  if [ "${#text}" -gt "$max" ]; then
+    printf "%s…\n" "${text:0:$max}"
+  else
+    printf "%s\n" "$text"
+  fi
+}
+
+current_song() {
+  local mpd_status mpd_song mpd_state
+  local player status artist title song
+
+  mpd_status="$(mpc status 2>/dev/null || true)"
+  mpd_song="$(printf '%s\n' "$mpd_status" | sed -n '1p')"
+  mpd_state="$(printf '%s\n' "$mpd_status" | sed -n '2p' | awk '{print $1}' | tr -d '[]')"
+
+  # 1) MPD / ncmpcpp si está reproduciendo
+  if [ "$mpd_state" = "playing" ] && [ -n "$mpd_song" ]; then
+    song="$(shorten "$mpd_song" 36)"
+    printf "󰎈 %s\n" "$song"
+    return
+  fi
+
+  # 2) ncspot / Spotify si está reproduciendo
+  if command -v playerctl >/dev/null 2>&1; then
+    player="$(playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify' | head -n1 || true)"
+
+    if [ -n "$player" ]; then
+      status="$(playerctl -p "$player" status 2>/dev/null || true)"
+
+      if [ "$status" = "Playing" ]; then
+        artist="$(playerctl -p "$player" metadata artist 2>/dev/null || true)"
+        title="$(playerctl -p "$player" metadata title 2>/dev/null || true)"
+
+        if [ -n "$title" ]; then
+          if [ -n "$artist" ]; then
+            song="$artist - $title"
+          else
+            song="$title"
+          fi
+
+          song="$(shorten "$song" 36)"
+          printf "󰓇 %s\n" "$song"
+          return
+        fi
+      fi
+    fi
+  fi
+
+  # 3) MPD pausado
+  if [ "$mpd_state" = "paused" ] && [ -n "$mpd_song" ]; then
+    song="$(shorten "$mpd_song" 36)"
+    printf "󰏤 %s\n" "$song"
+    return
+  fi
+
+  # 4) ncspot / Spotify pausado
+  if command -v playerctl >/dev/null 2>&1; then
+    player="$(playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify' | head -n1 || true)"
+
+    if [ -n "$player" ]; then
+      status="$(playerctl -p "$player" status 2>/dev/null || true)"
+
+      if [ "$status" = "Paused" ]; then
+        artist="$(playerctl -p "$player" metadata artist 2>/dev/null || true)"
+        title="$(playerctl -p "$player" metadata title 2>/dev/null || true)"
+
+        if [ -n "$title" ]; then
+          if [ -n "$artist" ]; then
+            song="$artist - $title"
+          else
+            song="$title"
+          fi
+
+          song="$(shorten "$song" 36)"
+          printf "󰏤 %s\n" "$song"
+          return
+        fi
+      fi
+    fi
+  fi
+
+  printf "\n"
+}
+
+if [ "${1:-}" = "--watch" ]; then
+  last=""
+  while true; do
+    now="$(current_song)"
+    if [ "$now" != "$last" ]; then
+      printf "%s\n" "$now"
+      last="$now"
+    fi
+    sleep 1
+  done
+else
+  current_song
+fi

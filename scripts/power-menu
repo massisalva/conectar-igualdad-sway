@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -u
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+if [ -z "${SWAYSOCK:-}" ]; then
+  SWAY_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'sway-ipc.*.sock' 2>/dev/null | sort -V | tail -n1)"
+  if [ -n "$SWAY_SOCKET" ]; then
+    export SWAYSOCK="$SWAY_SOCKET"
+  fi
+fi
+
+confirm() {
+  local action="$1"
+
+  choice="$(
+    printf "No\nSí\n" |
+      fuzzel --dmenu --width=28 --lines=2 --prompt="Confirmar $action: "
+  )"
+
+  [ "$choice" = "Sí" ]
+}
+
+choice="$(
+  printf "󰌾  Bloquear\n󰒲  Suspender\n󰜉  Reiniciar\n󰐥  Apagar\n󰗼  Salir de Sway\n────────────\nCancelar\n" |
+    fuzzel --dmenu --width=26 --lines=7 --prompt="Energía: "
+)"
+
+case "$choice" in
+  "󰌾  Bloquear")
+    ~/.local/bin/lock-screen
+    ;;
+
+  "󰒲  Suspender")
+    ~/.local/bin/lock-screen && systemctl suspend
+    ;;
+
+  "󰜉  Reiniciar")
+    confirm "reinicio" && systemctl reboot
+    ;;
+
+  "󰐥  Apagar")
+    confirm "apagado" && systemctl poweroff
+    ;;
+
+  "󰗼  Salir de Sway")
+    confirm "salida de Sway" && swaymsg exit
+    ;;
+
+  *)
+    exit 0
+    ;;
+esac

@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+set -u
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+STATE_DIR="$XDG_RUNTIME_DIR/disk-notify"
+mkdir -p "$STATE_DIR"
+
+notify_disk() {
+  local title="$1"
+  local body="$2"
+
+  notify-send \
+    -a "Discos" \
+    -u normal \
+    -h string:x-canonical-private-synchronous:disk-notify \
+    "$title" \
+    "$body"
+}
+
+is_interesting_disk() {
+  local dev="$1"
+  local type rm tran
+
+  type="$(lsblk -dn -o TYPE "$dev" 2>/dev/null | awk '{print $1}')"
+  rm="$(lsblk -dn -o RM "$dev" 2>/dev/null | awk '{print $1}')"
+  tran="$(lsblk -dn -o TRAN "$dev" 2>/dev/null | awk '{print $1}')"
+
+  [ "$type" = "disk" ] || return 1
+
+  case "$tran:$rm" in
+    usb:*|mmc:*|*:1)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+describe_disk() {
+  local dev="$1"
+  local name size label model tran
+
+  name="$(basename "$dev")"
+  size="$(lsblk -dn -o SIZE "$dev" 2>/dev/null | sed 's/^ *//')"
+  label="$(lsblk -dn -o LABEL "$dev" 2>/dev/null | sed 's/^ *//')"
+  model="$(lsblk -dn -o MODEL "$dev" 2>/dev/null | sed 's/^ *//')"
+  tran="$(lsblk -dn -o TRAN "$dev" 2>/dev/null | sed 's/^ *//')"
+
+  [ -n "$label" ] || label="$model"
+  [ -n "$label" ] || label="$name"
+
+  printf '%s\n%s · %s' "$label" "$dev" "$size"
+}
+
+handle_add() {
+  local dev="$1"
+  local key body
+
+  [ -b "$dev" ] || return 0
+  is_interesting_disk "$dev" || return 0
+
+  key="$(basename "$dev")"
+
+  # Evita repetir avisos del mismo disco durante la misma sesión.
+  if [ -e "$STATE_DIR/$key.added" ]; then
+    return 0
+  fi
+
+  touch "$STATE_DIR/$key.added"
+
+  body="$(describe_disk "$dev")"
+  notify_disk "Disco conectado" "$body"
+}
+
+handle_remove() {
+  local dev="$1"
+  local key
+
+  key="$(basename "$dev")"
+  rm -f "$STATE_DIR/$key.added"
+}
+
+current_action=""
+current_devname=""
+
+udevadm monitor --udev --subsystem-match=block --property |
+while IFS= read -r line; do
+  case "$line" in
+    ACTION=*)
+      current_action="${line#ACTION=}"
+      ;;
+    DEVNAME=*)
+      current_devname="${line#DEVNAME=}"
+      ;;
+    "")
+      case "$current_action" in
+        add)
+          handle_add "$current_devname"
+          ;;
+        remove)
+          handle_remove "$current_devname"
+          ;;
+      esac
+
+      current_action=""
+      current_devname=""
+      ;;
+  esac
+done

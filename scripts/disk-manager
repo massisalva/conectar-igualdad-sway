@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+
+set -u
+
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_TYPE=wayland
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  WAYLAND_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' | head -n1)"
+  if [ -n "$WAYLAND_SOCKET" ]; then
+    export WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+  fi
+fi
+
+if [ -z "${SWAYSOCK:-}" ]; then
+  SWAY_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'sway-ipc.*.sock' | head -n1)"
+  if [ -n "$SWAY_SOCKET" ]; then
+    export SWAYSOCK="$SWAY_SOCKET"
+  fi
+fi
+
+MAP="$(mktemp)"
+MENU="$(mktemp)"
+
+cleanup() {
+  rm -f "$MAP" "$MENU"
+}
+trap cleanup EXIT
+
+declare -A SEEN
+
+notify_info() {
+  notify-send "Discos" "$1"
+}
+
+add_item() {
+  local text="$1"
+  local action="$2"
+  local dev="$3"
+  local mountpoint="$4"
+  local disk="$5"
+  local fstype="$6"
+
+  local id
+  id=$(($(wc -l < "$MAP") + 1))
+
+  printf '%s|%s|%s|%s|%s|%s\n' "$id" "$action" "$dev" "$mountpoint" "$disk" "$fstype" >> "$MAP"
+  printf '%s) %s\n' "$id" "$text" >> "$MENU"
+}
+
+while IFS=$'\t' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME; do
+  [ "$TYPE" = "part" ] || continue
+  [ -n "$FSTYPE" ] || continue
+
+  case "$NAME" in
+    /dev/sda*) continue ;;
+    /dev/zram*) continue ;;
+    /dev/loop*) continue ;;
+  esac
+
+  [ -n "${SEEN[$NAME]:-}" ] && continue
+  SEEN[$NAME]=1
+
+  LABEL_DISPLAY="${LABEL:-Sin etiqueta}"
+  MOUNTED="$(findmnt -rn -S "$NAME" -o TARGET | head -n1)"
+
+  if [ -n "$PKNAME" ]; then
+    DISK="$PKNAME"
+  else
+    DISK="/dev/$(lsblk -no PKNAME "$NAME" 2>/dev/null | head -n1)"
+  fi
+
+  if [ -z "$DISK" ] || [ "$DISK" = "/dev/" ]; then
+    DISK="$NAME"
+  fi
+
+  if [ -n "$MOUNTED" ]; then
+    add_item "󰉋  Abrir en yazi | $LABEL_DISPLAY" "open" "$NAME" "$MOUNTED" "$DISK" "$FSTYPE"
+    add_item "󰍛  Desmontar | $LABEL_DISPLAY" "unmount" "$NAME" "$MOUNTED" "$DISK" "$FSTYPE"
+    add_item "󰓆  Expulsar | $LABEL_DISPLAY" "poweroff" "$NAME" "$MOUNTED" "$DISK" "$FSTYPE"
+  else
+    add_item "󰋊  Montar | $LABEL_DISPLAY" "mount" "$NAME" "" "$DISK" "$FSTYPE"
+    add_item "󰋊  Montar solo lectura | $LABEL_DISPLAY" "mount_ro" "$NAME" "" "$DISK" "$FSTYPE"
+    add_item "󰓆  Expulsar | $LABEL_DISPLAY" "poweroff" "$NAME" "" "$DISK" "$FSTYPE"
+  fi
+done < <(
+  lsblk -J -p -o NAME,TYPE,FSTYPE,LABEL,MOUNTPOINT,PKNAME |
+  python -c '
+import json, sys
+
+data = json.load(sys.stdin)
+
+def walk(nodes):
+    for n in nodes:
+        print(
+            n.get("name") or "",
+            n.get("type") or "",
+            n.get("fstype") or "",
+            n.get("label") or "",
+            n.get("mountpoint") or "",
+            n.get("pkname") or "",
+            sep="\t"
+        )
+        walk(n.get("children") or [])
+
+walk(data.get("blockdevices") or [])
+'
+)
+
+if [ ! -s "$MENU" ]; then
+  notify_info "No hay discos externos conectados"
+  exit 0
+fi
+
+if [ "${DISK_MANAGER_DRY_RUN:-0}" = "1" ]; then
+  cat "$MENU"
+  exit 0
+fi
+
+CHOICE="$(cat "$MENU" | fuzzel --dmenu --width=42 --lines=8 --prompt="Discos: ")"
+[ -z "$CHOICE" ] && exit 0
+
+ID="$(echo "$CHOICE" | cut -d')' -f1)"
+ENTRY="$(awk -F'|' -v id="$ID" '$1 == id {print; exit}' "$MAP")"
+
+[ -z "$ENTRY" ] && exit 1
+
+ACTION="$(echo "$ENTRY" | awk -F'|' '{print $2}')"
+DEV="$(echo "$ENTRY" | awk -F'|' '{print $3}')"
+MOUNTPOINT="$(echo "$ENTRY" | awk -F'|' '{print $4}')"
+DISK="$(echo "$ENTRY" | awk -F'|' '{print $5}')"
+FSTYPE="$(echo "$ENTRY" | awk -F'|' '{print $6}')"
+
+case "$ACTION" in
+  open)
+    foot -e yazi "$MOUNTPOINT"
+    ;;
+
+  mount)
+    if udisksctl mount -b "$DEV"; then
+      notify_info "Disco montado"
+    else
+      notify_info "No pude montar el disco"
+    fi
+    ;;
+
+  mount_ro)
+    SAFE_NAME="$(basename "$DEV")"
+    RO_DIR="$HOME/mnt-$SAFE_NAME"
+    mkdir -p "$RO_DIR"
+
+    if [ "$FSTYPE" = "ntfs" ] || [ "$FSTYPE" = "ntfs3" ]; then
+      if sudo ntfs-3g -o ro "$DEV" "$RO_DIR"; then
+        notify_info "Montado solo lectura"
+        foot -e yazi "$RO_DIR"
+      else
+        notify_info "No pude montar solo lectura"
+      fi
+    else
+      if sudo mount -o ro "$DEV" "$RO_DIR"; then
+        notify_info "Montado solo lectura"
+        foot -e yazi "$RO_DIR"
+      else
+        notify_info "No pude montar solo lectura"
+      fi
+    fi
+    ;;
+
+  unmount)
+    if udisksctl unmount -b "$DEV" 2>/dev/null || sudo umount "$MOUNTPOINT"; then
+      notify_info "Disco desmontado"
+    else
+      notify_info "No pude desmontar"
+    fi
+    ;;
+
+  poweroff)
+    if findmnt -rn -S "$DEV" >/dev/null; then
+      udisksctl unmount -b "$DEV" 2>/dev/null || sudo umount "$MOUNTPOINT"
+    fi
+
+    if udisksctl power-off -b "$DISK"; then
+      notify_info "Disco expulsado. Ya podés desconectarlo."
+    else
+      notify_info "No pude expulsar el disco"
+    fi
+    ;;
+esac

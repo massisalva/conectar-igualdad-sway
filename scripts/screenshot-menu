@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-sway}"
+export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
+if [ -z "${SWAYSOCK:-}" ]; then
+  SWAY_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'sway-ipc.*.sock' 2>/dev/null | sort -V | tail -n1)"
+  [ -n "$SWAY_SOCKET" ] && export SWAYSOCK="$SWAY_SOCKET"
+fi
+
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  if [ -S "$XDG_RUNTIME_DIR/wayland-1" ]; then
+    export WAYLAND_DISPLAY="wayland-1"
+  else
+    WAYLAND_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' 2>/dev/null | head -n1)"
+    [ -n "$WAYLAND_SOCKET" ] && export WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+  fi
+fi
+
+DIR="$HOME/Imágenes/Capturas"
+mkdir -p "$DIR"
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+file="$DIR/captura-$timestamp.png"
+
+notify_ok() {
+  notify-send -t 2500 "󰹑 Captura guardada" "$1"
+}
+
+notify_clip() {
+  notify-send -t 2500 "󰅍 Captura copiada" "$1"
+}
+
+notify_cancel() {
+  notify-send -t 1200 "Captura" "Cancelada"
+}
+
+focused_geometry() {
+  swaymsg -t get_tree | python -c '
+import json, sys
+
+tree = json.load(sys.stdin)
+
+def walk(node):
+    if node.get("focused"):
+        return node
+    for child in node.get("nodes", []) + node.get("floating_nodes", []):
+        found = walk(child)
+        if found:
+            return found
+    return None
+
+node = walk(tree)
+if not node:
+    sys.exit(1)
+
+rect = node.get("rect", {})
+x = rect.get("x", 0)
+y = rect.get("y", 0)
+w = rect.get("width", 0)
+h = rect.get("height", 0)
+
+if w <= 0 or h <= 0:
+    sys.exit(1)
+
+print(f"{x},{y} {w}x{h}")
+'
+}
+
+choose_mode() {
+  printf "󰍹  Pantalla completa\n󰩭  Seleccionar región\n󰖲  Ventana enfocada\n󰅍  Copiar pantalla completa\n󰅍  Copiar región\nCancelar\n" |
+    fuzzel --dmenu --width=34 --lines=6 --prompt="Captura: "
+}
+
+mode="${1:-}"
+
+if [ -z "$mode" ]; then
+  choice="$(choose_mode)"
+
+  case "$choice" in
+    "󰍹  Pantalla completa") mode="full" ;;
+    "󰩭  Seleccionar región") mode="region" ;;
+    "󰖲  Ventana enfocada") mode="window" ;;
+    "󰅍  Copiar pantalla completa") mode="full-copy" ;;
+    "󰅍  Copiar región") mode="region-copy" ;;
+    *) exit 0 ;;
+  esac
+fi
+
+case "$mode" in
+  full)
+    grim "$file"
+    notify_ok "$file"
+    ;;
+
+  region)
+    geometry="$(slurp || true)"
+    [ -n "$geometry" ] || { notify_cancel; exit 0; }
+    grim -g "$geometry" "$file"
+    notify_ok "$file"
+    ;;
+
+  window)
+    geometry="$(focused_geometry || true)"
+    [ -n "$geometry" ] || { notify-send -t 2000 "Captura" "No pude detectar la ventana enfocada"; exit 1; }
+    grim -g "$geometry" "$file"
+    notify_ok "$file"
+    ;;
+
+  full-copy)
+    grim - | wl-copy
+    notify_clip "Pantalla completa"
+    ;;
+
+  region-copy)
+    geometry="$(slurp || true)"
+    [ -n "$geometry" ] || { notify_cancel; exit 0; }
+    grim -g "$geometry" - | wl-copy
+    notify_clip "Región seleccionada"
+    ;;
+
+  *)
+    notify-send -t 2500 "Captura" "Modo no reconocido: $mode"
+    exit 1
+    ;;
+esac

@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+info="$(
+  lsblk -J -p -o NAME,TYPE,FSTYPE,LABEL,MOUNTPOINT,TRAN,MODEL |
+  python -c '
+import json, sys, os
+
+data = json.load(sys.stdin)
+
+has_usb = False
+has_mounted_usb = False
+label = ""
+fstype = ""
+mount = ""
+
+def walk(nodes, parent_usb=False, parent_model=""):
+    global has_usb, has_mounted_usb, label, fstype, mount
+
+    for n in nodes:
+        typ = n.get("type") or ""
+        tran = n.get("tran") or ""
+        model = n.get("model") or parent_model
+        is_usb = parent_usb or tran == "usb"
+
+        if is_usb and typ == "disk":
+            has_usb = True
+            if not label:
+                label = model or os.path.basename(n.get("name") or "Dispositivo USB")
+
+        if is_usb and typ == "part":
+            part_fstype = n.get("fstype") or ""
+            part_mount = n.get("mountpoint") or ""
+            part_label = n.get("label") or ""
+
+            has_usb = True
+
+            if part_label:
+                label = part_label
+            elif not label:
+                label = os.path.basename(n.get("name") or "Dispositivo USB")
+
+            if part_fstype:
+                fstype = part_fstype
+
+            if part_mount:
+                has_mounted_usb = True
+                mount = part_mount
+
+        walk(n.get("children") or [], is_usb, model)
+
+walk(data.get("blockdevices") or [])
+
+if has_mounted_usb:
+    print("mounted|" + (label or "Dispositivo USB") + "|" + fstype + "|" + mount)
+elif has_usb:
+    print("connected|" + (label or "Dispositivo USB") + "|" + fstype + "|")
+else:
+    print("idle|||")
+'
+)"
+
+state="$(printf '%s' "$info" | cut -d'|' -f1)"
+label="$(printf '%s' "$info" | cut -d'|' -f2)"
+fstype="$(printf '%s' "$info" | cut -d'|' -f3)"
+mount="$(printf '%s' "$info" | cut -d'|' -f4)"
+
+case "$state" in
+  mounted)
+    printf '{"text":"󰋊","tooltip":"Disco externo montado: %s\\nPunto: %s\\nClick para gestionar discos","class":"mounted"}\n' "$label" "$mount"
+    ;;
+  connected)
+    if [ -n "$fstype" ]; then
+      printf '{"text":"󰋊","tooltip":"Disco externo conectado sin montar: %s\\nSistema: %s\\nClick para montar o expulsar","class":"connected"}\n' "$label" "$fstype"
+    else
+      printf '{"text":"󰋊","tooltip":"Disco externo conectado sin montar: %s\\nClick para montar o expulsar","class":"connected"}\n' "$label"
+    fi
+    ;;
+  *)
+    printf '{"text":"󰋊","tooltip":"Gestor de discos","class":"idle"}\n'
+    ;;
+esac
