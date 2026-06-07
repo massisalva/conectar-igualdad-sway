@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+exec foot \
+  --app-id foot-radio \
+  --title "Radio Argentina" \
+  --window-size-chars=90x28 \
+  -e pyradio -s "$HOME/.config/pyradio/playlists/argentina.csv"

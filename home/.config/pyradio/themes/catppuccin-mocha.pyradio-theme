@@ -1,0 +1,21 @@
+# Catppuccin Mocha para PyRadio
+# base: #1e1e2e
+# text: #cdd6f4
+# mauve: #cba6f7
+# blue: #89b4fa
+# green: #a6e3a1
+# yellow: #f9e2af
+# red: #f38ba8
+# surface: #313244
+
+Stations            #cdd6f4 #1e1e2e
+Active Station      #a6e3a1 #1e1e2e
+Status Bar          #1e1e2e #cba6f7
+Normal Cursor       #1e1e2e #89b4fa
+Active Cursor       #1e1e2e #a6e3a1
+Edit Cursor         #1e1e2e #f9e2af
+Extra Func          #f9e2af #1e1e2e
+PyRadio URL         #89b4fa #1e1e2e
+Messages Border     #cba6f7 #1e1e2e
+Window Border       #cba6f7 #1e1e2e
+Search Border       #89b4fa #1e1e2e
