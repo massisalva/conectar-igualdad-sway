@@ -65,21 +65,25 @@ active_source() {
   printf 'mpd\n'
 }
 
-app_is_open() {
-  local app_id="$1"
-
+app_is_open_any() {
   command -v swaymsg >/dev/null 2>&1 || return 1
   [ -n "${SWAYSOCK:-}" ] || return 1
 
   swaymsg -t get_tree 2>/dev/null | python -c '
 import json, sys
 
-target = sys.argv[1]
+targets = set(sys.argv[1:])
 tree = json.load(sys.stdin)
 
 def walk(node):
-    app_id = node.get("app_id") or node.get("window_properties", {}).get("class")
-    if app_id == target:
+    props = node.get("window_properties") or {}
+    candidates = {
+        node.get("app_id"),
+        props.get("class"),
+        props.get("instance"),
+        node.get("name"),
+    }
+    if any(value in targets for value in candidates if value):
         return True
     for child in node.get("nodes", []) + node.get("floating_nodes", []):
         if walk(child):
@@ -87,15 +91,30 @@ def walk(node):
     return False
 
 sys.exit(0 if walk(tree) else 1)
-' "$app_id"
+' "$@"
+}
+
+focus_window_any() {
+  local target
+  local criteria=()
+  local joined
+
+  for target in "$@"; do
+    criteria+=("[app_id=\"$target\"]")
+    criteria+=("[class=\"$target\"]")
+    criteria+=("[instance=\"$target\"]")
+  done
+
+  joined="$(IFS=,; printf '%s' "${criteria[*]}")"
+  swaymsg "${joined} focus" >/dev/null 2>&1
 }
 
 focus_or_exec() {
   local app_id="$1"
   shift
 
-  if app_is_open "$app_id"; then
-    swaymsg "[app_id=\"$app_id\"] focus" >/dev/null 2>&1 && exit 0
+  if app_is_open_any "$app_id"; then
+    focus_window_any "$app_id" && exit 0
   fi
 
   "$@" >/dev/null 2>&1 &
@@ -116,6 +135,10 @@ open_active() {
       focus_or_exec ncspot-music foot --app-id ncspot-music -e ncspot
       ;;
     player:*spotify*)
+      if app_is_open_any spotify Spotify spotify-client spotifyd; then
+        focus_window_any spotify Spotify spotify-client spotifyd && exit 0
+      fi
+
       if command -v spotify >/dev/null 2>&1; then
         spotify >/dev/null 2>&1 &
       else
