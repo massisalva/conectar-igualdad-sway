@@ -126,13 +126,13 @@ open_active() {
 
   case "$source" in
     radio)
-      focus_or_exec pyradio-music foot --app-id pyradio-music -e pyradio
+      focus_or_exec foot-music foot --app-id foot-music -e pyradio
       ;;
     mpd)
       focus_or_exec foot-music foot --app-id foot-music -e ncmpcpp
       ;;
     player:*ncspot*)
-      focus_or_exec ncspot-music foot --app-id ncspot-music -e ncspot
+      focus_or_exec foot-music foot --app-id foot-music -e ncspot
       ;;
     player:*spotify*)
       if app_is_open_any spotify Spotify spotify-client spotifyd; then
