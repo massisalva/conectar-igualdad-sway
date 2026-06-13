@@ -286,21 +286,29 @@ Opciones relevantes:
 
 - quiet
 - loglevel=3
-- i915.stolen_reserved_size=0
+
+Estado post-reinicio:
+
+- Cmdline efectiva: `root=UUID=f0a05552-b72c-4acb-b5f5-385c81612743 rw quiet loglevel=3`.
+- GPU: Intel GeminiLake UHD Graphics 600 `[8086:3185]`, driver en uso: `i915`.
+- Kernel: `7.0.11-zen1-1-zen`.
+- i915 inicializa correctamente, carga `i915/glk_dmc_ver1_04.bin`, registra framebuffer `i915drmfb` y queda activo.
+- Persisten estos mensajes de firmware/BIOS: `Unknown revision 0x06`, `Unknown revid 0x06`, `conflict detected with stolen region: [mem 0x7c000000-0x7fffffff]`, `couldn't get memory information`, `RC6 and powersaving disabled by BIOS`.
+- `modinfo i915` no lista `stolen_reserved_size` como parámetro disponible en este kernel; no se deja `i915.stolen_reserved_size=0` en la cmdline.
+- Se considera warning conocido de firmware/BIOS en este equipo mientras no haya síntomas: la computadora funciona correctamente y no vale la pena insistir con más parámetros de kernel.
+
+Verificación gráfica post-reinicio:
+
+- Sway, Waybar, Mako, swayidle, PipeWire, WirePlumber y PipeWire-Pulse quedan corriendo en la sesión local.
+- DRM expone `card1` y `renderD128` sobre `0000:00:02.0`.
+- Panel interno `eDP-1`: `connected`, `enabled`, modo `1366x768`.
+- HDMI `HDMI-A-1`: `disconnected`, `disabled`.
+- No aparecen mensajes de `flip`, `atomic`, `hang`, `reset`, `stuck`, `timeout`, `vblank` ni errores wlroots/Sway asociados a i915 en el journal del boot.
 
 ## Pendientes menores para pulido final
 
 - Probar preferencia Bluetooth de audio conectando JBL/LG.
-- Revisar warnings menores: i915 stolen region, Bluetooth default system config hci0, NetworkManager p2p-dev-wlo2.
-- Decidir si se limpian backups locales fuera del repo.
-
-## Backups de auditoría
-
-Durante la auditoría se creó un backup local de disk-manager:
-
-- backups/2026-06-13-disk-manager/
-
-Ese directorio está ignorado por Git mediante backups/.
+- Revisar warnings menores: Bluetooth default system config hci0, NetworkManager p2p-dev-wlo2.
 
 ## Ajuste final disk-notify
 
