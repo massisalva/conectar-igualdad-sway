@@ -1,0 +1,3 @@
+# OneDrive Linux Client
+# Keep authentication tokens and sync databases out of this repository.
+threads = "2"

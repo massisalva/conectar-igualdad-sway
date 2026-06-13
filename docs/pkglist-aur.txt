@@ -1,4 +1,5 @@
 1password
 lexend-fonts-git
+onedrive-abraunegg
 pyradio
 yay

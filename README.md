@@ -42,6 +42,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
 - Yazi con Catppuccin Mocha, plugins oficiales y previews completas.
 - Carpetas XDG del usuario registradas en español.
+- OneDrive con cliente `onedrive-abraunegg` y configuración local segura.
 
 ## Restauración
 
@@ -84,6 +85,29 @@ Para permitir que la verificación pida contraseña de sudo y compare archivos p
 
 ```sh
 ./check.sh --system --sudo
+```
+
+## OneDrive
+
+La configuración versionada en `home/.config/onedrive/config` solo ajusta opciones seguras del cliente. No se versionan tokens, bases SQLite ni credenciales.
+
+Después de restaurar, vincular la cuenta:
+
+```sh
+onedrive
+```
+
+Habilitar sincronización automática:
+
+```sh
+systemctl --user enable --now onedrive.service
+```
+
+Consultar el estado:
+
+```sh
+systemctl --user status onedrive.service
+journalctl --user -u onedrive.service -f
 ```
 
 ## Notas
