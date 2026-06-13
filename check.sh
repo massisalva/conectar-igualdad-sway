@@ -90,6 +90,52 @@ check_same_file() {
   fi
 }
 
+check_same_system_file() {
+  local repo_file="$1"
+  local active_file="$2"
+  local severity="${3:-warn}"
+
+  if [ ! -f "$repo_file" ]; then
+    if [ "$severity" = "warn" ]; then
+      warn "falta en repo: $repo_file"
+    else
+      fail "falta en repo: $repo_file"
+    fi
+    return
+  fi
+
+  if [ -f "$active_file" ]; then
+    check_same_file "$repo_file" "$active_file" "$severity"
+    return
+  fi
+
+  if ! sudo -n true 2>/dev/null; then
+    if [ "$severity" = "warn" ]; then
+      warn "no puedo verificar sin sudo: $active_file"
+    else
+      fail "no puedo verificar sin sudo: $active_file"
+    fi
+    return
+  fi
+
+  if ! sudo -n test -f "$active_file" 2>/dev/null; then
+    if [ "$severity" = "warn" ]; then
+      warn "falta activo: $active_file"
+    else
+      fail "falta activo: $active_file"
+    fi
+    return
+  fi
+
+  if sudo -n cmp -s "$repo_file" "$active_file" 2>/dev/null; then
+    ok "coincide: $active_file"
+  elif [ "$severity" = "warn" ]; then
+    warn "difiere de repo: $active_file"
+  else
+    fail "difiere de repo: $active_file"
+  fi
+}
+
 check_packages() {
   local label="$1"
   local file="$2"
@@ -167,7 +213,7 @@ check_polkit() {
 
   for file in "$ROOT_DIR"/polkit/*.rules; do
     [ -f "$file" ] || continue
-    check_same_file "$file" "/etc/polkit-1/rules.d/$(basename "$file")" "$severity"
+    check_same_system_file "$file" "/etc/polkit-1/rules.d/$(basename "$file")" "$severity"
   done
 }
 
@@ -175,8 +221,8 @@ check_bootloader() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
 
-  check_same_file "$ROOT_DIR/bootloader/loader.conf" /boot/loader/loader.conf "$severity"
-  check_same_file "$ROOT_DIR/bootloader/arch.conf" /boot/loader/entries/arch.conf "$severity"
+  check_same_system_file "$ROOT_DIR/bootloader/loader.conf" /boot/loader/loader.conf "$severity"
+  check_same_system_file "$ROOT_DIR/bootloader/arch.conf" /boot/loader/entries/arch.conf "$severity"
 }
 
 check_xdg_dirs() {
