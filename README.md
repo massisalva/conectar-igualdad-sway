@@ -30,13 +30,16 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Waybar con módulos de música, discos, CPU, memoria, Bluetooth, red, audio, brillo, batería y energía.
 - Menús flotantes con foot y fuzzel.
 - Notificaciones con mako.
-- Manejo de discos externos con disk-manager, disk-status y disk-notify.
+- Manejo de dispositivos externos/removibles con disk-manager, disk-status y disk-notify.
 - Power menu con bloqueo, suspensión, reinicio, apagado y salida de Sway.
 - Reglas polkit para discos y energía local.
 - systemd-boot ajustado con console-mode max.
+- Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
 
 ## Notas
 
 Esta configuración está pensada para uso personal en la netbook conectar-igualdad.
 
 No incluye backups, claves privadas, tokens ni archivos sensibles.
+
+Los backups manuales de auditoría se guardan fuera del historial Git y están ignorados mediante `backups/`.

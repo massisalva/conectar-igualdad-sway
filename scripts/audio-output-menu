@@ -4,9 +4,16 @@ set -euo pipefail
 
 notify() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send "Audio" "$1"
+    notify-send "Audio" "$1" 2>/dev/null || true
   fi
 }
+
+for cmd in pactl wpctl fuzzel; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    notify "No encontré $cmd"
+    exit 1
+  fi
+done
 
 mapfile -t sinks < <(
   pactl list short sinks | awk -F '\t' '{print $1 "\t" $2}'

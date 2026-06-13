@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+notify_info() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Batería" "$1" 2>/dev/null || true
+  fi
+}
+
+if ! command -v foot >/dev/null 2>&1; then
+  notify_info "No encontré foot"
+  exit 1
+fi
+
 exec foot \
   --app-id battery-floating \
   --title "Batería" \

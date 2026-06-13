@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
+set -u
+
 export XDG_CURRENT_DESKTOP=sway
 export XDG_SESSION_TYPE=wayland
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
+LOG_DIR="$HOME/.cache"
+LOG="$LOG_DIR/start-idle.log"
+mkdir -p "$LOG_DIR"
 
 # Permite ejecutar este script también desde SSH:
 # si no existen las variables gráficas, las reconstruye desde los sockets activos.
@@ -21,7 +27,16 @@ if [ -z "${SWAYSOCK:-}" ]; then
   fi
 fi
 
-pkill -x swayidle 2>/dev/null || true
+log() {
+  printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$LOG"
+}
+
+if [ -z "${WAYLAND_DISPLAY:-}" ] || [ -z "${SWAYSOCK:-}" ]; then
+  log "No pude encontrar WAYLAND_DISPLAY o SWAYSOCK; no inicio swayidle"
+  exit 1
+fi
+
+pkill -f 'swayidle -w timeout 600 .*/lock-screen timeout 660 swaymsg "output \* dpms off"' 2>/dev/null || true
 
 swayidle -w \
   timeout 600 "$HOME/.local/bin/lock-screen" \

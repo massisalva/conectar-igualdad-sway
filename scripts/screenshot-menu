@@ -21,6 +21,24 @@ if [ -z "${WAYLAND_DISPLAY:-}" ]; then
   fi
 fi
 
+notify_info() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -t "${2:-2500}" "Captura" "$1" 2>/dev/null || true
+  fi
+}
+
+for cmd in grim swaymsg python; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    notify_info "No encontré $cmd"
+    exit 1
+  fi
+done
+
+if [ -z "${WAYLAND_DISPLAY:-}" ] || [ -z "${SWAYSOCK:-}" ]; then
+  notify_info "No pude encontrar la sesión gráfica"
+  exit 1
+fi
+
 DIR="$HOME/Imágenes/Capturas"
 mkdir -p "$DIR"
 
@@ -28,15 +46,15 @@ timestamp="$(date +%Y%m%d-%H%M%S)"
 file="$DIR/captura-$timestamp.png"
 
 notify_ok() {
-  notify-send -t 2500 "󰹑 Captura guardada" "$1"
+  notify_info "Guardada: $1" 2500
 }
 
 notify_clip() {
-  notify-send -t 2500 "󰅍 Captura copiada" "$1"
+  notify_info "Copiada: $1" 2500
 }
 
 notify_cancel() {
-  notify-send -t 1200 "Captura" "Cancelada"
+  notify_info "Cancelada" 1200
 }
 
 focused_geometry() {
@@ -72,6 +90,11 @@ print(f"{x},{y} {w}x{h}")
 }
 
 choose_mode() {
+  if ! command -v fuzzel >/dev/null 2>&1; then
+    notify_info "No encontré fuzzel"
+    exit 1
+  fi
+
   printf "󰍹  Pantalla completa\n󰩭  Seleccionar región\n󰖲  Ventana enfocada\n󰅍  Copiar pantalla completa\n󰅍  Copiar región\nCancelar\n" |
     fuzzel --dmenu --width=34 --lines=6 --prompt="Captura: "
 }
@@ -98,6 +121,10 @@ case "$mode" in
     ;;
 
   region)
+    if ! command -v slurp >/dev/null 2>&1; then
+      notify_info "No encontré slurp"
+      exit 1
+    fi
     geometry="$(slurp || true)"
     [ -n "$geometry" ] || { notify_cancel; exit 0; }
     grim -g "$geometry" "$file"
@@ -106,17 +133,27 @@ case "$mode" in
 
   window)
     geometry="$(focused_geometry || true)"
-    [ -n "$geometry" ] || { notify-send -t 2000 "Captura" "No pude detectar la ventana enfocada"; exit 1; }
+    [ -n "$geometry" ] || { notify_info "No pude detectar la ventana enfocada" 2000; exit 1; }
     grim -g "$geometry" "$file"
     notify_ok "$file"
     ;;
 
   full-copy)
+    if ! command -v wl-copy >/dev/null 2>&1; then
+      notify_info "No encontré wl-copy"
+      exit 1
+    fi
     grim - | wl-copy
     notify_clip "Pantalla completa"
     ;;
 
   region-copy)
+    for cmd in slurp wl-copy; do
+      if ! command -v "$cmd" >/dev/null 2>&1; then
+        notify_info "No encontré $cmd"
+        exit 1
+      fi
+    done
     geometry="$(slurp || true)"
     [ -n "$geometry" ] || { notify_cancel; exit 0; }
     grim -g "$geometry" - | wl-copy
@@ -124,7 +161,7 @@ case "$mode" in
     ;;
 
   *)
-    notify-send -t 2500 "Captura" "Modo no reconocido: $mode"
+    notify_info "Modo no reconocido: $mode" 2500
     exit 1
     ;;
 esac

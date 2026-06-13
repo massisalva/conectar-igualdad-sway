@@ -32,7 +32,9 @@ trap cleanup EXIT
 declare -A SEEN
 
 notify_info() {
-  notify-send "Discos" "$1"
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Discos" "$1" 2>/dev/null || true
+  fi
 }
 
 add_item() {
@@ -50,14 +52,21 @@ add_item() {
   printf '%s) %s\n' "$id" "$text" >> "$MENU"
 }
 
-while IFS=$'\t' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME; do
+while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM; do
   [ "$TYPE" = "part" ] || continue
   [ -n "$FSTYPE" ] || continue
 
+  case "$MOUNTPOINT" in
+    /|/boot|/boot/*|"[SWAP]") continue ;;
+  esac
+
   case "$NAME" in
-    /dev/sda*) continue ;;
-    /dev/zram*) continue ;;
-    /dev/loop*) continue ;;
+    /dev/zram*|/dev/loop*) continue ;;
+  esac
+
+  case "$TRAN:$RM" in
+    usb:*|mmc:*|*:1) ;;
+    *) continue ;;
   esac
 
   [ -n "${SEEN[$NAME]:-}" ] && continue
@@ -86,14 +95,19 @@ while IFS=$'\t' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME; do
     add_item "󰓆  Expulsar | $LABEL_DISPLAY" "poweroff" "$NAME" "" "$DISK" "$FSTYPE"
   fi
 done < <(
-  lsblk -J -p -o NAME,TYPE,FSTYPE,LABEL,MOUNTPOINT,PKNAME |
+  lsblk -J -p -o NAME,TYPE,FSTYPE,LABEL,MOUNTPOINT,PKNAME,TRAN,RM |
   python -c '
 import json, sys
 
 data = json.load(sys.stdin)
 
-def walk(nodes):
+def walk(nodes, parent_tran="", parent_rm=""):
     for n in nodes:
+        tran = n.get("tran") or parent_tran
+        rm = n.get("rm")
+        if rm is None:
+            rm = parent_rm
+
         print(
             n.get("name") or "",
             n.get("type") or "",
@@ -101,9 +115,11 @@ def walk(nodes):
             n.get("label") or "",
             n.get("mountpoint") or "",
             n.get("pkname") or "",
-            sep="\t"
+            tran or "",
+            "1" if rm is True or rm == "1" else "0",
+            sep="\x1f"
         )
-        walk(n.get("children") or [])
+        walk(n.get("children") or [], tran, rm)
 
 walk(data.get("blockdevices") or [])
 '
@@ -147,29 +163,17 @@ case "$ACTION" in
     ;;
 
   mount_ro)
-    SAFE_NAME="$(basename "$DEV")"
-    RO_DIR="$HOME/mnt-$SAFE_NAME"
-    mkdir -p "$RO_DIR"
-
-    if [ "$FSTYPE" = "ntfs" ] || [ "$FSTYPE" = "ntfs3" ]; then
-      if sudo ntfs-3g -o ro "$DEV" "$RO_DIR"; then
-        notify_info "Montado solo lectura"
-        foot -e yazi "$RO_DIR"
-      else
-        notify_info "No pude montar solo lectura"
-      fi
+    if udisksctl mount -b "$DEV" --options ro; then
+      MOUNTED="$(findmnt -rn -S "$DEV" -o TARGET | head -n1)"
+      notify_info "Montado solo lectura"
+      [ -n "$MOUNTED" ] && foot -e yazi "$MOUNTED"
     else
-      if sudo mount -o ro "$DEV" "$RO_DIR"; then
-        notify_info "Montado solo lectura"
-        foot -e yazi "$RO_DIR"
-      else
-        notify_info "No pude montar solo lectura"
-      fi
+      notify_info "No pude montar solo lectura"
     fi
     ;;
 
   unmount)
-    if udisksctl unmount -b "$DEV" 2>/dev/null || sudo umount "$MOUNTPOINT"; then
+    if udisksctl unmount -b "$DEV"; then
       notify_info "Disco desmontado"
     else
       notify_info "No pude desmontar"
@@ -178,7 +182,10 @@ case "$ACTION" in
 
   poweroff)
     if findmnt -rn -S "$DEV" >/dev/null; then
-      udisksctl unmount -b "$DEV" 2>/dev/null || sudo umount "$MOUNTPOINT"
+      if ! udisksctl unmount -b "$DEV"; then
+        notify_info "No pude desmontar antes de expulsar"
+        exit 1
+      fi
     fi
 
     if udisksctl power-off -b "$DISK"; then

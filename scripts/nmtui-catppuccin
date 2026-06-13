@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+notify_info() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Redes" "$1" 2>/dev/null || true
+  fi
+}
+
+if ! command -v nmtui >/dev/null 2>&1; then
+  notify_info "No encontré nmtui"
+  exit 1
+fi
+
 export NEWT_COLORS='
 root=white,black
 roottext=white,black

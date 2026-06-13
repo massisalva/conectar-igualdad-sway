@@ -86,7 +86,13 @@ Acciones:
 - Salir de Sway
 - Cancelar
 
-Reiniciar, apagar y salir de Sway piden confirmación en fuzzel.
+Suspender, reiniciar, apagar y salir de Sway piden confirmación en fuzzel.
+
+Estado post-auditoría:
+
+- power-menu notifica fallos de bloqueo, suspensión, reinicio, apagado o salida de Sway.
+- start-idle valida entorno Wayland/Sway antes de lanzar swayidle.
+- start-idle limita el reinicio de swayidle al perfil gestionado por este script.
 
 ## Polkit energía
 
@@ -126,6 +132,10 @@ Estado:
 - Waybar cambia color según estado de disco.
 - disk-manager usa lsblk -J + Python.
 - Soporta etiquetas con espacios.
+- disk-manager no usa sudo; monta, desmonta y expulsa con udisksctl.
+- disk-manager lista USB, MMC y dispositivos removibles; excluye /, /boot, /boot/*, [SWAP], zram y loop.
+- disk-status usa el mismo criterio de USB/MMC/removible que disk-manager.
+- disk-notify tolera fallos de notify-send sin cortar el monitor.
 - udiskie corre sin automount y sin notificaciones propias.
 
 ## Audio
@@ -140,6 +150,8 @@ Estado:
 - PipeWire / PipeWire-Pulse / WirePlumber funcionando.
 - Click izquierdo: pulsemixer flotante.
 - Click derecho: selector de salida con fuzzel.
+- audio-menu y audio-output-menu validan dependencias antes de ejecutar.
+- WirePlumber conserva preferencia persistente por salidas Bluetooth conocidas cuando están disponibles.
 
 ## Bluetooth
 
@@ -149,6 +161,12 @@ Script:
 
 Usa bluetui dentro de foot flotante.
 
+Estado:
+
+- bluetooth-menu valida foot y bluetui antes de ejecutar.
+- bluetooth.service activo.
+- Controlador hci0 encendido y sin rfkill.
+
 ## Red
 
 Scripts:
@@ -157,6 +175,12 @@ Scripts:
 - ~/.local/bin/nmtui-catppuccin
 
 Usa nmtui dentro de foot flotante.
+
+Estado:
+
+- network-menu valida foot y nmtui-catppuccin antes de ejecutar.
+- nmtui-catppuccin valida nmtui antes de ejecutar.
+- NetworkManager activo.
 
 ## Capturas
 
@@ -181,6 +205,12 @@ Usa:
 - fuzzel
 - notify-send
 
+Estado:
+
+- screenshot-menu valida dependencias según el modo usado.
+- screenshot-menu valida WAYLAND_DISPLAY y SWAYSOCK antes de capturar.
+- Las notificaciones no cortan el script si DBus o notify-send fallan.
+
 ## Batería
 
 Script:
@@ -192,6 +222,8 @@ Estado:
 - Batería detectada: BAT1
 - Equipo: SF20GM7
 - Salud aproximada informada durante auditoría: 92,5 %
+- battery-menu valida foot antes de ejecutar.
+- UPower activo y sin warnings durante auditoría.
 
 ## Brillo
 
@@ -258,8 +290,17 @@ Opciones relevantes:
 
 ## Pendientes menores para pulido final
 
-- Verificar que disk-notify quede corriendo después del autostart.
-- Revisar backups temporales sueltos si se desea una limpieza final.
+- Probar preferencia Bluetooth de audio conectando JBL/LG.
+- Revisar warnings menores: i915 stolen region, Bluetooth default system config hci0, NetworkManager p2p-dev-wlo2.
+- Decidir si se limpian backups locales fuera del repo.
+
+## Backups de auditoría
+
+Durante la auditoría se creó un backup local de disk-manager:
+
+- backups/2026-06-13-disk-manager/
+
+Ese directorio está ignorado por Git mediante backups/.
 
 ## Ajuste final disk-notify
 
