@@ -214,6 +214,17 @@ check_user_files() {
     check_same_file "$ROOT_DIR/$rel" "$HOME/${rel#home/}"
     check_executable "$HOME/${rel#home/}"
   done < <(find "$ROOT_DIR/home/.local/bin" -type f -printf 'home/.local/bin/%P\n' | sort)
+
+  while IFS= read -r rel; do
+    check_same_file "$ROOT_DIR/$rel" "$HOME/${rel#home/}"
+    if has_cmd desktop-file-validate; then
+      if desktop-file-validate "$ROOT_DIR/$rel"; then
+        ok "desktop válido: $ROOT_DIR/$rel"
+      else
+        fail "desktop inválido: $ROOT_DIR/$rel"
+      fi
+    fi
+  done < <(find "$ROOT_DIR/home/.local/share/applications" -type f -name '*.desktop' -printf 'home/.local/share/applications/%P\n' | sort)
 }
 
 check_polkit() {
