@@ -26,8 +26,26 @@ shorten() {
 }
 
 music_player() {
+  local player paused_player status
+
   command -v playerctl >/dev/null 2>&1 || return 1
-  playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify|mpv' | head -n1
+
+  while IFS= read -r player; do
+    [ -n "$player" ] || continue
+
+    status="$(playerctl -p "$player" status 2>/dev/null || true)"
+    if [ "$status" = "Playing" ]; then
+      printf "%s\n" "$player"
+      return 0
+    fi
+
+    if [ -z "$paused_player" ] && [ "$status" = "Paused" ]; then
+      paused_player="$player"
+    fi
+  done < <(playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify|firefox|mpv')
+
+  [ -n "$paused_player" ] || return 1
+  printf "%s\n" "$paused_player"
 }
 
 mpd_state() {
@@ -48,7 +66,7 @@ active_source() {
 
   state="$(mpd_state)"
   song="$(mpd_song)"
-  if { [ "$state" = "playing" ] || [ "$state" = "paused" ]; } && [ -n "$song" ]; then
+  if [ "$state" = "playing" ] && [ -n "$song" ]; then
     printf 'mpd\n'
     return
   fi
@@ -56,10 +74,20 @@ active_source() {
   player="$(music_player || true)"
   if [ -n "$player" ]; then
     status="$(playerctl -p "$player" status 2>/dev/null || true)"
-    if [ "$status" = "Playing" ] || [ "$status" = "Paused" ]; then
+    if [ "$status" = "Playing" ]; then
       printf 'player:%s\n' "$player"
       return
     fi
+  fi
+
+  if [ "$state" = "paused" ] && [ -n "$song" ]; then
+    printf 'mpd\n'
+    return
+  fi
+
+  if [ -n "$player" ] && [ "$status" = "Paused" ]; then
+    printf 'player:%s\n' "$player"
+    return
   fi
 
   printf 'mpd\n'
@@ -130,8 +158,11 @@ for pid in reversed(order):
     current = pid
     while current in rows:
         parent_pid, parent_args = rows[current]
+        if term_patterns.search(args):
+            print(pid)
+            raise SystemExit(0)
         if term_patterns.search(parent_args):
-            print(current)
+            print(parent_pid)
             raise SystemExit(0)
         if parent_pid <= 1 or parent_pid == current:
             break
@@ -148,22 +179,146 @@ focus_pid() {
   swaymsg "[pid=\"$pid\"] focus" >/dev/null 2>&1
 }
 
+focus_window_with_child_process() {
+  command -v swaymsg >/dev/null 2>&1 || return 1
+  command -v python >/dev/null 2>&1 || return 1
+  [ -n "${SWAYSOCK:-}" ] || return 1
+
+  swaymsg -t get_tree 2>/dev/null | python -c '
+import json
+import subprocess
+import sys
+
+targets = [arg for arg in sys.argv[1:] if arg]
+tree = json.load(sys.stdin)
+
+rows = {}
+children = {}
+try:
+    ps = subprocess.check_output(["ps", "-eo", "pid=,ppid=,args="], text=True)
+except Exception:
+    raise SystemExit(1)
+
+for line in ps.splitlines():
+    parts = line.split(None, 2)
+    if len(parts) < 3:
+        continue
+    pid = int(parts[0])
+    ppid = int(parts[1])
+    args = parts[2]
+    rows[pid] = args
+    children.setdefault(ppid, []).append(pid)
+
+def has_descendant_process(root_pid):
+    stack = [root_pid]
+    seen = set()
+
+    while stack:
+        pid = stack.pop()
+        if pid in seen:
+            continue
+        seen.add(pid)
+
+        args = rows.get(pid, "")
+        if any(target in args for target in targets):
+            return True
+
+        stack.extend(children.get(pid, []))
+
+    return False
+
+def walk(node):
+    pid = node.get("pid")
+    if pid and has_descendant_process(pid):
+        print(node["id"])
+        return True
+
+    for child in node.get("nodes", []) + node.get("floating_nodes", []):
+        if walk(child):
+            return True
+
+    return False
+
+raise SystemExit(0 if walk(tree) else 1)
+' "$@" | {
+    read -r node_id
+    [ -n "$node_id" ] || return 1
+    swaymsg "[con_id=$node_id] focus" >/dev/null 2>&1
+  }
+}
+
 focus_running_terminal() {
   local pid
 
+  focus_window_with_child_process "$@" && return 0
   pid="$(pid_for_child_process "$@")" || return 1
   focus_pid "$pid"
 }
 
-focus_or_exec() {
+exec_detached() {
+  "$@" >/dev/null 2>&1 &
+}
+
+open_terminal_player() {
   local app_id="$1"
-  shift
+  local process="$2"
+  shift 2
 
   if app_is_open_any "$app_id"; then
-    swaymsg "[app_id=\"$app_id\"], [class=\"$app_id\"], [instance=\"$app_id\"] focus" >/dev/null 2>&1 && exit 0
+    focus_window_any "$app_id" && exit 0
   fi
 
-  "$@" >/dev/null 2>&1 &
+  focus_running_terminal "$process" && exit 0
+  exec_detached foot --app-id "$app_id" -e "$@"
+}
+
+open_graphical_player() {
+  local app="$1"
+  shift
+
+  if focus_window_any "$@"; then
+    exit 0
+  fi
+
+  if command -v "$app" >/dev/null 2>&1; then
+    exec_detached "$app"
+  else
+    notify_info "$app está reproduciendo, pero no encontré el ejecutable"
+  fi
+}
+
+focus_window_any() {
+  command -v swaymsg >/dev/null 2>&1 || return 1
+  [ -n "${SWAYSOCK:-}" ] || return 1
+
+  swaymsg -t get_tree 2>/dev/null | python -c '
+import json, shlex, sys
+
+targets = set(sys.argv[1:])
+tree = json.load(sys.stdin)
+
+def walk(node):
+    props = node.get("window_properties") or {}
+    candidates = {
+        node.get("app_id"),
+        props.get("class"),
+        props.get("instance"),
+        node.get("name"),
+    }
+    if any(value in targets for value in candidates if value):
+        print(shlex.quote(str(node["id"])))
+        return True
+    for child in node.get("nodes", []) + node.get("floating_nodes", []):
+        if walk(child):
+            return True
+    return False
+
+sys.exit(0 if walk(tree) else 1)
+' "$@" | {
+    read -r node_id
+    [ -n "$node_id" ] || return 1
+    swaymsg "[con_id=$node_id] focus" >/dev/null 2>&1
+  }
 }
 
 open_active() {
@@ -172,15 +327,13 @@ open_active() {
 
   case "$source" in
     radio)
-      focus_running_terminal pyradio && exit 0
-      focus_or_exec foot-music foot --app-id foot-music -e pyradio-music
+      open_terminal_player foot-music-pyradio pyradio pyradio-music
       ;;
     mpd)
-      focus_or_exec foot-music foot --app-id foot-music -e ncmpcpp
+      open_terminal_player foot-music-ncmpcpp ncmpcpp ncmpcpp
       ;;
     player:*ncspot*)
-      focus_running_terminal ncspot && exit 0
-      focus_or_exec foot-music foot --app-id foot-music -e ncspot
+      open_terminal_player foot-music-ncspot ncspot ncspot
       ;;
     player:*spotify*)
       if app_is_open_any spotify Spotify spotify-client spotifyd; then
@@ -193,8 +346,11 @@ open_active() {
         notify_info "Spotify está reproduciendo, pero no encontré la app gráfica"
       fi
       ;;
+    player:*firefox*)
+      open_graphical_player firefox firefox Firefox Navigator
+      ;;
     *)
-      focus_or_exec foot-music foot --app-id foot-music -e ncmpcpp
+      open_terminal_player foot-music-ncmpcpp ncmpcpp ncmpcpp
       ;;
   esac
 }
@@ -324,9 +480,9 @@ current_song() {
     return
   fi
 
-  # 2) ncspot / Spotify reproduciendo
+  # 2) ncspot / Spotify / Firefox reproduciendo
   if command -v playerctl >/dev/null 2>&1; then
-    player="$(music_player | grep -Ei 'ncspot|spotify' | head -n1 || true)"
+    player="$(music_player | grep -Ei 'ncspot|spotify|firefox' | head -n1 || true)"
 
     if [ -n "$player" ]; then
       status="$(playerctl -p "$player" status 2>/dev/null || true)"
@@ -357,9 +513,9 @@ current_song() {
     return
   fi
 
-  # 4) ncspot / Spotify pausado
+  # 4) ncspot / Spotify / Firefox pausado
   if command -v playerctl >/dev/null 2>&1; then
-    player="$(music_player | grep -Ei 'ncspot|spotify' | head -n1 || true)"
+    player="$(music_player | grep -Ei 'ncspot|spotify|firefox' | head -n1 || true)"
 
     if [ -n "$player" ]; then
       status="$(playerctl -p "$player" status 2>/dev/null || true)"

@@ -43,14 +43,14 @@
   "cpu": {
     "format": "󰻠 {usage}%",
     "interval": 3,
-    "on-click": "foot -e btop",
+    "on-click": "foot --app-id foot-system -e btop",
     "tooltip": true
   },
 
   "memory": {
     "format": "󰍛 {used:0.1f}G",
     "interval": 3,
-    "on-click": "foot -e btop",
+    "on-click": "foot --app-id foot-system -e btop",
     "tooltip": true
   },
 

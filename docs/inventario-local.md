@@ -29,6 +29,17 @@ El archivo principal solo incluye:
 - include ~/.config/sway/config.d/*.conf
 - include /etc/sway/config.d/*
 
+## Escritorios
+
+Categorías:
+
+- 1:term: terminales generales (`foot`, `foot-term`).
+- 2:web: navegador (`firefox`).
+- 3:music: reproductores (`foot-music`, `foot-music-ncmpcpp`, `foot-music-ncspot`, `foot-music-pyradio`).
+- 4:files: archivos (`foot-files` con Yazi).
+- 5:system: monitoreo y sistema (`foot-system` con btop).
+- 6-10: reserva para chat, media, trabajo, laboratorio o uso temporal.
+
 ## Waybar
 
 Archivos:
@@ -63,6 +74,7 @@ Fuentes detectadas:
 - PyRadio / mpv
 - MPD / ncmpcpp
 - ncspot / Spotify vía playerctl
+- Firefox vía playerctl/MPRIS
 
 Interacciones de Waybar:
 
@@ -72,14 +84,14 @@ Interacciones de Waybar:
 
 Estado:
 
-- MPD abre ncmpcpp en foot con app_id foot-music.
-- ncspot y PyRadio intentan enfocar la terminal ya activa antes de abrir una nueva.
-- Si no hay una sesión activa, abren foot con app_id foot-music.
-- PyRadio se lanza con `pyradio-music`, que fuerza Catppuccin Mocha y `mpv`.
+- MPD/ncmpcpp, ncspot, PyRadio y Firefox intentan enfocar la instancia activa antes de abrir otra.
+- ncmpcpp, ncspot y PyRadio abren foot con app_id propio si no hay una sesión activa.
+- Firefox abre/reutiliza el navegador si no hay una ventana enfocable.
+- PyRadio se lanza con `pyradio-music`, que fuerza Catppuccin Macchiato y `mpv`.
 - PyRadio usa un perfil de mpv con volumen normalizado.
-- PyRadio mantiene creado `.registers` para no perder tema ni estado de arranque.
-- PyRadio mantiene creado `data` para que arranque sin crear directorios en caliente.
-- Las ventanas de música se asignan al workspace 3.
+- PyRadio usa modo XDG explícito: config en `~/.config/pyradio`, datos en `~/.local/share/pyradio` y estado en `~/.local/state/pyradio`.
+- PyRadio mantiene creado `~/pyradio-recordings` para evitar fallos al preparar logs/grabaciones.
+- Las ventanas de música se asignan al workspace `3:music`.
 
 ## Autostart
 
