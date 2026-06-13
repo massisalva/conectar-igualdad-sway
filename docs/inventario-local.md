@@ -51,6 +51,31 @@ Módulos activos:
 - batería
 - power
 
+## Música
+
+Script:
+
+- ~/.local/bin/waybar-music
+
+Fuentes detectadas:
+
+- PyRadio / mpv
+- MPD / ncmpcpp
+- ncspot / Spotify vía playerctl
+
+Interacciones de Waybar:
+
+- Click izquierdo: abre el reproductor activo.
+- Click derecho: reproduce o pausa el reproductor activo.
+- Scroll arriba/abajo: siguiente/anterior en el reproductor activo.
+
+Estado:
+
+- MPD abre ncmpcpp en foot con app_id foot-music.
+- ncspot abre ncspot en foot con app_id ncspot-music.
+- PyRadio abre pyradio en foot con app_id pyradio-music.
+- Las ventanas de música se asignan al workspace 3.
+
 ## Autostart
 
 Script:

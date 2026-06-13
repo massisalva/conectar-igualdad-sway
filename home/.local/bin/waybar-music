@@ -8,6 +8,12 @@ export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user
 
 PLAYLIST="$HOME/.config/pyradio/playlists/argentina.csv"
 
+notify_info() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Música" "$1" 2>/dev/null || true
+  fi
+}
+
 shorten() {
   local text="$1"
   local max="${2:-36}"
@@ -17,6 +23,141 @@ shorten() {
   else
     printf "%s\n" "$text"
   fi
+}
+
+music_player() {
+  command -v playerctl >/dev/null 2>&1 || return 1
+  playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify|mpv' | head -n1
+}
+
+mpd_state() {
+  mpc status 2>/dev/null | sed -n '2p' | awk '{print $1}' | tr -d '[]'
+}
+
+mpd_song() {
+  mpc status 2>/dev/null | sed -n '1p'
+}
+
+active_source() {
+  local player status state song
+
+  if current_radio >/dev/null; then
+    printf 'radio\n'
+    return
+  fi
+
+  state="$(mpd_state)"
+  song="$(mpd_song)"
+  if { [ "$state" = "playing" ] || [ "$state" = "paused" ]; } && [ -n "$song" ]; then
+    printf 'mpd\n'
+    return
+  fi
+
+  player="$(music_player || true)"
+  if [ -n "$player" ]; then
+    status="$(playerctl -p "$player" status 2>/dev/null || true)"
+    if [ "$status" = "Playing" ] || [ "$status" = "Paused" ]; then
+      printf 'player:%s\n' "$player"
+      return
+    fi
+  fi
+
+  printf 'mpd\n'
+}
+
+app_is_open() {
+  local app_id="$1"
+
+  command -v swaymsg >/dev/null 2>&1 || return 1
+  [ -n "${SWAYSOCK:-}" ] || return 1
+
+  swaymsg -t get_tree 2>/dev/null | python -c '
+import json, sys
+
+target = sys.argv[1]
+tree = json.load(sys.stdin)
+
+def walk(node):
+    app_id = node.get("app_id") or node.get("window_properties", {}).get("class")
+    if app_id == target:
+        return True
+    for child in node.get("nodes", []) + node.get("floating_nodes", []):
+        if walk(child):
+            return True
+    return False
+
+sys.exit(0 if walk(tree) else 1)
+' "$app_id"
+}
+
+focus_or_exec() {
+  local app_id="$1"
+  shift
+
+  if app_is_open "$app_id"; then
+    swaymsg "[app_id=\"$app_id\"] focus" >/dev/null 2>&1 && exit 0
+  fi
+
+  "$@" >/dev/null 2>&1 &
+}
+
+open_active() {
+  local source
+  source="$(active_source)"
+
+  case "$source" in
+    radio)
+      focus_or_exec pyradio-music foot --app-id pyradio-music -e pyradio
+      ;;
+    mpd)
+      focus_or_exec foot-music foot --app-id foot-music -e ncmpcpp
+      ;;
+    player:*ncspot*)
+      focus_or_exec ncspot-music foot --app-id ncspot-music -e ncspot
+      ;;
+    player:*spotify*)
+      if command -v spotify >/dev/null 2>&1; then
+        spotify >/dev/null 2>&1 &
+      else
+        notify_info "Spotify está reproduciendo, pero no encontré la app gráfica"
+      fi
+      ;;
+    *)
+      focus_or_exec foot-music foot --app-id foot-music -e ncmpcpp
+      ;;
+  esac
+}
+
+control_active() {
+  local action="$1"
+  local source player mpv_player
+
+  source="$(active_source)"
+
+  case "$source" in
+    radio)
+      mpv_player="$(command -v playerctl >/dev/null 2>&1 && playerctl -l 2>/dev/null | grep -Ei '^mpv' | head -n1 || true)"
+      if [ -n "$mpv_player" ]; then
+        playerctl -p "$mpv_player" "$action" >/dev/null 2>&1 || true
+      else
+        notify_info "PyRadio no expone controles MPRIS"
+      fi
+      ;;
+    mpd)
+      case "$action" in
+        play-pause) mpc toggle >/dev/null 2>&1 || true ;;
+        next) mpc next >/dev/null 2>&1 || true ;;
+        previous) mpc prev >/dev/null 2>&1 || true ;;
+      esac
+      ;;
+    player:*)
+      player="${source#player:}"
+      playerctl -p "$player" "$action" >/dev/null 2>&1 || true
+      ;;
+    *)
+      mpc toggle >/dev/null 2>&1 || true
+      ;;
+  esac
 }
 
 normalize_url() {
@@ -114,7 +255,7 @@ current_song() {
 
   # 2) ncspot / Spotify reproduciendo
   if command -v playerctl >/dev/null 2>&1; then
-    player="$(playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify' | head -n1 || true)"
+    player="$(music_player | grep -Ei 'ncspot|spotify' | head -n1 || true)"
 
     if [ -n "$player" ]; then
       status="$(playerctl -p "$player" status 2>/dev/null || true)"
@@ -147,7 +288,7 @@ current_song() {
 
   # 4) ncspot / Spotify pausado
   if command -v playerctl >/dev/null 2>&1; then
-    player="$(playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify' | head -n1 || true)"
+    player="$(music_player | grep -Ei 'ncspot|spotify' | head -n1 || true)"
 
     if [ -n "$player" ]; then
       status="$(playerctl -p "$player" status 2>/dev/null || true)"
@@ -173,6 +314,25 @@ current_song() {
 
   printf "\n"
 }
+
+case "${1:-}" in
+  --open)
+    open_active
+    exit 0
+    ;;
+  --toggle)
+    control_active play-pause
+    exit 0
+    ;;
+  --next)
+    control_active next
+    exit 0
+    ;;
+  --prev)
+    control_active previous
+    exit 0
+    ;;
+esac
 
 if [ "${1:-}" = "--watch" ]; then
   last=""

@@ -60,6 +60,7 @@ openssh
 pacman-contrib
 papirus-icon-theme
 pavucontrol
+playerctl
 pipewire
 pipewire-pulse
 polkit-gnome

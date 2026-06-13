@@ -311,7 +311,7 @@ check_bash_scripts() {
 
 check_core_commands() {
   local cmd
-  for cmd in sway waybar foot fuzzel mako yazi ya fuzzel wl-copy rg fd mpv udisksctl brightnessctl wpctl notify-send; do
+  for cmd in sway waybar foot fuzzel mako yazi ya fuzzel wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send; do
     check_cmd "$cmd"
   done
 }
