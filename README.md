@@ -62,6 +62,18 @@ Antes de aplicar cambios se puede revisar qué haría:
 ./restore.sh --all --dry-run
 ```
 
+Verificación del estado restaurado:
+
+```sh
+./check.sh
+```
+
+Para exigir también polkit y bootloader como obligatorios:
+
+```sh
+./check.sh --system
+```
+
 ## Notas
 
 Esta configuración está pensada para uso personal en la netbook conectar-igualdad.
