@@ -4,19 +4,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 
 ## Vista
 
-Captura pendiente: `docs/media/escritorio.png`.
-
-Para generarla desde esta sesión:
-
-```sh
-home/.local/bin/screenshot-menu full docs/media/escritorio.png
-```
-
-Cuando esté agregada, reemplazar esta nota por:
-
-```md
 ![Escritorio Sway + Waybar](docs/media/escritorio.png)
-```
 
 ## Entorno
 
