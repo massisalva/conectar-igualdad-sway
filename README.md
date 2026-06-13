@@ -16,14 +16,12 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 
 ## Estructura
 
-- config/sway
-- config/waybar
-- config/mako
-- config/fuzzel
-- scripts
-- polkit
-- bootloader
-- docs
+- `home/`: archivos que se restauran sobre `$HOME`.
+- `home/.config/`: configuración de aplicaciones de usuario.
+- `home/.local/bin/`: scripts locales ejecutables.
+- `polkit/`: reglas de polkit para copiar con permisos de sistema.
+- `bootloader/`: archivos de systemd-boot para revisar/restaurar manualmente.
+- `docs/`: inventario y listas de paquetes.
 
 ## Características principales
 
@@ -41,8 +39,10 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 
 ## Restauración
 
-- Paquetes explícitos actuales: `docs/pkglist-explicit.txt`
-- Configuración de usuario versionada bajo `config/`, `home/`, `scripts/`, `polkit/` y `bootloader/`.
+- Paquetes pacman actuales: `docs/pkglist-pacman.txt`
+- Paquetes AUR actuales: `docs/pkglist-aur.txt`
+- Configuración de usuario versionada bajo `home/`.
+- Configuración de sistema versionada bajo `polkit/` y `bootloader/`.
 
 ## Notas
 

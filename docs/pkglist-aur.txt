@@ -1,0 +1,4 @@
+1password
+lexend-fonts-git
+pyradio
+yay
