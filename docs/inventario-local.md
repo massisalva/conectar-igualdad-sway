@@ -131,6 +131,7 @@ Estado:
 
 - Waybar cambia color según estado de disco.
 - disk-manager usa lsblk -J + Python.
+- disk-manager valida dependencias críticas antes de mostrar el menú.
 - Soporta etiquetas con espacios.
 - disk-manager no usa sudo; monta, desmonta y expulsa con udisksctl.
 - disk-manager lista USB, MMC y dispositivos removibles; excluye /, /boot, /boot/*, [SWAP], zram y loop.
@@ -209,6 +210,7 @@ Estado:
 
 - screenshot-menu valida dependencias según el modo usado.
 - screenshot-menu valida WAYLAND_DISPLAY y SWAYSOCK antes de capturar.
+- screenshot-menu acepta una ruta de salida como segundo argumento para generar capturas versionables.
 - Las notificaciones no cortan el script si DBus o notify-send fallan.
 
 ## Batería
@@ -307,8 +309,24 @@ Verificación gráfica post-reinicio:
 
 ## Pendientes menores para pulido final
 
+- Agregar captura del escritorio en `docs/media/escritorio.png` y activarla en el README.
 - Probar preferencia Bluetooth de audio conectando JBL/LG.
 - Revisar warnings menores: Bluetooth default system config hci0, NetworkManager p2p-dev-wlo2.
+
+## Verificación y restauración
+
+Scripts:
+
+- ./restore.sh
+- ./check.sh
+
+Estado:
+
+- restore.sh soporta `--dry-run` para revisar acciones sin copiar ni instalar.
+- En dry-run, los permisos de ~/.local/bin se simulan desde los scripts versionados en el repo.
+- check.sh verifica paquetes, comandos, archivos de usuario, scripts, XDG, Yazi, polkit, bootloader y estado Git.
+- check.sh usa sudo no interactivo por defecto para archivos protegidos.
+- check.sh permite `--system --sudo` para pedir contraseña y comparar polkit/bootloader con archivos reales del sistema.
 
 ## Ajuste final disk-notify
 

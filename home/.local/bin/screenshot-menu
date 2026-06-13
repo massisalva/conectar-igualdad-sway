@@ -40,10 +40,10 @@ if [ -z "${WAYLAND_DISPLAY:-}" ] || [ -z "${SWAYSOCK:-}" ]; then
 fi
 
 DIR="$HOME/Imágenes/Capturas"
-mkdir -p "$DIR"
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
-file="$DIR/captura-$timestamp.png"
+file="${2:-$DIR/captura-$timestamp.png}"
+mkdir -p "$(dirname "$file")"
 
 notify_ok() {
   notify_info "Guardada: $1" 2500

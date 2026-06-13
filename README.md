@@ -2,6 +2,22 @@
 
 Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 
+## Vista
+
+Captura pendiente: `docs/media/escritorio.png`.
+
+Para generarla desde esta sesión:
+
+```sh
+home/.local/bin/screenshot-menu full docs/media/escritorio.png
+```
+
+Cuando esté agregada, reemplazar esta nota por:
+
+```md
+![Escritorio Sway + Waybar](docs/media/escritorio.png)
+```
+
 ## Entorno
 
 - Arch Linux
@@ -22,6 +38,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - `polkit/`: reglas de polkit para copiar con permisos de sistema.
 - `bootloader/`: archivos de systemd-boot para revisar/restaurar manualmente.
 - `docs/`: inventario y listas de paquetes.
+- `docs/media/`: capturas o material visual para documentación.
 
 ## Características principales
 
@@ -34,6 +51,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Reglas polkit para discos y energía local.
 - systemd-boot ajustado con console-mode max.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
+- Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
 - Yazi con Catppuccin Mocha, plugins oficiales y previews completas.
 - Carpetas XDG del usuario registradas en español.
 
@@ -72,6 +90,12 @@ Para exigir también polkit y bootloader como obligatorios:
 
 ```sh
 ./check.sh --system
+```
+
+Para permitir que la verificación pida contraseña de sudo y compare archivos protegidos:
+
+```sh
+./check.sh --system --sudo
 ```
 
 ## Notas

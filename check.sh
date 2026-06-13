@@ -6,6 +6,7 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 FAILS=0
 WARNS=0
 STRICT_SYSTEM=0
+ALLOW_SUDO_PROMPT=0
 
 usage() {
   cat <<'EOF'
@@ -16,6 +17,7 @@ Los archivos de sistema en polkit/ y bootloader/ se reportan como advertencia.
 
 Opciones:
   --system    Trata polkit/ y bootloader/ como checks obligatorios.
+  --sudo      Permite pedir contraseña para verificar archivos de sistema.
   -h, --help  Muestra esta ayuda.
 EOF
 }
@@ -36,6 +38,14 @@ fail() {
 
 has_cmd() {
   command -v "$1" >/dev/null 2>&1
+}
+
+sudo_check() {
+  if [ "$ALLOW_SUDO_PROMPT" -eq 1 ]; then
+    sudo "$@"
+  else
+    sudo -n "$@" 2>/dev/null
+  fi
 }
 
 check_cmd() {
@@ -109,7 +119,7 @@ check_same_system_file() {
     return
   fi
 
-  if ! sudo -n true 2>/dev/null; then
+  if ! sudo_check true; then
     if [ "$severity" = "warn" ]; then
       warn "no puedo verificar sin sudo: $active_file"
     else
@@ -118,7 +128,7 @@ check_same_system_file() {
     return
   fi
 
-  if ! sudo -n test -f "$active_file" 2>/dev/null; then
+  if ! sudo_check test -f "$active_file"; then
     if [ "$severity" = "warn" ]; then
       warn "falta activo: $active_file"
     else
@@ -127,7 +137,7 @@ check_same_system_file() {
     return
   fi
 
-  if sudo -n cmp -s "$repo_file" "$active_file" 2>/dev/null; then
+  if sudo_check cmp -s "$repo_file" "$active_file"; then
     ok "coincide: $active_file"
   elif [ "$severity" = "warn" ]; then
     warn "difiere de repo: $active_file"
@@ -309,6 +319,7 @@ check_core_commands() {
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --system) STRICT_SYSTEM=1 ;;
+    --sudo) ALLOW_SUDO_PROMPT=1 ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'Opción desconocida: %s\n\n' "$1"; usage; exit 2 ;;
   esac

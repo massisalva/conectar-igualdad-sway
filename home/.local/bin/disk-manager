@@ -37,6 +37,32 @@ notify_info() {
   fi
 }
 
+check_dependencies() {
+  local cmd
+  for cmd in lsblk python findmnt fuzzel udisksctl; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      notify_info "No encontré $cmd"
+      exit 1
+    fi
+  done
+}
+
+open_yazi() {
+  local dir="$1"
+
+  if ! command -v foot >/dev/null 2>&1; then
+    notify_info "No encontré foot"
+    exit 1
+  fi
+
+  if ! command -v yazi >/dev/null 2>&1; then
+    notify_info "No encontré yazi"
+    exit 1
+  fi
+
+  foot -e yazi "$dir"
+}
+
 add_item() {
   local text="$1"
   local action="$2"
@@ -51,6 +77,8 @@ add_item() {
   printf '%s|%s|%s|%s|%s|%s\n' "$id" "$action" "$dev" "$mountpoint" "$disk" "$fstype" >> "$MAP"
   printf '%s) %s\n' "$id" "$text" >> "$MENU"
 }
+
+check_dependencies
 
 while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM; do
   [ "$TYPE" = "part" ] || continue
@@ -151,7 +179,7 @@ FSTYPE="$(echo "$ENTRY" | awk -F'|' '{print $6}')"
 
 case "$ACTION" in
   open)
-    foot -e yazi "$MOUNTPOINT"
+    open_yazi "$MOUNTPOINT"
     ;;
 
   mount)
@@ -166,7 +194,7 @@ case "$ACTION" in
     if udisksctl mount -b "$DEV" --options ro; then
       MOUNTED="$(findmnt -rn -S "$DEV" -o TARGET | head -n1)"
       notify_info "Montado solo lectura"
-      [ -n "$MOUNTED" ] && foot -e yazi "$MOUNTED"
+      [ -n "$MOUNTED" ] && open_yazi "$MOUNTED"
     else
       notify_info "No pude montar solo lectura"
     fi

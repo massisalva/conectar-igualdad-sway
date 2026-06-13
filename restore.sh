@@ -105,13 +105,14 @@ restore_user_files() {
   run mkdir -p "$HOME"
   run cp -a "$source/." "$HOME/"
 
-  if [ -d "$HOME/.local/bin" ]; then
+  if [ "$DRY_RUN" -eq 1 ] && [ -d "$source/.local/bin" ]; then
     log "Ajustando permisos ejecutables en ~/.local/bin"
-    if [ "$DRY_RUN" -eq 1 ]; then
-      find "$HOME/.local/bin" -maxdepth 1 -type f -printf '+ chmod +x %p\n'
-    else
-      find "$HOME/.local/bin" -maxdepth 1 -type f -exec chmod +x {} +
-    fi
+    while IFS= read -r file; do
+      printf '+ chmod +x %q\n' "$HOME/.local/bin/$(basename "$file")"
+    done < <(find "$source/.local/bin" -maxdepth 1 -type f | sort)
+  elif [ -d "$HOME/.local/bin" ]; then
+    log "Ajustando permisos ejecutables en ~/.local/bin"
+    find "$HOME/.local/bin" -maxdepth 1 -type f -exec chmod +x {} +
   fi
 
   if command -v xdg-user-dirs-update >/dev/null 2>&1; then
@@ -131,7 +132,7 @@ install_yazi_packages() {
 
   log "Instalando plugins/flavors de Yazi"
   if [ "$DRY_RUN" -eq 1 ]; then
-    run bash -lc "cd '$yazi_dir' && ya pkg install"
+    printf '+ cd %q && ya pkg install\n' "$yazi_dir"
   else
     (cd "$yazi_dir" && ya pkg install)
   fi
