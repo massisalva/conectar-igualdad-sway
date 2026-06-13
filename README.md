@@ -44,6 +44,24 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Configuración de usuario versionada bajo `home/`.
 - Configuración de sistema versionada bajo `polkit/` y `bootloader/`.
 
+Restauración de usuario:
+
+```sh
+./restore.sh
+```
+
+Restauración completa:
+
+```sh
+./restore.sh --all
+```
+
+Antes de aplicar cambios se puede revisar qué haría:
+
+```sh
+./restore.sh --all --dry-run
+```
+
 ## Notas
 
 Esta configuración está pensada para uso personal en la netbook conectar-igualdad.
