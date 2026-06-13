@@ -55,6 +55,7 @@ Módulos activos:
 
 Script:
 
+- ~/.local/bin/pyradio-music
 - ~/.local/bin/waybar-music
 
 Fuentes detectadas:
@@ -74,6 +75,10 @@ Estado:
 - MPD abre ncmpcpp en foot con app_id foot-music.
 - ncspot y PyRadio intentan enfocar la terminal ya activa antes de abrir una nueva.
 - Si no hay una sesión activa, abren foot con app_id foot-music.
+- PyRadio se lanza con `pyradio-music`, que fuerza Catppuccin Mocha y `mpv`.
+- PyRadio usa un perfil de mpv con volumen normalizado.
+- PyRadio mantiene creado `.registers` para no perder tema ni estado de arranque.
+- PyRadio mantiene creado `data` para que arranque sin crear directorios en caliente.
 - Las ventanas de música se asignan al workspace 3.
 
 ## Autostart

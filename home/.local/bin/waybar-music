@@ -173,7 +173,7 @@ open_active() {
   case "$source" in
     radio)
       focus_running_terminal pyradio && exit 0
-      focus_or_exec foot-music foot --app-id foot-music -e pyradio
+      focus_or_exec foot-music foot --app-id foot-music -e pyradio-music
       ;;
     mpd)
       focus_or_exec foot-music foot --app-id foot-music -e ncmpcpp
