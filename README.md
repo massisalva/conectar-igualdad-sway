@@ -11,6 +11,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - fuzzel
 - mako
 - Catppuccin
+- Yazi
 - systemd-boot
 
 ## Estructura
@@ -35,6 +36,13 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Reglas polkit para discos y energía local.
 - systemd-boot ajustado con console-mode max.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
+- Yazi con Catppuccin Mocha, plugins oficiales y previews completas.
+- Carpetas XDG del usuario registradas en español.
+
+## Restauración
+
+- Paquetes explícitos actuales: `docs/pkglist-explicit.txt`
+- Configuración de usuario versionada bajo `config/`, `home/`, `scripts/`, `polkit/` y `bootloader/`.
 
 ## Notas
 
