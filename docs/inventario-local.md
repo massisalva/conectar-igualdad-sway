@@ -72,8 +72,8 @@ Interacciones de Waybar:
 Estado:
 
 - MPD abre ncmpcpp en foot con app_id foot-music.
-- ncspot abre ncspot en foot con app_id foot-music.
-- PyRadio abre pyradio en foot con app_id foot-music.
+- ncspot y PyRadio intentan enfocar la terminal ya activa antes de abrir una nueva.
+- Si no hay una sesión activa, abren foot con app_id foot-music.
 - Las ventanas de música se asignan al workspace 3.
 
 ## Autostart

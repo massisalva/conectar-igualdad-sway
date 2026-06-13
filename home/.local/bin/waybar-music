@@ -94,19 +94,65 @@ sys.exit(0 if walk(tree) else 1)
 ' "$@"
 }
 
-focus_window_any() {
-  local target
-  local criteria=()
-  local joined
+pid_for_child_process() {
+  command -v python >/dev/null 2>&1 || return 1
 
-  for target in "$@"; do
-    criteria+=("[app_id=\"$target\"]")
-    criteria+=("[class=\"$target\"]")
-    criteria+=("[instance=\"$target\"]")
-  done
+  ps -eo pid=,ppid=,args= 2>/dev/null | python -c '
+import re
+import sys
 
-  joined="$(IFS=,; printf '%s' "${criteria[*]}")"
-  swaymsg "${joined} focus" >/dev/null 2>&1
+targets = [arg for arg in sys.argv[1:] if arg]
+term_patterns = re.compile(r"(^|/)(foot|alacritty|kitty|wezterm|wezterm-gui|xterm|termite|gnome-terminal|konsole|xfce4-terminal)(\s|$)")
+rows = {}
+order = []
+
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split(None, 2)
+    if len(parts) < 3:
+        continue
+    pid = int(parts[0])
+    ppid = int(parts[1])
+    args = parts[2]
+    rows[pid] = (ppid, args)
+    order.append(pid)
+
+def matches(args):
+    return any(t in args for t in targets)
+
+for pid in reversed(order):
+    ppid, args = rows[pid]
+    if not matches(args):
+        continue
+
+    current = pid
+    while current in rows:
+        parent_pid, parent_args = rows[current]
+        if term_patterns.search(parent_args):
+            print(current)
+            raise SystemExit(0)
+        if parent_pid <= 1 or parent_pid == current:
+            break
+        current = parent_pid
+
+raise SystemExit(1)
+' "$@"
+}
+
+focus_pid() {
+  local pid="$1"
+
+  [ -n "$pid" ] || return 1
+  swaymsg "[pid=\"$pid\"] focus" >/dev/null 2>&1
+}
+
+focus_running_terminal() {
+  local pid
+
+  pid="$(pid_for_child_process "$@")" || return 1
+  focus_pid "$pid"
 }
 
 focus_or_exec() {
@@ -114,7 +160,7 @@ focus_or_exec() {
   shift
 
   if app_is_open_any "$app_id"; then
-    focus_window_any "$app_id" && exit 0
+    swaymsg "[app_id=\"$app_id\"], [class=\"$app_id\"], [instance=\"$app_id\"] focus" >/dev/null 2>&1 && exit 0
   fi
 
   "$@" >/dev/null 2>&1 &
@@ -126,12 +172,14 @@ open_active() {
 
   case "$source" in
     radio)
+      focus_running_terminal pyradio && exit 0
       focus_or_exec foot-music foot --app-id foot-music -e pyradio
       ;;
     mpd)
       focus_or_exec foot-music foot --app-id foot-music -e ncmpcpp
       ;;
     player:*ncspot*)
+      focus_running_terminal ncspot && exit 0
       focus_or_exec foot-music foot --app-id foot-music -e ncspot
       ;;
     player:*spotify*)
