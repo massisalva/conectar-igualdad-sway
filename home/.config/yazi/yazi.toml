@@ -49,3 +49,27 @@ group = "git"
 url = "*/"
 run = "git"
 group = "git"
+
+[[plugin.prepend_previewers]]
+mime = "image/*"
+run = "noop"
+
+[[plugin.prepend_previewers]]
+mime = "video/*"
+run = "noop"
+
+[[plugin.prepend_previewers]]
+mime = "application/pdf"
+run = "noop"
+
+[[plugin.prepend_preloaders]]
+mime = "image/*"
+run = "noop"
+
+[[plugin.prepend_preloaders]]
+mime = "video/*"
+run = "noop"
+
+[[plugin.prepend_preloaders]]
+mime = "application/pdf"
+run = "noop"

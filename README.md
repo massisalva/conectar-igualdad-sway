@@ -40,7 +40,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - systemd-boot ajustado con console-mode max.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
 - Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
-- Yazi con Catppuccin Mocha, plugins oficiales y previews completas.
+- Yazi con Catppuccin Mocha, plugins oficiales y previews de texto/metadata.
 - Carpetas XDG del usuario registradas en español.
 - OneDrive con cliente `onedrive-abraunegg` y configuración local segura.
 
