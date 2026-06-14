@@ -57,18 +57,21 @@ sway_exec() {
 
   mkdir -p "$HOME/Imágenes"
 
+  waybar_was_running=0
+  pgrep -x waybar >/dev/null && waybar_was_running=1
+
   pkill -x mako 2>/dev/null || true
   pkill -x waybar 2>/dev/null || true
   pkill -f '/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1' 2>/dev/null || true
   pkill -f '/usr/bin/.*udiskie' 2>/dev/null || true
   pkill -f "$HOME/.local/bin/disk-notify" 2>/dev/null || true
 
-  for _ in 1 2 3 4 5; do
-    pgrep -x waybar >/dev/null || break
-    sleep 0.2
-  done
-
-  sleep 0.3
+  if [ "$waybar_was_running" -eq 1 ]; then
+    for _ in 1 2 3 4 5; do
+      pgrep -x waybar >/dev/null || break
+      sleep 0.2
+    done
+  fi
 
   command -v mako >/dev/null 2>&1 && sway_exec "mako"
   command -v waybar >/dev/null 2>&1 && sway_exec "waybar"
