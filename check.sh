@@ -246,6 +246,17 @@ check_bootloader() {
   check_same_system_file "$ROOT_DIR/bootloader/arch.conf" /boot/loader/entries/arch.conf "$severity"
 }
 
+check_sshd() {
+  local severity="warn"
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+
+  local file
+  for file in "$ROOT_DIR"/sshd/*.conf; do
+    [ -f "$file" ] || continue
+    check_same_system_file "$file" "/etc/ssh/sshd_config.d/$(basename "$file")" "$severity"
+  done
+}
+
 check_xdg_dirs() {
   if ! has_cmd xdg-user-dir; then
     fail "falta comando: xdg-user-dir"
@@ -346,6 +357,7 @@ check_xdg_dirs
 check_yazi
 check_polkit
 check_bootloader
+check_sshd
 check_repo_state
 
 printf '\nResumen: %d fallos, %d advertencias\n' "$FAILS" "$WARNS"

@@ -25,6 +25,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - `home/.local/bin/`: scripts locales ejecutables.
 - `polkit/`: reglas de polkit para copiar con permisos de sistema.
 - `bootloader/`: archivos de systemd-boot para revisar/restaurar manualmente.
+- `sshd/`: hardening conservador de OpenSSH.
 - `docs/`: inventario y listas de paquetes.
 - `docs/media/`: capturas o material visual para documentación.
 
@@ -37,6 +38,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Manejo de dispositivos externos/removibles con disk-manager, disk-status y disk-notify.
 - Power menu con bloqueo, suspensión, reinicio, apagado y salida de Sway.
 - Reglas polkit para discos y energía local.
+- SSH activo con hardening conservador para usuario local.
 - systemd-boot ajustado con console-mode max.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
 - Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
@@ -50,6 +52,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Paquetes AUR actuales: `docs/pkglist-aur.txt`
 - Configuración de usuario versionada bajo `home/`.
 - Configuración de sistema versionada bajo `polkit/` y `bootloader/`.
+- Hardening de SSH versionado bajo `sshd/`.
 
 Restauración de usuario:
 
@@ -86,6 +89,14 @@ Para permitir que la verificación pida contraseña de sudo y compare archivos p
 ```sh
 ./check.sh --system --sudo
 ```
+
+Aplicar hardening de SSH:
+
+```sh
+./restore.sh --sshd
+```
+
+La configuración mantiene `PasswordAuthentication yes` hasta verificar acceso por clave SSH desde otra máquina.
 
 ## OneDrive
 

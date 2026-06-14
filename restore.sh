@@ -10,6 +10,7 @@ INSTALL_AUR=0
 RESTORE_USER=1
 INSTALL_POLKIT=0
 INSTALL_BOOTLOADER=0
+INSTALL_SSHD=0
 INSTALL_YAZI=1
 
 usage() {
@@ -26,7 +27,8 @@ Opciones:
   --aur         Instala paquetes AUR desde docs/pkglist-aur.txt usando yay.
   --polkit      Copia reglas polkit a /etc/polkit-1/rules.d/.
   --bootloader  Copia loader.conf y arch.conf a /boot/loader/.
-  --all         Ejecuta packages, aur, user, yazi, polkit y bootloader.
+  --sshd        Copia hardening de sshd a /etc/ssh/sshd_config.d/.
+  --all         Ejecuta packages, aur, user, yazi, polkit, bootloader y sshd.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
   --dry-run     Muestra acciones sin ejecutarlas.
@@ -157,12 +159,27 @@ install_bootloader_files() {
   run sudo install -Dm644 "$ROOT_DIR/bootloader/arch.conf" /boot/loader/entries/arch.conf
 }
 
+install_sshd_config() {
+  local dir="$ROOT_DIR/sshd"
+  [ -d "$dir" ] || { log "No existe $dir"; return 1; }
+
+  confirm "Esto copiará hardening de sshd y recargará sshd. ¿Continuar?"
+  log "Instalando configuración de sshd"
+  for file in "$dir"/*.conf; do
+    [ -f "$file" ] || continue
+    run sudo install -Dm644 "$file" "/etc/ssh/sshd_config.d/$(basename "$file")"
+  done
+  run sudo sshd -t
+  run sudo systemctl reload sshd.service
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --packages) INSTALL_PACKAGES=1 ;;
     --aur) INSTALL_AUR=1 ;;
     --polkit) INSTALL_POLKIT=1 ;;
     --bootloader) INSTALL_BOOTLOADER=1 ;;
+    --sshd) INSTALL_SSHD=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -170,6 +187,7 @@ while [ "$#" -gt 0 ]; do
       INSTALL_YAZI=1
       INSTALL_POLKIT=1
       INSTALL_BOOTLOADER=1
+      INSTALL_SSHD=1
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
@@ -187,5 +205,6 @@ done
 [ "$INSTALL_YAZI" -eq 1 ] && install_yazi_packages
 [ "$INSTALL_POLKIT" -eq 1 ] && install_polkit_rules
 [ "$INSTALL_BOOTLOADER" -eq 1 ] && install_bootloader_files
+[ "$INSTALL_SSHD" -eq 1 ] && install_sshd_config
 
 log "Restauración finalizada"
