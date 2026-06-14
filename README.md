@@ -43,8 +43,10 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
 - Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
 - Yazi con Catppuccin Mocha, plugins oficiales y previews de texto/metadata.
+- Papelera XDG para Yazi con `d` para enviar a papelera y `D` para borrado permanente.
 - Carpetas XDG del usuario registradas en español.
 - OneDrive con cliente `onedrive-abraunegg` y configuración local segura.
+- MPD/ncmpcpp local con PipeWire, visualizador FIFO y biblioteca en `~/Música`.
 
 ## Restauración
 
@@ -96,11 +98,17 @@ Aplicar hardening de SSH:
 ./restore.sh --sshd
 ```
 
-La configuración mantiene `PasswordAuthentication yes` hasta verificar acceso por clave SSH desde otra máquina.
+La configuración deja `PasswordAuthentication no` y usa `home/.ssh/authorized_keys` para permitir acceso por clave SSH.
 
 ## OneDrive
 
 La configuración versionada en `home/.config/onedrive/config` solo ajusta opciones seguras del cliente. No se versionan tokens, bases SQLite ni credenciales.
+
+La sincronización está limitada por `home/.config/onedrive/sync_list` a la carpeta remota:
+
+```text
+02 - Linux
+```
 
 Después de restaurar, vincular la cuenta:
 

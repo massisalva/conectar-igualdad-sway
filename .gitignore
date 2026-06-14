@@ -15,6 +15,8 @@ id_rsa
 id_ed25519
 *.pub
 *.sock
+home/.ssh/*
+!home/.ssh/authorized_keys
 home/.config/onedrive/refresh_token
 home/.config/onedrive/items.sqlite3*
 home/.config/onedrive/*.log

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+notify_info() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "MPD" "$1" 2>/dev/null || true
+  fi
+}
+
+if ! command -v mpc >/dev/null 2>&1; then
+  notify_info "mpc no está instalado"
+  printf 'mpc no está instalado\n' >&2
+  exit 1
+fi
+
+if ! mpc status >/dev/null 2>&1; then
+  notify_info "MPD no responde"
+  printf 'MPD no responde\n' >&2
+  exit 1
+fi
+
+notify_info "Actualizando biblioteca"
+mpc update >/dev/null
+
+if mpc idle update >/dev/null 2>&1; then
+  notify_info "Biblioteca actualizada"
+else
+  notify_info "Actualización enviada"
+fi

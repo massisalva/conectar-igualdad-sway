@@ -117,10 +117,24 @@ restore_user_files() {
     find "$HOME/.local/bin" -maxdepth 1 -type f -exec chmod +x {} +
   fi
 
+  if [ -d "$HOME/.ssh" ]; then
+    log "Ajustando permisos de ~/.ssh"
+    run chmod 700 "$HOME/.ssh"
+    if [ -f "$HOME/.ssh/authorized_keys" ]; then
+      run chmod 600 "$HOME/.ssh/authorized_keys"
+    fi
+  fi
+
   if command -v xdg-user-dirs-update >/dev/null 2>&1; then
     log "Actualizando carpetas XDG"
     run env LANG=es_AR.UTF-8 LC_ALL=es_AR.UTF-8 xdg-user-dirs-update
   fi
+
+  log "Asegurando papelera XDG"
+  run mkdir -p "$HOME/.local/share/Trash/files" "$HOME/.local/share/Trash/info"
+
+  log "Asegurando directorios de MPD/ncmpcpp"
+  run mkdir -p "$HOME/.local/share/mpd/playlists" "$HOME/.local/share/ncmpcpp/lyrics"
 }
 
 install_yazi_packages() {

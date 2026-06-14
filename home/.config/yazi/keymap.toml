@@ -1,6 +1,16 @@
 #:schema https://yazi-rs.github.io/schemas/keymap.json
 
 [[mgr.prepend_keymap]]
+on = "d"
+run = "remove"
+desc = "Move selected files to trash"
+
+[[mgr.prepend_keymap]]
+on = "D"
+run = "remove --permanently"
+desc = "Permanently delete selected files"
+
+[[mgr.prepend_keymap]]
 on = "l"
 run = "plugin smart-enter"
 desc = "Enter directory or open file"
@@ -29,6 +39,11 @@ desc = "Go config"
 on = [ "g", "p" ]
 run = "cd ~/Proyectos"
 desc = "Go projects"
+
+[[mgr.prepend_keymap]]
+on = [ "g", "t" ]
+run = "cd ~/.local/share/Trash/files"
+desc = "Go trash"
 
 [[mgr.prepend_keymap]]
 on = "F"

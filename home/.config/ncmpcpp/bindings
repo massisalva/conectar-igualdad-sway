@@ -1,0 +1,26 @@
+def_key "u"
+  run_external_command "$HOME/.local/bin/music-update"
+
+def_key "U"
+  update_database
+
+def_key "1"
+  show_playlist
+
+def_key "2"
+  show_browser
+
+def_key "3"
+  show_search_engine
+
+def_key "4"
+  show_playlist_editor
+
+def_key "5"
+  show_visualizer
+
+def_key "/"
+  find
+
+def_key "?"
+  find_item_backward

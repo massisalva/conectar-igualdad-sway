@@ -90,6 +90,7 @@ ttf-dejavu
 ttf-firacode-nerd
 ttf-hack-nerd
 ttf-jetbrains-mono-nerd
+trash-cli
 udiskie
 udisks2
 ueberzugpp

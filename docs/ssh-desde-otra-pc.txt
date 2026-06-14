@@ -1,0 +1,86 @@
+Tutorial para conectarse por SSH a esta notebook desde otra PC
+
+1. En esta notebook, obtener la IP local:
+
+```sh
+ip route get 1.1.1.1
+```
+
+Usar el valor que aparece después de `src`. Ejemplo:
+
+```text
+1.1.1.1 via 192.168.1.1 dev wlo2 src 192.168.1.49 uid 1000
+```
+
+En ese ejemplo, la IP de esta notebook es `192.168.1.49`.
+
+2. Desde la otra PC, verificar que exista una clave privada SSH:
+
+```sh
+ls -la ~/.ssh/id_ed25519
+```
+
+Si esa clave ya existe y es la misma que está autorizada en esta notebook, seguir con el paso 3.
+
+3. Conectarse:
+
+```sh
+ssh -i ~/.ssh/id_ed25519 massisalva@IP_DE_ESTA_NOTEBOOK
+```
+
+Ejemplo:
+
+```sh
+ssh -i ~/.ssh/id_ed25519 massisalva@192.168.1.49
+```
+
+4. La primera vez, SSH va a preguntar si confiás en la huella del equipo remoto. Antes de aceptar, conviene verificarla en esta notebook:
+
+```sh
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+5. Si la otra PC no tiene la misma clave privada, generar una nueva:
+
+```sh
+ssh-keygen -t ed25519 -C "mi-otra-pc"
+```
+
+6. Copiar la clave pública nueva a esta notebook.
+
+Como esta notebook quedó configurada sin acceso por contraseña, `ssh-copy-id` solo sirve si ya tenés algún acceso previo. Si no lo tenés, hay que pegar la clave pública manualmente en:
+
+```sh
+~/.ssh/authorized_keys
+```
+
+La línea debe quedar en una sola línea, por ejemplo:
+
+```text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... comentario
+```
+
+Desde la otra PC, la clave pública se obtiene con:
+
+```sh
+cat ~/.ssh/id_ed25519.pub
+```
+
+Después de pegarla en `~/.ssh/authorized_keys` de esta notebook, asegurar permisos:
+
+```sh
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+7. Para probar que todo quedó bien, volver a conectar:
+
+```sh
+ssh massisalva@IP_DE_ESTA_NOTEBOOK
+```
+
+Notas:
+
+- Esta notebook usa `PasswordAuthentication no`, así que no acepta usuario y contraseña.
+- Si la IP cambia, volver a consultar `ip route get 1.1.1.1`.
+- Si querés usar un nombre en vez de IP, podés agregar un alias en `~/.ssh/config` de la otra PC.

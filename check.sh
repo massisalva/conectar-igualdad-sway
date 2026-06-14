@@ -283,6 +283,27 @@ VIDEOS=$HOME/Vídeos
 EOF
 }
 
+check_trash() {
+  local base="$HOME/.local/share/Trash"
+
+  if [ -d "$base/files" ] && [ -d "$base/info" ]; then
+    ok "papelera XDG disponible: $base"
+  else
+    fail "falta papelera XDG en $base/{files,info}"
+  fi
+
+  if [ -w "$base/files" ] && [ -w "$base/info" ]; then
+    ok "papelera XDG escribible"
+  else
+    fail "papelera XDG no escribible"
+  fi
+
+  check_cmd trash-put
+  check_cmd trash-list
+  check_cmd trash-restore
+  check_cmd trash-empty
+}
+
 check_yazi() {
   check_cmd yazi
   check_cmd ya
@@ -316,6 +337,61 @@ check_yazi() {
         fail "falta paquete Yazi: $item"
       fi
     done
+  fi
+
+  local keymap="$HOME/.config/yazi/keymap.toml"
+  if [ -f "$keymap" ] && grep -q 'run = "remove"' "$keymap"; then
+    ok "Yazi mueve a papelera con tecla d"
+  else
+    fail "Yazi no tiene mapeada la papelera en keymap.toml"
+  fi
+
+  if [ -f "$keymap" ] && grep -q 'run = "remove --permanently"' "$keymap"; then
+    ok "Yazi conserva borrado permanente en tecla D"
+  else
+    warn "Yazi no tiene mapeado borrado permanente explícito"
+  fi
+
+  if [ -f "$keymap" ] && grep -q 'run = "cd ~/.local/share/Trash/files"' "$keymap"; then
+    ok "Yazi tiene atajo directo a papelera"
+  else
+    fail "Yazi no tiene atajo directo a papelera"
+  fi
+}
+
+check_mpd_ncmpcpp() {
+  check_cmd mpd
+  check_cmd mpc
+  check_cmd ncmpcpp
+
+  if systemctl --user is-active mpd.service >/dev/null 2>&1; then
+    ok "MPD activo"
+  else
+    fail "MPD no está activo"
+  fi
+
+  if systemctl --user is-enabled mpd.service >/dev/null 2>&1; then
+    ok "MPD habilitado"
+  else
+    warn "MPD no está habilitado al inicio de sesión"
+  fi
+
+  if mpc status >/dev/null 2>&1; then
+    ok "mpc conecta con MPD"
+  else
+    fail "mpc no puede conectar con MPD"
+  fi
+
+  if [ -d "$HOME/Música" ]; then
+    ok "biblioteca musical existe: $HOME/Música"
+  else
+    fail "falta biblioteca musical: $HOME/Música"
+  fi
+
+  if [ -p /tmp/mpd.fifo ]; then
+    ok "FIFO de visualizador MPD disponible"
+  else
+    warn "FIFO de visualizador MPD no disponible"
   fi
 }
 
@@ -354,7 +430,9 @@ check_core_commands
 check_user_files
 check_bash_scripts
 check_xdg_dirs
+check_trash
 check_yazi
+check_mpd_ncmpcpp
 check_polkit
 check_bootloader
 check_sshd
