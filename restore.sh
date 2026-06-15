@@ -135,6 +135,11 @@ restore_user_files() {
 
   log "Asegurando directorios de MPD/ncmpcpp"
   run mkdir -p "$HOME/.local/share/mpd/playlists" "$HOME/.local/share/ncmpcpp/lyrics"
+
+  if [ -d "$source/.config/systemd/user" ] && command -v systemctl >/dev/null 2>&1; then
+    log "Recargando units de systemd de usuario"
+    run systemctl --user daemon-reload
+  fi
 }
 
 install_yazi_packages() {

@@ -145,6 +145,13 @@ Habilitar sincronización automática:
 systemctl --user enable --now onedrive.service
 ```
 
+El repo incluye un override de usuario para quitar la espera fija de 15s del unit del paquete. Si se modifica esa configuración, recargar systemd:
+
+```sh
+systemctl --user daemon-reload
+systemctl --user restart onedrive.service
+```
+
 Consultar el estado:
 
 ```sh

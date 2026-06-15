@@ -65,6 +65,7 @@ sway_exec() {
   pkill -f '/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1' 2>/dev/null || true
   pkill -f '/usr/bin/.*udiskie' 2>/dev/null || true
   pkill -f "$HOME/.local/bin/disk-notify" 2>/dev/null || true
+  pkill -f '^udevadm monitor --udev --subsystem-match=block --property$' 2>/dev/null || true
 
   if [ "$waybar_was_running" -eq 1 ]; then
     for _ in 1 2 3 4 5; do

@@ -6,6 +6,30 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 STATE_DIR="$XDG_RUNTIME_DIR/disk-notify"
 mkdir -p "$STATE_DIR"
 
+MONITOR_PID=""
+EVENT_FIFO="$STATE_DIR/events.$$"
+CLEANED_UP=0
+
+cleanup() {
+  [ "$CLEANED_UP" -eq 0 ] || return 0
+  CLEANED_UP=1
+
+  if [ -n "$MONITOR_PID" ]; then
+    kill "$MONITOR_PID" 2>/dev/null || true
+    wait "$MONITOR_PID" 2>/dev/null || true
+  fi
+
+  rm -f "$EVENT_FIFO"
+}
+
+terminate() {
+  cleanup
+  exit 0
+}
+
+trap cleanup EXIT
+trap terminate INT TERM
+
 notify_disk() {
   local title="$1"
   local body="$2"
@@ -86,8 +110,13 @@ handle_remove() {
 current_action=""
 current_devname=""
 
-udevadm monitor --udev --subsystem-match=block --property |
-while IFS= read -r line; do
+rm -f "$EVENT_FIFO"
+mkfifo "$EVENT_FIFO"
+udevadm monitor --udev --subsystem-match=block --property > "$EVENT_FIFO" &
+MONITOR_PID="$!"
+exec 3<"$EVENT_FIFO"
+
+while IFS= read -r line <&3; do
   case "$line" in
     ACTION=*)
       current_action="${line#ACTION=}"
