@@ -4,6 +4,7 @@ Name=Actualizar música
 GenericName=Actualizar biblioteca MPD
 Comment=Actualiza la biblioteca local de MPD
 Exec=music-update
+Icon=mpd
 Terminal=false
 Categories=Audio;AudioVideo;
 Keywords=music;mpd;update;musica;

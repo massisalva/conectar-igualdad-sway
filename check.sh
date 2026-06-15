@@ -17,7 +17,8 @@ Los archivos de sistema en polkit/ y bootloader/ se reportan como advertencia.
 
 Opciones:
   --system    Trata polkit/ y bootloader/ como checks obligatorios.
-  --sudo      Permite pedir contraseña para verificar archivos de sistema.
+  --sudo      Permite pedir contraseña para verificar archivos de sistema
+              si hay una terminal interactiva disponible.
   -h, --help  Muestra esta ayuda.
 EOF
 }
@@ -42,9 +43,17 @@ has_cmd() {
 
 sudo_check() {
   if [ "$ALLOW_SUDO_PROMPT" -eq 1 ]; then
-    sudo "$@"
+    sudo "$@" 2>/dev/null
   else
     sudo -n "$@" 2>/dev/null
+  fi
+}
+
+sudo_check_label() {
+  if [ "$ALLOW_SUDO_PROMPT" -eq 1 ]; then
+    printf 'con sudo'
+  else
+    printf 'sin sudo'
   fi
 }
 
@@ -121,9 +130,9 @@ check_same_system_file() {
 
   if ! sudo_check true; then
     if [ "$severity" = "warn" ]; then
-      warn "no puedo verificar sin sudo: $active_file"
+      warn "no puedo verificar $(sudo_check_label): $active_file"
     else
-      fail "no puedo verificar sin sudo: $active_file"
+      fail "no puedo verificar $(sudo_check_label): $active_file"
     fi
     return
   fi
@@ -409,7 +418,7 @@ check_bash_scripts() {
 
 check_core_commands() {
   local cmd
-  for cmd in sway waybar foot fuzzel mako yazi ya fuzzel wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send; do
+  for cmd in sway waybar foot fuzzel mako yazi ya wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send python lsblk nmtui btop ncspot pyradio; do
     check_cmd "$cmd"
   done
 }

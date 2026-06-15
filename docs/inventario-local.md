@@ -52,6 +52,7 @@ Módulos activos:
 - workspaces
 - música
 - reloj
+- mayúsculas activadas
 - discos
 - CPU
 - memoria
@@ -92,6 +93,8 @@ Estado:
 - PyRadio usa modo XDG explícito: config en `~/.config/pyradio`, datos en `~/.local/share/pyradio` y estado en `~/.local/state/pyradio`.
 - PyRadio mantiene creado `~/pyradio-recordings` para evitar fallos al preparar logs/grabaciones.
 - Las ventanas de música se asignan al workspace `3:music`.
+- ncmpcpp, ncspot y PyRadio tienen entradas locales que abren foot con app_id de música para caer directo en `3:music`.
+- La entrada local de PyRadio usa el mismo tema y reproductor que `pyradio-music`.
 
 ## Autostart
 
@@ -180,6 +183,18 @@ Estado:
 - disk-status usa el mismo criterio de USB/MMC/removible que disk-manager.
 - disk-notify tolera fallos de notify-send sin cortar el monitor.
 - udiskie corre sin automount y sin notificaciones propias.
+
+## Teclado
+
+Script:
+
+- ~/.local/bin/waybar-capslock
+
+Estado:
+
+- Waybar muestra un indicador solo cuando Caps Lock está activo.
+- El script lee `/sys/class/leds/input*::capslock/brightness`, sin depender de X11.
+- El módulo se actualiza cada 1 segundo.
 
 ## Audio
 
@@ -300,6 +315,10 @@ Estado:
 - Centrado.
 - Fuente Lexend.
 - Bordes redondeados.
+- Iconos habilitados con tema `Papirus-Dark`.
+- Las entradas locales de MPD (`ncmpcpp` y `Actualizar música`) usan el icono `mpd`.
+- Hay overrides locales `NoDisplay=true` para utilidades, duplicados y helpers que no conviene mostrar en el lanzador.
+- Los overrides locales de `.desktop` se versionan porque definen el resultado visible de fuzzel.
 
 ## Bootloader
 

@@ -69,6 +69,7 @@ tooltip label {
 #custom-music,
 #mode,
 #clock,
+#custom-capslock,
 #custom-disk,
 #cpu,
 #memory,
@@ -111,6 +112,18 @@ tooltip label {
 /* ------------------------------------------------------------
  * Derecha
  * ------------------------------------------------------------ */
+
+#custom-capslock {
+  color: #11111b;
+  background-color: #f9e2af;
+  margin-right: 6px;
+}
+
+#custom-capslock.inactive {
+  background-color: transparent;
+  padding: 0px;
+  margin: 0px;
+}
 
 #custom-disk {
   color: #f9e2af;

@@ -32,6 +32,7 @@ intel-ucode
 jq
 kvantum
 kvantum-qt5
+libnotify
 linux-firmware
 linux-zen
 linux-zen-headers
@@ -39,6 +40,7 @@ mako
 man-db
 man-pages
 mesa
+mission-center
 mpc
 mpd
 mpv
@@ -60,12 +62,13 @@ openssh
 pacman-contrib
 papirus-icon-theme
 pavucontrol
-playerctl
 pipewire
 pipewire-pulse
+playerctl
 polkit-gnome
 poppler
 pulsemixer
+python
 qt5-wayland
 qt5ct
 qt6-wayland
@@ -84,13 +87,13 @@ swaylock
 tealdeer
 tlp
 tlp-rdw
+trash-cli
 tree
 ttf-cascadia-code-nerd
 ttf-dejavu
 ttf-firacode-nerd
 ttf-hack-nerd
 ttf-jetbrains-mono-nerd
-trash-cli
 udiskie
 udisks2
 ueberzugpp

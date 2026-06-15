@@ -6,7 +6,7 @@
 
   "modules-left": ["sway/workspaces", "custom/music", "sway/mode"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/disk", "cpu", "memory", "bluetooth", "network", "pulseaudio", "backlight", "battery", "custom/power"],
+  "modules-right": ["custom/capslock", "custom/disk", "cpu", "memory", "bluetooth", "network", "pulseaudio", "backlight", "battery", "custom/power"],
 
   "custom/music": {
     "exec": "~/.local/bin/waybar-music --watch",
@@ -31,10 +31,18 @@
     "tooltip-format": "<tt>{calendar}</tt>"
   },
 
+  "custom/capslock": {
+    "exec": "~/.local/bin/waybar-capslock",
+    "return-type": "json",
+    "interval": 1,
+    "format": "{}",
+    "tooltip": true
+  },
+
   "custom/disk": {
     "exec": "~/.local/bin/disk-status",
     "return-type": "json",
-    "interval": 3,
+    "interval": 10,
     "format": "{}",
     "on-click": "~/.local/bin/disk-manager",
     "tooltip": true

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Yazi File Manager
+GenericName=File Manager
+Comment=Administrador de archivos en terminal
+Exec=foot --app-id foot-files -e /usr/bin/yazi %f
+Icon=/usr/share/icons/hicolor/256x256/apps/yazi.png
+Terminal=false
+Categories=System;FileManager;FileTools;
+Keywords=File;Manager;Explorer;Browser;Launcher;archivos;

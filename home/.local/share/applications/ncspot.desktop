@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ncspot
+GenericName=Spotify client
+Comment=Cliente de Spotify en terminal
+Exec=foot --app-id foot-music-ncspot -e /usr/bin/ncspot
+Icon=/usr/share/icons/hicolor/scalable/apps/ncspot.svg
+Terminal=false
+Categories=Audio;AudioVideo;Player;
+Keywords=music;spotify;ncspot;musica;

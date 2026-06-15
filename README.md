@@ -26,19 +26,19 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - `polkit/`: reglas de polkit para copiar con permisos de sistema.
 - `bootloader/`: archivos de systemd-boot para revisar/restaurar manualmente.
 - `sshd/`: hardening conservador de OpenSSH.
-- `docs/`: inventario y listas de paquetes.
+- `docs/`: inventario, decisiones y listas de paquetes.
 - `docs/media/`: capturas o material visual para documentación.
 
 ## Características principales
 
 - Configuración modular de Sway.
-- Waybar con módulos de música, discos, CPU, memoria, Bluetooth, red, audio, brillo, batería y energía.
+- Waybar con módulos de música, Caps Lock, discos, CPU, memoria, Bluetooth, red, audio, brillo, batería y energía.
 - Menús flotantes con foot y fuzzel.
 - Notificaciones con mako.
 - Manejo de dispositivos externos/removibles con disk-manager, disk-status y disk-notify.
 - Power menu con bloqueo, suspensión, reinicio, apagado y salida de Sway.
 - Reglas polkit para discos y energía local.
-- SSH activo con hardening conservador para usuario local.
+- SSH con hardening conservador; las claves autorizadas no se versionan.
 - systemd-boot ajustado con console-mode max.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
 - Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
@@ -55,6 +55,8 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Configuración de usuario versionada bajo `home/`.
 - Configuración de sistema versionada bajo `polkit/` y `bootloader/`.
 - Hardening de SSH versionado bajo `sshd/`.
+
+Ver criterios de alcance y qué se versiona en `docs/decisiones.md`.
 
 Restauración de usuario:
 
@@ -98,7 +100,28 @@ Aplicar hardening de SSH:
 ./restore.sh --sshd
 ```
 
-La configuración deja `PasswordAuthentication no` y usa `home/.ssh/authorized_keys` para permitir acceso por clave SSH.
+La configuración deja `PasswordAuthentication no`; el acceso por clave se gestiona en `~/.ssh/authorized_keys` fuera del repo.
+
+Las claves autorizadas reales no se guardan en el repo. Hay un ejemplo en
+`home/.ssh/authorized_keys.example`.
+
+## Post-restauración
+
+Después de restaurar una instalación nueva:
+
+```sh
+./restore.sh --all
+./check.sh
+```
+
+Si se restauran reglas de sistema, verificar con:
+
+```sh
+./check.sh --system --sudo
+```
+
+Reiniciar Sway o ejecutar `Mod+Shift+c` para recargar la configuración de la
+sesión gráfica.
 
 ## OneDrive
 
@@ -133,6 +156,7 @@ journalctl --user -u onedrive.service -f
 
 Esta configuración está pensada para uso personal en la netbook conectar-igualdad.
 
-No incluye backups, claves privadas, tokens ni archivos sensibles.
+No incluye backups, claves privadas, tokens, credenciales ni claves SSH
+autorizadas personales.
 
 Los backups manuales de auditoría se guardan fuera del historial Git y están ignorados mediante `backups/`.
