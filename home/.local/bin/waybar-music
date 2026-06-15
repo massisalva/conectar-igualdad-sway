@@ -7,6 +7,7 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
 
 PLAYLIST="$HOME/.config/pyradio/playlists/argentina.csv"
+WATCH_INTERVAL=2
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
@@ -546,7 +547,7 @@ if [ "${1:-}" = "--watch" ]; then
       printf "%s\n" "$now"
       last="$now"
     fi
-    sleep 1
+    sleep "$WATCH_INTERVAL"
   done
 else
   current_song
