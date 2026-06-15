@@ -7,6 +7,7 @@ FAILS=0
 WARNS=0
 STRICT_SYSTEM=0
 ALLOW_SUDO_PROMPT=0
+SUDO_READY=0
 
 usage() {
   cat <<'EOF'
@@ -42,10 +43,32 @@ has_cmd() {
 }
 
 sudo_check() {
+  [ "$SUDO_READY" -eq 1 ] || return 1
+
   if [ "$ALLOW_SUDO_PROMPT" -eq 1 ]; then
     sudo "$@" 2>/dev/null
   else
     sudo -n "$@" 2>/dev/null
+  fi
+}
+
+prepare_sudo() {
+  if [ "$ALLOW_SUDO_PROMPT" -eq 1 ]; then
+    if [ ! -t 0 ]; then
+      fail "no puedo pedir contraseña de sudo sin una terminal interactiva"
+      return
+    fi
+
+    if sudo -v; then
+      SUDO_READY=1
+    else
+      fail "no se pudo obtener credencial sudo; revisá contraseña, layout o bloqueo de faillock"
+    fi
+    return
+  fi
+
+  if sudo -n true 2>/dev/null; then
+    SUDO_READY=1
   fi
 }
 
@@ -432,6 +455,8 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
+
+prepare_sudo
 
 check_packages pacman "$ROOT_DIR/docs/pkglist-pacman.txt"
 check_packages AUR "$ROOT_DIR/docs/pkglist-aur.txt"
