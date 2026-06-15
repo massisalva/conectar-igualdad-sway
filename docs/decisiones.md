@@ -36,6 +36,9 @@ foot con el `app_id` correspondiente para que fuzzel no dependa del escritorio
 actual. Evitar rutas absolutas al usuario en archivos `.desktop`; usar binarios
 de `/usr/bin` cuando sea posible.
 
+`waybar` y `mako` se levantan como units de `systemd --user` para aprovechar
+sus reinicios y mantener el autostart de Sway centrado en la sesión gráfica.
+
 ## Waybar
 
 Waybar prioriza estado útil sin ruido visual:

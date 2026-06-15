@@ -104,14 +104,15 @@ Script:
 
 Estado importante:
 
-- Las apps gráficas se lanzan vía swaymsg exec.
-- Esto evita que Waybar nazca desde una sesión SSH.
-- Waybar debe quedar en session-1.scope o en la sesión local activa de Sway.
+- Las apps gráficas se lanzan vía `swaymsg exec` salvo Waybar y Mako, que
+  arrancan como units de `systemd --user`.
+- El script de autostart importa el entorno Wayland antes de pedir los units.
+- Waybar queda en `waybar.service` dentro del slice de usuario.
 
 Procesos lanzados:
 
-- mako
-- waybar
+- mako.service
+- waybar.service
 - polkit-gnome-authentication-agent-1
 - udiskie --no-automount --no-notify
 - disk-notify
