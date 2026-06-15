@@ -93,7 +93,7 @@ Estado:
 - PyRadio usa modo XDG explícito: config en `~/.config/pyradio`, datos en `~/.local/share/pyradio` y estado en `~/.local/state/pyradio`.
 - PyRadio mantiene creado `~/pyradio-recordings` para evitar fallos al preparar logs/grabaciones.
 - Las ventanas de música se asignan al workspace `3:music`.
-- ncmpcpp, ncspot y PyRadio tienen entradas locales que abren foot con app_id de música para caer directo en `3:music`.
+- ncmpcpp, ncspot, PyRadio y el gestor de discos abren foot con `app_id` de música/archivos para caer directo en `3:music` o `4:files`.
 - La entrada local de PyRadio usa el mismo tema y reproductor que `pyradio-music`.
 
 ## Autostart

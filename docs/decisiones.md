@@ -31,10 +31,10 @@ comparar `app_id`, por eso las reglas deben estar ancladas con `^...$`.
 - `foot-files` va a `4:files`.
 - `foot-system` va a `5:system`.
 
-Los launchers de ncmpcpp, ncspot, PyRadio y Yazi abren foot con el `app_id`
-correspondiente para que fuzzel no dependa del escritorio actual. Evitar rutas
-absolutas al usuario en archivos `.desktop`; usar binarios de `/usr/bin` cuando
-sea posible.
+Los launchers de ncmpcpp, ncspot, PyRadio, Yazi y el gestor de discos abren
+foot con el `app_id` correspondiente para que fuzzel no dependa del escritorio
+actual. Evitar rutas absolutas al usuario en archivos `.desktop`; usar binarios
+de `/usr/bin` cuando sea posible.
 
 ## Waybar
 

@@ -480,14 +480,13 @@ current_song() {
     return
   fi
 
-  # 2) ncspot / Spotify / Firefox reproduciendo
+  # 2) ncspot / Spotify / Firefox reproduciendo o pausado
   if command -v playerctl >/dev/null 2>&1; then
     player="$(music_player | grep -Ei 'ncspot|spotify|firefox' | head -n1 || true)"
 
     if [ -n "$player" ]; then
       status="$(playerctl -p "$player" status 2>/dev/null || true)"
-
-      if [ "$status" = "Playing" ]; then
+      if [ "$status" = "Playing" ] || [ "$status" = "Paused" ]; then
         artist="$(playerctl -p "$player" metadata artist 2>/dev/null || true)"
         title="$(playerctl -p "$player" metadata title 2>/dev/null || true)"
 
@@ -499,7 +498,11 @@ current_song() {
           fi
 
           song="$(shorten "$song" 36)"
-          printf "󰓇 %s\n" "$song"
+          if [ "$status" = "Playing" ]; then
+            printf "󰓇 %s\n" "$song"
+          else
+            printf "󰏤 %s\n" "$song"
+          fi
           return
         fi
       fi
@@ -511,32 +514,6 @@ current_song() {
     song="$(shorten "$mpd_song" 36)"
     printf "󰏤 %s\n" "$song"
     return
-  fi
-
-  # 4) ncspot / Spotify / Firefox pausado
-  if command -v playerctl >/dev/null 2>&1; then
-    player="$(music_player | grep -Ei 'ncspot|spotify|firefox' | head -n1 || true)"
-
-    if [ -n "$player" ]; then
-      status="$(playerctl -p "$player" status 2>/dev/null || true)"
-
-      if [ "$status" = "Paused" ]; then
-        artist="$(playerctl -p "$player" metadata artist 2>/dev/null || true)"
-        title="$(playerctl -p "$player" metadata title 2>/dev/null || true)"
-
-        if [ -n "$title" ]; then
-          if [ -n "$artist" ]; then
-            song="$artist - $title"
-          else
-            song="$title"
-          fi
-
-          song="$(shorten "$song" 36)"
-          printf "󰏤 %s\n" "$song"
-          return
-        fi
-      fi
-    fi
   fi
 
   printf "\n"

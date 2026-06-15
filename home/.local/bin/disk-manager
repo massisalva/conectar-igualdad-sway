@@ -60,7 +60,7 @@ open_yazi() {
     exit 1
   fi
 
-  foot -e yazi "$dir"
+  foot --app-id foot-files -e yazi "$dir"
 }
 
 add_item() {

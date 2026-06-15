@@ -16,7 +16,7 @@
     "on-scroll-up": "~/.local/bin/waybar-music --next",
     "on-scroll-down": "~/.local/bin/waybar-music --prev",
     "tooltip": true,
-    "tooltip-format": "Click: abrir reproductor activo | Click derecho: reproducir/pausar | Scroll: cambiar tema"
+    "tooltip-format": "Click: abrir reproductor activo | Click derecho: reproducir/pausar | Scroll: siguiente/anterior"
   },
 
   "sway/workspaces": {
