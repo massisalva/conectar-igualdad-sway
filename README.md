@@ -26,6 +26,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - `polkit/`: reglas de polkit para copiar con permisos de sistema.
 - `bootloader/`: archivos de systemd-boot para revisar/restaurar manualmente.
 - `sshd/`: hardening conservador de OpenSSH.
+- `nftables/`: firewall local conservador.
 - `docs/`: inventario, decisiones y listas de paquetes.
 - `docs/media/`: capturas o material visual para documentación.
 
@@ -39,6 +40,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Power menu con bloqueo, suspensión, reinicio, apagado y salida de Sway.
 - Reglas polkit para discos y energía local.
 - SSH con hardening conservador; las claves autorizadas no se versionan.
+- Firewall local con nftables para limitar entrada y SSH desde la LAN.
 - systemd-boot ajustado con console-mode max.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
 - Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
@@ -55,6 +57,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Configuración de usuario versionada bajo `home/`.
 - Configuración de sistema versionada bajo `polkit/` y `bootloader/`.
 - Hardening de SSH versionado bajo `sshd/`.
+- Firewall nftables versionado bajo `nftables/`.
 
 Ver criterios de alcance y qué se versiona en `docs/decisiones.md`.
 
@@ -104,6 +107,15 @@ La configuración deja `PasswordAuthentication no`; el acceso por clave se gesti
 
 Las claves autorizadas reales no se guardan en el repo. Hay un ejemplo en
 `home/.ssh/authorized_keys.example`.
+
+Aplicar firewall local:
+
+```sh
+./restore.sh --nftables
+```
+
+La configuración permite salida normal y SSH solo desde `192.168.1.0/24`.
+Si cambia la red de confianza, ajustar `nftables/nftables.conf` antes de instalar.
 
 ## Post-restauración
 

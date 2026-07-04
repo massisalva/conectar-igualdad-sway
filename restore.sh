@@ -11,6 +11,7 @@ RESTORE_USER=1
 INSTALL_POLKIT=0
 INSTALL_BOOTLOADER=0
 INSTALL_SSHD=0
+INSTALL_NFTABLES=0
 INSTALL_YAZI=1
 
 usage() {
@@ -28,7 +29,8 @@ Opciones:
   --polkit      Copia reglas polkit a /etc/polkit-1/rules.d/.
   --bootloader  Copia loader.conf y arch.conf a /boot/loader/.
   --sshd        Copia hardening de sshd a /etc/ssh/sshd_config.d/.
-  --all         Ejecuta packages, aur, user, yazi, polkit, bootloader y sshd.
+  --nftables    Copia firewall nftables y habilita nftables.service.
+  --all         Ejecuta packages, aur, user, yazi, polkit, bootloader, sshd y nftables.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
   --dry-run     Muestra acciones sin ejecutarlas.
@@ -192,6 +194,19 @@ install_sshd_config() {
   run sudo systemctl reload sshd.service
 }
 
+install_nftables_config() {
+  local file="$ROOT_DIR/nftables/nftables.conf"
+  [ -f "$file" ] || { log "No existe $file"; return 1; }
+
+  confirm "Esto instalará nftables.conf, reemplazará reglas activas y habilitará nftables.service. ¿Continuar?"
+  log "Validando configuración de nftables"
+  run sudo nft -c -f "$file"
+
+  log "Instalando configuración de nftables"
+  run sudo install -Dm644 "$file" /etc/nftables.conf
+  run sudo systemctl enable --now nftables.service
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --packages) INSTALL_PACKAGES=1 ;;
@@ -199,6 +214,7 @@ while [ "$#" -gt 0 ]; do
     --polkit) INSTALL_POLKIT=1 ;;
     --bootloader) INSTALL_BOOTLOADER=1 ;;
     --sshd) INSTALL_SSHD=1 ;;
+    --nftables) INSTALL_NFTABLES=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -207,6 +223,7 @@ while [ "$#" -gt 0 ]; do
       INSTALL_POLKIT=1
       INSTALL_BOOTLOADER=1
       INSTALL_SSHD=1
+      INSTALL_NFTABLES=1
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
@@ -225,5 +242,6 @@ done
 [ "$INSTALL_POLKIT" -eq 1 ] && install_polkit_rules
 [ "$INSTALL_BOOTLOADER" -eq 1 ] && install_bootloader_files
 [ "$INSTALL_SSHD" -eq 1 ] && install_sshd_config
+[ "$INSTALL_NFTABLES" -eq 1 ] && install_nftables_config
 
 log "Restauración finalizada"

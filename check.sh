@@ -14,10 +14,10 @@ usage() {
 Uso: ./check.sh [opciones]
 
 Por defecto verifica el estado de usuario, paquetes, Yazi, XDG y repo.
-Los archivos de sistema en polkit/ y bootloader/ se reportan como advertencia.
+Los archivos de sistema en polkit/, bootloader/, sshd/ y nftables/ se reportan como advertencia.
 
 Opciones:
-  --system    Trata polkit/ y bootloader/ como checks obligatorios.
+  --system    Trata polkit/, bootloader/, sshd/ y nftables/ como checks obligatorios.
   --sudo      Permite pedir contraseña para verificar archivos de sistema
               si hay una terminal interactiva disponible.
   -h, --help  Muestra esta ayuda.
@@ -289,6 +289,39 @@ check_sshd() {
   done
 }
 
+check_nftables() {
+  local severity="warn"
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+
+  check_same_system_file "$ROOT_DIR/nftables/nftables.conf" /etc/nftables.conf "$severity"
+
+  if has_cmd nft; then
+    ok "comando disponible: nft"
+  else
+    fail "falta comando: nft"
+  fi
+
+  if systemctl is-active nftables.service >/dev/null 2>&1; then
+    ok "nftables activo"
+  else
+    if [ "$severity" = "warn" ]; then
+      warn "nftables no está activo"
+    else
+      fail "nftables no está activo"
+    fi
+  fi
+
+  if systemctl is-enabled nftables.service >/dev/null 2>&1; then
+    ok "nftables habilitado"
+  else
+    if [ "$severity" = "warn" ]; then
+      warn "nftables no está habilitado"
+    else
+      fail "nftables no está habilitado"
+    fi
+  fi
+}
+
 check_xdg_dirs() {
   if ! has_cmd xdg-user-dir; then
     fail "falta comando: xdg-user-dir"
@@ -498,6 +531,7 @@ check_mpd_ncmpcpp
 check_polkit
 check_bootloader
 check_sshd
+check_nftables
 check_repo_state
 
 printf '\nResumen: %d fallos, %d advertencias\n' "$FAILS" "$WARNS"

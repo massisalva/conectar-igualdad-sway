@@ -10,7 +10,7 @@ Conectar Igualdad SF20GM7. No intenta ser una copia completa de `$HOME`.
 - Scripts locales en `~/.local/bin` que forman parte de la sesión.
 - Launchers locales en `~/.local/share/applications` cuando corrigen
   comportamiento, asignan workspaces o limpian fuzzel.
-- Reglas de polkit, systemd-boot y sshd que requieren instalación explícita.
+- Reglas de polkit, systemd-boot, sshd y nftables que requieren instalación explícita.
 - Listas de paquetes necesarias o recomendadas para reconstruir el entorno.
 
 ## Qué no se versiona
@@ -64,7 +64,16 @@ funciones:
 
 `restore.sh` copia `home/` sobre `$HOME`, ajusta permisos de scripts y prepara
 directorios esperados. Las piezas de sistema se instalan solo con flags
-explícitos: `--polkit`, `--bootloader` y `--sshd`.
+explícitos: `--polkit`, `--bootloader`, `--sshd` y `--nftables`.
 
 `check.sh` valida que lo versionado y lo instalado coincidan. Para archivos de
 sistema protegidos, usar `./check.sh --system --sudo`.
+
+## Firewall
+
+El firewall local se versiona como `/etc/nftables.conf` y se instala de forma
+explícita. La política base bloquea entrada y forwarding, permite salida,
+loopback, conexiones establecidas, ICMP/ICMPv6 básico y DHCP cliente.
+
+SSH queda permitido solo desde `192.168.1.0/24`, porque la auditoría de red
+mostró `sshd` escuchando en todas las interfaces y sin firewall activo.

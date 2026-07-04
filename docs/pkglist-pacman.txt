@@ -51,6 +51,7 @@ ncmpcpp
 ncspot
 neovim
 networkmanager
+nftables
 nodejs
 noto-fonts
 noto-fonts-emoji
