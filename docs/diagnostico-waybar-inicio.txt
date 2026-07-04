@@ -1,0 +1,93 @@
+# Comandos para revisar Waybar despues de reiniciar
+
+# Ver etapas del autostart:
+tail -n 40 ~/.cache/sway-autostart.log
+
+# Ver logs de Waybar del arranque actual:
+journalctl --user -u waybar.service -b --no-pager
+
+# Ver cadena critica de Waybar:
+systemd-analyze --user critical-chain waybar.service
+
+
+# Dato esperado
+# -------------
+#
+# Waybar deberia arrancar cuando sway-autostart pide waybar.service, sin depender
+# de que graphical-session.target este activo.
+#
+#
+# Diagnostico 2026-07-04
+# ----------------------
+#
+# En el arranque de las 10:21:22:
+#
+# - sway-autostart pidio mako.service y waybar.service.
+# - waybar.service fallo con resultado 'dependency'.
+# - El journal mostro: "Current graphical user session is inactive."
+# - La unit del paquete en /usr/lib/systemd/user/waybar.service tenia:
+#   Requisite=graphical-session.target.
+# - En esta sesion Sway, graphical-session.target estaba inactive aunque
+#   loginctl reportaba la sesion wayland activa.
+#
+# Solucion aplicada:
+#
+# - Se versiono ~/.config/systemd/user/waybar.service.
+# - La unit local conserva ExecStart=/usr/bin/waybar, Restart=on-failure,
+#   PartOf=graphical-session.target y After=graphical-session.target.
+# - Se quito Requisite=graphical-session.target para permitir que
+#   sway-autostart arranque Waybar aunque systemd no haya activado ese target.
+#
+# Resultado medido el 2026-07-04:
+#
+# - systemctl --user start waybar.service termino correctamente.
+# - waybar.service quedo active (running).
+# - Waybar leyo config.jsonc a las 10:35:52.156.
+# - Waybar leyo style.css a las 10:35:52.649.
+# - La barra quedo configurada a las 10:35:52.928 en eDP-1.
+#
+# Verificacion post-reinicio 2026-07-04 10:45:
+#
+# - sway-autostart pidio mako.service y waybar.service a las 10:45:48.
+# - waybar.service quedo ActiveState=active, SubState=running y Result=success.
+# - Requisite quedo vacio; PartOf=graphical-session.target y After=graphical-session.target.
+# - Waybar leyo config.jsonc a las 10:45:49.227.
+# - Waybar leyo style.css a las 10:45:49.731.
+# - La barra quedo configurada a las 10:45:50.178 en eDP-1.
+# - systemd-analyze --user critical-chain mostro waybar.service @2.763s.
+# - No aparecio "Job waybar.service/start failed with result 'dependency'".
+#
+#
+# Diagnostico 2026-06-15
+# ----------------------
+#
+# En el arranque de las 19:43:29:
+#
+# - sway-autostart pidio mako.service y waybar.service a las 19:43:30.
+# - waybar.service arranco en ese mismo segundo.
+# - Waybar leyo config.jsonc a las 19:43:30.394.
+# - Waybar leyo style.css a las 19:43:30.974.
+# - La barra quedo configurada a las 19:43:33.851.
+#
+# Conclusion: el autostart no esta reteniendo Waybar. La demora fria observada
+# venia del modulo nativo battery, que consultaba UPower/DBus durante el arranque
+# y dejaba varias lineas "Discharging" en el journal antes de configurar la barra.
+#
+# Solucion aplicada:
+#
+# - Se reemplazo battery por custom/battery.
+# - custom/battery ejecuta ~/.local/bin/waybar-battery.
+# - El script lee /sys/class/power_supply directamente y no espera UPower.
+#
+# Resultado medido el 2026-06-15:
+#
+# - Antes: CSS a las 19:55:23.669; barra configurada a las 19:55:26.432.
+# - Despues: CSS a las 20:01:04.014; barra configurada a las 20:01:04.322.
+# - Las lineas repetidas "Discharging" desaparecieron del reinicio nuevo.
+#
+# El modulo custom/music tenia un delay artificial por defecto de 8 segundos
+# antes de publicar el primer estado. Ese delay no deberia bloquear toda la barra,
+# pero si puede hacer que el sector de musica aparezca tarde y se perciba como
+# un inicio incompleto de Waybar. El valor por defecto quedo en 0; si hiciera
+# falta restaurarlo para reducir carga al inicio, se puede lanzar Waybar con
+# WAYBAR_MUSIC_STARTUP_DELAY=8.

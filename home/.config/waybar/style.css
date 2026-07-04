@@ -77,7 +77,7 @@ tooltip label {
 #network,
 #pulseaudio,
 #backlight,
-#battery,
+#custom-battery,
 #custom-power {
   background-color: #1e1e2e;
   padding: 1px 10px;
@@ -163,7 +163,7 @@ tooltip label {
   margin-right: 6px;
 }
 
-#battery {
+#custom-battery {
   color: #a6e3a1;
   margin-right: 6px;
 }
@@ -178,11 +178,11 @@ tooltip label {
  * Estados
  * ------------------------------------------------------------ */
 
-#battery.warning {
+#custom-battery.warning {
   color: #f9e2af;
 }
 
-#battery.critical {
+#custom-battery.critical {
   color: #f38ba8;
 }
 

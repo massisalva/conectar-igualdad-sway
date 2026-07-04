@@ -7,7 +7,8 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
 
 PLAYLIST="$HOME/.config/pyradio/playlists/argentina.csv"
-WATCH_INTERVAL=2
+WATCH_INTERVAL="${WAYBAR_MUSIC_INTERVAL:-2}"
+STARTUP_DELAY="${WAYBAR_MUSIC_STARTUP_DELAY:-0}"
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
@@ -540,7 +541,12 @@ case "${1:-}" in
 esac
 
 if [ "${1:-}" = "--watch" ]; then
+  printf "\n"
   last=""
+  if [ "$STARTUP_DELAY" != "0" ]; then
+    sleep "$STARTUP_DELAY"
+  fi
+
   while true; do
     now="$(current_song)"
     if [ "$now" != "$last" ]; then

@@ -85,6 +85,8 @@ Interacciones de Waybar:
 
 Estado:
 
+- El watcher de Waybar muestra vacío al arrancar y demora la primera consulta de
+  reproductores para no cargar el inicio de la sesión.
 - MPD/ncmpcpp, ncspot, PyRadio y Firefox intentan enfocar la instancia activa antes de abrir otra.
 - ncmpcpp, ncspot y PyRadio abren foot con app_id propio si no hay una sesión activa.
 - Firefox abre/reutiliza el navegador si no hay una ventana enfocable.
@@ -108,6 +110,11 @@ Estado importante:
   arrancan como units de `systemd --user`.
 - El script de autostart importa el entorno Wayland antes de pedir los units.
 - Waybar queda en `waybar.service` dentro del slice de usuario.
+- Waybar se pide junto con Mako, sin delay artificial en el autostart.
+- Waybar usa una unit de usuario versionada en `~/.config/systemd/user/waybar.service`
+  sin `Requisite=graphical-session.target`, porque Sway no siempre deja activo
+  `graphical-session.target` antes del autostart.
+- El log de autostart incluye timestamps por etapa para auditar regresiones.
 
 Procesos lanzados:
 
@@ -196,6 +203,19 @@ Estado:
 - Waybar muestra un indicador solo cuando Caps Lock está activo.
 - El script lee `/sys/class/leds/input*::capslock/brightness`, sin depender de X11.
 - El módulo se actualiza cada 1 segundo.
+
+## Batería
+
+Scripts:
+
+- ~/.local/bin/waybar-battery
+- ~/.local/bin/battery-menu
+
+Estado:
+
+- Waybar usa `custom/battery` en lugar del módulo nativo `battery`.
+- `waybar-battery` lee `/sys/class/power_supply` directamente para evitar esperas de UPower/DBus al inicio.
+- Click izquierdo: abre el detalle de batería en foot.
 
 ## Audio
 

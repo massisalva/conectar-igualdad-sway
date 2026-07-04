@@ -1,0 +1,41 @@
+# Checklist post-reinicio para revisar Waybar.
+#
+# Objetivo:
+# - confirmar que Waybar arranca sola despues de iniciar Sway;
+# - verificar que ya no aparece el fallo "result 'dependency'";
+# - decidir si los cambios se pueden commitear como arreglo definitivo.
+
+# Etapas del autostart:
+tail -n 40 ~/.cache/sway-autostart.log
+
+# Logs de Waybar del arranque actual:
+journalctl --user -u waybar.service -b --no-pager
+
+# Solo las lineas relevantes de Waybar:
+journalctl --user -u waybar.service -b --no-pager | grep -E 'Using configuration|Using CSS|Bar configured|Discharging|warning|error|critical'
+
+# Cadena critica de Waybar:
+systemd-analyze --user critical-chain waybar.service
+
+# Estado actual de la unit:
+systemctl --user status waybar.service --no-pager
+
+# Dependencias efectivas: Requisite debe estar vacio.
+systemctl --user show waybar.service -p Requisite -p PartOf -p After --no-pager
+
+# Resultado esperado:
+# - waybar.service active (running)
+# - aparece "Bar configured" para eDP-1
+# - no aparece "Job waybar.service/start failed with result 'dependency'"
+# - Requisite=
+
+# Si todo esta bien, estos cambios son los candidatos principales a commit:
+# - home/.config/systemd/user/waybar.service
+# - home/.config/waybar/config.jsonc
+# - home/.config/waybar/style.css
+# - home/.local/bin/sway-autostart
+# - home/.local/bin/waybar-battery
+# - home/.local/bin/waybar-music
+# - docs/comandos-post-reinicio-waybar.txt
+# - docs/diagnostico-waybar-inicio.txt
+# - docs/inventario-local.md

@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+set -u
+
+shopt -s nullglob
+
+json_escape() {
+  local text="$1"
+  text="${text//\\/\\\\}"
+  text="${text//\"/\\\"}"
+  text="${text//$'\n'/\\n}"
+  printf '%s' "$text"
+}
+
+first_line() {
+  local file="$1"
+  [ -r "$file" ] || return 1
+  IFS= read -r line < "$file" || return 1
+  printf '%s' "$line"
+}
+
+icon_for_capacity() {
+  local capacity="$1"
+
+  if [ "$capacity" -ge 95 ]; then
+    printf '󰁹'
+  elif [ "$capacity" -ge 85 ]; then
+    printf '󰂂'
+  elif [ "$capacity" -ge 75 ]; then
+    printf '󰂁'
+  elif [ "$capacity" -ge 65 ]; then
+    printf '󰂀'
+  elif [ "$capacity" -ge 55 ]; then
+    printf '󰁿'
+  elif [ "$capacity" -ge 45 ]; then
+    printf '󰁾'
+  elif [ "$capacity" -ge 35 ]; then
+    printf '󰁽'
+  elif [ "$capacity" -ge 25 ]; then
+    printf '󰁼'
+  elif [ "$capacity" -ge 15 ]; then
+    printf '󰁻'
+  else
+    printf '󰁺'
+  fi
+}
+
+bat=""
+for candidate in /sys/class/power_supply/BAT*; do
+  [ -d "$candidate" ] || continue
+  bat="$candidate"
+  break
+done
+
+if [ -z "$bat" ]; then
+  printf '{"text":"","tooltip":"Sin bateria","class":"missing"}\n'
+  exit 0
+fi
+
+capacity="$(first_line "$bat/capacity" || printf '0')"
+status="$(first_line "$bat/status" || printf 'Unknown')"
+
+case "$capacity" in
+  ''|*[!0-9]*) capacity=0 ;;
+esac
+
+case "$status" in
+  Charging)
+    icon="󰂄"
+    class="charging"
+    ;;
+  Full)
+    icon="󰁹"
+    class="full"
+    ;;
+  Not\ charging)
+    icon="󰚥"
+    class="plugged"
+    ;;
+  Discharging)
+    icon="$(icon_for_capacity "$capacity")"
+    if [ "$capacity" -le 15 ]; then
+      class="critical"
+    elif [ "$capacity" -le 30 ]; then
+      class="warning"
+    else
+      class="discharging"
+    fi
+    ;;
+  *)
+    icon="$(icon_for_capacity "$capacity")"
+    class="unknown"
+    ;;
+esac
+
+tooltip="$(json_escape "Bateria: ${capacity}% (${status})\nClick para ver detalles")"
+printf '{"text":"%s %s%%","tooltip":"%s","class":"%s"}\n' "$icon" "$capacity" "$tooltip" "$class"

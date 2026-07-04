@@ -6,7 +6,7 @@
 
   "modules-left": ["sway/workspaces", "custom/music", "sway/mode"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/capslock", "custom/disk", "cpu", "memory", "bluetooth", "network", "pulseaudio", "backlight", "battery", "custom/power"],
+  "modules-right": ["custom/capslock", "custom/disk", "cpu", "memory", "bluetooth", "network", "pulseaudio", "backlight", "custom/battery", "custom/power"],
 
   "custom/music": {
     "exec": "~/.local/bin/waybar-music --watch",
@@ -101,19 +101,13 @@
     "tooltip-format": "Brillo: {percent}%"
   },
 
-  "battery": {
-    "states": {
-      "warning": 30,
-      "critical": 15
-    },
-    "format": "{icon} {capacity}%",
-    "format-charging": "󰂄 {capacity}%",
-    "format-plugged": "󰚥 {capacity}%",
-    "format-full": "󰁹 {capacity}%",
-    "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
-    "tooltip": true,
-    "tooltip-format": "Batería: {capacity}%\nClick para ver detalles",
-    "on-click": "~/.local/bin/battery-menu"
+  "custom/battery": {
+    "exec": "~/.local/bin/waybar-battery",
+    "return-type": "json",
+    "interval": 20,
+    "format": "{}",
+    "on-click": "~/.local/bin/battery-menu",
+    "tooltip": true
   },
   "custom/power": {
     "format": "⏻",
