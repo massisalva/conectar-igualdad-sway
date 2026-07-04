@@ -317,6 +317,10 @@ EOF
 
 check_trash() {
   local base="$HOME/.local/share/Trash"
+  local files_write=1
+  local info_write=1
+  local output
+  local tmp
 
   if [ -d "$base/files" ] && [ -d "$base/info" ]; then
     ok "papelera XDG disponible: $base"
@@ -324,8 +328,24 @@ check_trash() {
     fail "falta papelera XDG en $base/{files,info}"
   fi
 
-  if [ -w "$base/files" ] && [ -w "$base/info" ]; then
+  tmp="$base/files/.check-write-$$"
+  if output="$( { : > "$tmp"; } 2>&1)"; then
+    rm -f "$tmp"
+    files_write=0
+  fi
+
+  tmp="$base/info/.check-write-$$"
+  if output="$( { : > "$tmp"; } 2>&1)"; then
+    rm -f "$tmp"
+    info_write=0
+  fi
+
+  if [ "$files_write" -eq 0 ] && [ "$info_write" -eq 0 ]; then
     ok "papelera XDG escribible"
+  elif [ -O "$base/files" ] && [ -O "$base/info" ] && [ -w "$base/files" ] && [ -w "$base/info" ]; then
+    warn "no puedo verificar escritura de papelera por permisos del entorno"
+  elif printf '%s\n' "$output" | grep -Eq 'Read-only file system|Operation not permitted'; then
+    warn "no puedo verificar escritura de papelera por permisos del entorno"
   else
     fail "papelera XDG no escribible"
   fi
@@ -392,24 +412,32 @@ check_yazi() {
 }
 
 check_mpd_ncmpcpp() {
+  local output
+
   check_cmd mpd
   check_cmd mpc
   check_cmd ncmpcpp
 
-  if systemctl --user is-active mpd.service >/dev/null 2>&1; then
+  if output="$(systemctl --user is-active mpd.service 2>&1)"; then
     ok "MPD activo"
+  elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to user scope bus'; then
+    warn "no puedo verificar MPD activo por permisos del entorno"
   else
     fail "MPD no está activo"
   fi
 
-  if systemctl --user is-enabled mpd.service >/dev/null 2>&1; then
+  if output="$(systemctl --user is-enabled mpd.service 2>&1)"; then
     ok "MPD habilitado"
+  elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to user scope bus'; then
+    warn "no puedo verificar si MPD está habilitado por permisos del entorno"
   else
     warn "MPD no está habilitado al inicio de sesión"
   fi
 
-  if mpc status >/dev/null 2>&1; then
+  if output="$(mpc status 2>&1)"; then
     ok "mpc conecta con MPD"
+  elif printf '%s\n' "$output" | grep -q 'Operation not permitted'; then
+    warn "no puedo verificar conexión mpc por permisos del entorno"
   else
     fail "mpc no puede conectar con MPD"
   fi
