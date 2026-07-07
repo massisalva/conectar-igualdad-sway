@@ -28,11 +28,13 @@ gnome-themes-extra
 grim
 imagemagick
 imv
+intel-media-driver
 intel-ucode
 jq
 kvantum
 kvantum-qt5
 libnotify
+libva-utils
 linux-firmware
 linux-zen
 linux-zen-headers
@@ -103,6 +105,7 @@ unzip
 vim
 vulkan-intel
 waybar
+wireless-regdb
 wireplumber
 wl-clipboard
 xdg-desktop-portal

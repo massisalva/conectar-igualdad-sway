@@ -292,6 +292,7 @@ check_sshd() {
 check_nftables() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+  local output active_state sub_state result unit_file_state
 
   check_same_system_file "$ROOT_DIR/nftables/nftables.conf" /etc/nftables.conf "$severity"
 
@@ -301,23 +302,33 @@ check_nftables() {
     fail "falta comando: nft"
   fi
 
-  if systemctl is-active nftables.service >/dev/null 2>&1; then
-    ok "nftables activo"
-  else
-    if [ "$severity" = "warn" ]; then
-      warn "nftables no está activo"
-    else
-      fail "nftables no está activo"
+  output="$(systemctl show nftables.service -p ActiveState -p SubState -p Result -p UnitFileState 2>/dev/null || true)"
+  if [ -z "$output" ]; then
+    if systemctl is-enabled nftables.service >/dev/null 2>&1; then
+      warn "nftables no pudo verificarse por permisos del entorno"
+      return
     fi
+
+    if [ "$severity" = "warn" ]; then
+      warn "nftables no está aplicado o habilitado"
+    else
+      fail "nftables no está aplicado o habilitado"
+    fi
+    return
   fi
 
-  if systemctl is-enabled nftables.service >/dev/null 2>&1; then
-    ok "nftables habilitado"
+  active_state="$(printf '%s\n' "$output" | awk -F= '/^ActiveState=/{print $2}')"
+  sub_state="$(printf '%s\n' "$output" | awk -F= '/^SubState=/{print $2}')"
+  result="$(printf '%s\n' "$output" | awk -F= '/^Result=/{print $2}')"
+  unit_file_state="$(printf '%s\n' "$output" | awk -F= '/^UnitFileState=/{print $2}')"
+
+  if [ "$unit_file_state" = "enabled" ] && [ "$result" = "success" ] && { [ "$active_state" = "inactive" ] || [ "$active_state" = "active" ]; }; then
+    ok "nftables aplicado y habilitado"
   else
     if [ "$severity" = "warn" ]; then
-      warn "nftables no está habilitado"
+      warn "nftables no está aplicado o habilitado"
     else
-      fail "nftables no está habilitado"
+      fail "nftables no está aplicado o habilitado"
     fi
   fi
 }
