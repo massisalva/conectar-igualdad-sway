@@ -31,7 +31,7 @@ Opciones:
   --bootloader  Copia loader.conf y arch.conf a /boot/loader/.
   --sshd        Copia hardening de sshd a /etc/ssh/sshd_config.d/.
   --nftables    Copia firewall nftables y habilita nftables.service.
-  --iwd         Configura iwd, systemd-resolved y deshabilita NetworkManager.
+  --iwd         Configura iwd y systemd-resolved.
   --all         Ejecuta packages, aur, user, yazi, polkit, bootloader, sshd, nftables e iwd.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
@@ -213,7 +213,7 @@ install_iwd_config() {
   local file="$ROOT_DIR/iwd/main.conf"
   [ -f "$file" ] || { log "No existe $file"; return 1; }
 
-  confirm "Esto cambiará la gestión Wi-Fi de NetworkManager a iwd y puede interrumpir brevemente la conexión. ¿Continuar?"
+  confirm "Esto instalará la configuración de iwd y systemd-resolved. ¿Continuar?"
   log "Instalando configuración de iwd"
   run sudo install -Dm644 "$file" /etc/iwd/main.conf
 
@@ -221,8 +221,7 @@ install_iwd_config() {
   run sudo systemctl enable --now systemd-resolved.service
   run sudo ln -sfn /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
-  log "Cambiando el gestor Wi-Fi a iwd"
-  run sudo systemctl disable --now NetworkManager.service
+  log "Habilitando el gestor Wi-Fi iwd"
   run sudo systemctl enable --now iwd.service
 }
 

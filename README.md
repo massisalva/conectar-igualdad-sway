@@ -126,10 +126,10 @@ Configurar Impala con iwd:
 ./restore.sh --iwd
 ```
 
-El cambio deshabilita NetworkManager, habilita iwd y systemd-resolved, y puede
-interrumpir brevemente la conexión Wi-Fi. Las redes se administran luego con
-Impala desde Waybar o ejecutando `impala`. La aplicación, verificación y
-recuperación con NetworkManager se detallan en `iwd/README.md`.
+La configuración habilita iwd y systemd-resolved. NetworkManager y `tlp-rdw` no
+forman parte de esta instalación. Las redes se administran con Impala desde
+Waybar o ejecutando `impala`. La aplicación, verificación y recuperación se
+detallan en `iwd/README.md`.
 
 ## Post-restauración
 

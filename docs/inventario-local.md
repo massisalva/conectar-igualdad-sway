@@ -262,7 +262,7 @@ Estado:
 - network-menu valida foot e Impala antes de ejecutar.
 - iwd administra la interfaz Wi-Fi y obtiene red mediante DHCP.
 - systemd-resolved recibe de iwd la configuración DNS.
-- NetworkManager queda instalado como recuperación, pero deshabilitado.
+- NetworkManager y tlp-rdw no están instalados; TLP permanece activo.
 
 ## Capturas
 
@@ -396,7 +396,7 @@ Verificación gráfica post-reinicio:
 
 - Agregar captura del escritorio en `docs/media/escritorio.png` y activarla en el README.
 - Probar preferencia Bluetooth de audio conectando JBL/LG.
-- Revisar warnings menores: Bluetooth default system config hci0, NetworkManager p2p-dev-wlo2.
+- Revisar warning menor: Bluetooth default system config hci0.
 
 ## Verificación y restauración
 

@@ -1,9 +1,8 @@
 # Impala + iwd
 
 Impala reemplaza a `nmtui` como interfaz de terminal para administrar Wi-Fi.
-Impala se comunica directamente con iwd, por lo que NetworkManager debe
-permanecer deshabilitado para evitar que ambos servicios controlen la misma
-interfaz.
+Impala se comunica directamente con iwd. NetworkManager no forma parte de esta
+instalación, evitando mantener dos pilas que puedan controlar la misma interfaz.
 
 ## Componentes
 
@@ -26,9 +25,7 @@ completa los cambios de sistema con:
 ```
 
 Este paso instala `/etc/iwd/main.conf`, habilita `systemd-resolved.service`,
-apunta `/etc/resolv.conf` a su stub, deshabilita `NetworkManager.service` y
-habilita `iwd.service`. La conexión puede interrumpirse brevemente durante el
-cambio de servicio.
+apunta `/etc/resolv.conf` a su stub y habilita `iwd.service`.
 
 Después se puede abrir el módulo de red de Waybar o ejecutar:
 
@@ -53,17 +50,28 @@ iwctl station list
 resolvectl status
 ```
 
-NetworkManager debe aparecer inactivo y deshabilitado.
+`check.sh` también confirma que NetworkManager y `tlp-rdw` no estén instalados.
+TLP permanece instalado; solo se retira RDW porque depende de NetworkManager y
+no hay reglas de radio configuradas que lo necesiten.
 
-## Recuperación con NetworkManager
+## Recuperación
 
-NetworkManager permanece instalado para permitir una vuelta manual si iwd no
-puede establecer la conexión:
+Si Impala no puede establecer una conexión, se puede usar directamente la CLI
+de iwd:
 
 ```sh
+iwctl device list
+iwctl station wlan0 scan
+iwctl station wlan0 get-networks
+iwctl station wlan0 connect NOMBRE_DE_RED
+```
+
+Los perfiles conocidos permanecen en `/var/lib/iwd`, por lo que reiniciar iwd o
+el equipo normalmente restaura automáticamente la conexión. Si fuera necesario
+volver a NetworkManager, se puede reinstalar y cambiar los servicios manualmente:
+
+```sh
+sudo pacman -S networkmanager
 sudo systemctl disable --now iwd.service
 sudo systemctl enable --now NetworkManager.service
 ```
-
-Después de recuperar conectividad con NetworkManager se puede revisar el estado
-de iwd y repetir `./restore.sh --iwd` cuando corresponda.

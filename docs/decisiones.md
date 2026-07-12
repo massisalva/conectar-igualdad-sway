@@ -94,10 +94,10 @@ mostró `sshd` escuchando en todas las interfaces y sin firewall activo.
 
 Impala reemplaza a nmtui como interfaz de gestión y se abre desde el módulo de
 red de Waybar. Como Impala se comunica directamente con iwd, iwd administra la
-interfaz Wi-Fi y NetworkManager permanece deshabilitado para evitar que dos
-servicios controlen el mismo dispositivo.
+interfaz Wi-Fi sin una segunda pila de gestión de red.
 
 iwd usa su configuración de red integrada para DHCP y entrega el DNS a
 systemd-resolved. Los perfiles de `/var/lib/iwd` contienen secretos y no se
-versionan. NetworkManager permanece instalado para permitir una recuperación
-manual si fuera necesaria.
+versionan. NetworkManager y `tlp-rdw` se retiran: el complemento RDW no tenía
+reglas configuradas y depende de NetworkManager. TLP permanece instalado para
+la gestión general de energía.

@@ -353,15 +353,24 @@ check_iwd() {
     fi
   done
 
-  output="$(systemctl is-enabled NetworkManager.service 2>&1)"
-  if [ "$output" = "disabled" ]; then
-    ok "NetworkManager.service deshabilitado"
-  elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
-    warn "no puedo verificar NetworkManager.service por permisos del entorno"
-  elif [ "$severity" = "warn" ]; then
-    warn "NetworkManager.service sigue habilitado"
+  if pacman -Q networkmanager >/dev/null 2>&1; then
+    if [ "$severity" = "warn" ]; then
+      warn "NetworkManager sigue instalado junto a iwd"
+    else
+      fail "NetworkManager sigue instalado junto a iwd"
+    fi
   else
-    fail "NetworkManager.service sigue habilitado"
+    ok "NetworkManager no está instalado"
+  fi
+
+  if pacman -Q tlp-rdw >/dev/null 2>&1; then
+    if [ "$severity" = "warn" ]; then
+      warn "tlp-rdw sigue instalado y requiere NetworkManager"
+    else
+      fail "tlp-rdw sigue instalado y requiere NetworkManager"
+    fi
+  else
+    ok "tlp-rdw no está instalado"
   fi
 
   resolv_target="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
