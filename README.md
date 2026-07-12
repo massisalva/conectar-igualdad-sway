@@ -27,6 +27,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - `bootloader/`: archivos de systemd-boot para revisar/restaurar manualmente.
 - `sshd/`: hardening conservador de OpenSSH.
 - `nftables/`: firewall local conservador.
+- `iwd/`: configuración del gestor de Wi-Fi usado por Impala.
 - `docs/`: inventario, decisiones y listas de paquetes.
 - `docs/media/`: capturas o material visual para documentación.
 
@@ -42,6 +43,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Reglas polkit para discos y energía local.
 - SSH con hardening conservador; las claves autorizadas no se versionan.
 - Firewall local con nftables para limitar entrada y SSH desde la LAN.
+- Impala con iwd para gestionar Wi-Fi desde una interfaz de terminal.
 - systemd-boot ajustado con console-mode max.
 - Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
 - Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
@@ -117,6 +119,17 @@ Aplicar firewall local:
 
 La configuración permite salida normal y SSH solo desde `192.168.1.0/24`.
 Si cambia la red de confianza, ajustar `nftables/nftables.conf` antes de instalar.
+
+Configurar Impala con iwd:
+
+```sh
+./restore.sh --iwd
+```
+
+El cambio deshabilita NetworkManager, habilita iwd y systemd-resolved, y puede
+interrumpir brevemente la conexión Wi-Fi. Las redes se administran luego con
+Impala desde Waybar o ejecutando `impala`. La aplicación, verificación y
+recuperación con NetworkManager se detallan en `iwd/README.md`.
 
 ## Post-restauración
 

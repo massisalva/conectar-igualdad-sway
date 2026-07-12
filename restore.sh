@@ -12,6 +12,7 @@ INSTALL_POLKIT=0
 INSTALL_BOOTLOADER=0
 INSTALL_SSHD=0
 INSTALL_NFTABLES=0
+INSTALL_IWD=0
 INSTALL_YAZI=1
 
 usage() {
@@ -30,7 +31,8 @@ Opciones:
   --bootloader  Copia loader.conf y arch.conf a /boot/loader/.
   --sshd        Copia hardening de sshd a /etc/ssh/sshd_config.d/.
   --nftables    Copia firewall nftables y habilita nftables.service.
-  --all         Ejecuta packages, aur, user, yazi, polkit, bootloader, sshd y nftables.
+  --iwd         Configura iwd, systemd-resolved y deshabilita NetworkManager.
+  --all         Ejecuta packages, aur, user, yazi, polkit, bootloader, sshd, nftables e iwd.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
   --dry-run     Muestra acciones sin ejecutarlas.
@@ -207,6 +209,23 @@ install_nftables_config() {
   run sudo systemctl enable --now nftables.service
 }
 
+install_iwd_config() {
+  local file="$ROOT_DIR/iwd/main.conf"
+  [ -f "$file" ] || { log "No existe $file"; return 1; }
+
+  confirm "Esto cambiará la gestión Wi-Fi de NetworkManager a iwd y puede interrumpir brevemente la conexión. ¿Continuar?"
+  log "Instalando configuración de iwd"
+  run sudo install -Dm644 "$file" /etc/iwd/main.conf
+
+  log "Configurando resolución DNS con systemd-resolved"
+  run sudo systemctl enable --now systemd-resolved.service
+  run sudo ln -sfn /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+
+  log "Cambiando el gestor Wi-Fi a iwd"
+  run sudo systemctl disable --now NetworkManager.service
+  run sudo systemctl enable --now iwd.service
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --packages) INSTALL_PACKAGES=1 ;;
@@ -215,6 +234,7 @@ while [ "$#" -gt 0 ]; do
     --bootloader) INSTALL_BOOTLOADER=1 ;;
     --sshd) INSTALL_SSHD=1 ;;
     --nftables) INSTALL_NFTABLES=1 ;;
+    --iwd) INSTALL_IWD=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -224,6 +244,7 @@ while [ "$#" -gt 0 ]; do
       INSTALL_BOOTLOADER=1
       INSTALL_SSHD=1
       INSTALL_NFTABLES=1
+      INSTALL_IWD=1
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
@@ -243,5 +264,6 @@ done
 [ "$INSTALL_BOOTLOADER" -eq 1 ] && install_bootloader_files
 [ "$INSTALL_SSHD" -eq 1 ] && install_sshd_config
 [ "$INSTALL_NFTABLES" -eq 1 ] && install_nftables_config
+[ "$INSTALL_IWD" -eq 1 ] && install_iwd_config
 
 log "Restauración finalizada"

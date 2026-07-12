@@ -89,3 +89,15 @@ loopback, conexiones establecidas, ICMP/ICMPv6 básico y DHCP cliente.
 
 SSH queda permitido solo desde `192.168.1.0/24`, porque la auditoría de red
 mostró `sshd` escuchando en todas las interfaces y sin firewall activo.
+
+## Wi-Fi
+
+Impala reemplaza a nmtui como interfaz de gestión y se abre desde el módulo de
+red de Waybar. Como Impala se comunica directamente con iwd, iwd administra la
+interfaz Wi-Fi y NetworkManager permanece deshabilitado para evitar que dos
+servicios controlen el mismo dispositivo.
+
+iwd usa su configuración de red integrada para DHCP y entrega el DNS a
+systemd-resolved. Los perfiles de `/var/lib/iwd` contienen secretos y no se
+versionan. NetworkManager permanece instalado para permitir una recuperación
+manual si fuera necesaria.

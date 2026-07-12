@@ -254,15 +254,15 @@ Estado:
 Scripts:
 
 - ~/.local/bin/network-menu
-- ~/.local/bin/nmtui-catppuccin
 
-Usa nmtui dentro de foot flotante.
+Usa Impala dentro de foot flotante. Impala administra iwd directamente.
 
 Estado:
 
-- network-menu valida foot y nmtui-catppuccin antes de ejecutar.
-- nmtui-catppuccin valida nmtui antes de ejecutar.
-- NetworkManager activo.
+- network-menu valida foot e Impala antes de ejecutar.
+- iwd administra la interfaz Wi-Fi y obtiene red mediante DHCP.
+- systemd-resolved recibe de iwd la configuración DNS.
+- NetworkManager queda instalado como recuperación, pero deshabilitado.
 
 ## Capturas
 

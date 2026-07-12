@@ -11,16 +11,16 @@ if ! command -v foot >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ ! -x "$HOME/.local/bin/nmtui-catppuccin" ]; then
-  notify_info "No encontré nmtui-catppuccin"
+if ! command -v impala >/dev/null 2>&1; then
+  notify_info "No encontré Impala"
   exit 1
 fi
 
 exec foot \
-  --app-id nmtui-floating \
+  --app-id impala-floating \
   --title "Redes" \
   --override=main.font="JetBrainsMono Nerd Font:size=8.5" \
   --override=main.pad=6x4 \
   --override=colors.alpha=1.0 \
   --window-size-chars=76x20 \
-  -e ~/.local/bin/nmtui-catppuccin
+  -e impala

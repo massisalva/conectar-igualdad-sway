@@ -14,10 +14,10 @@ usage() {
 Uso: ./check.sh [opciones]
 
 Por defecto verifica el estado de usuario, paquetes, Yazi, XDG y repo.
-Los archivos de sistema en polkit/, bootloader/, sshd/ y nftables/ se reportan como advertencia.
+Los archivos de sistema en polkit/, bootloader/, sshd/, nftables/ e iwd/ se reportan como advertencia.
 
 Opciones:
-  --system    Trata polkit/, bootloader/, sshd/ y nftables/ como checks obligatorios.
+  --system    Trata polkit/, bootloader/, sshd/, nftables/ e iwd/ como checks obligatorios.
   --sudo      Permite pedir contraseña para verificar archivos de sistema
               si hay una terminal interactiva disponible.
   -h, --help  Muestra esta ayuda.
@@ -333,6 +333,47 @@ check_nftables() {
   fi
 }
 
+check_iwd() {
+  local severity="warn"
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+  local service output resolv_target
+
+  check_same_system_file "$ROOT_DIR/iwd/main.conf" /etc/iwd/main.conf "$severity"
+
+  for service in iwd.service systemd-resolved.service; do
+    output="$(systemctl is-enabled "$service" 2>&1)"
+    if [ "$output" = "enabled" ]; then
+      ok "$service habilitado"
+    elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
+      warn "no puedo verificar $service por permisos del entorno"
+    elif [ "$severity" = "warn" ]; then
+      warn "$service no está habilitado"
+    else
+      fail "$service no está habilitado"
+    fi
+  done
+
+  output="$(systemctl is-enabled NetworkManager.service 2>&1)"
+  if [ "$output" = "disabled" ]; then
+    ok "NetworkManager.service deshabilitado"
+  elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
+    warn "no puedo verificar NetworkManager.service por permisos del entorno"
+  elif [ "$severity" = "warn" ]; then
+    warn "NetworkManager.service sigue habilitado"
+  else
+    fail "NetworkManager.service sigue habilitado"
+  fi
+
+  resolv_target="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
+  if [ "$resolv_target" = /run/systemd/resolve/stub-resolv.conf ]; then
+    ok "/etc/resolv.conf usa systemd-resolved"
+  elif [ "$severity" = "warn" ]; then
+    warn "/etc/resolv.conf no usa el stub de systemd-resolved"
+  else
+    fail "/etc/resolv.conf no usa el stub de systemd-resolved"
+  fi
+}
+
 check_xdg_dirs() {
   if ! has_cmd xdg-user-dir; then
     fail "falta comando: xdg-user-dir"
@@ -513,7 +554,7 @@ check_bash_scripts() {
 
 check_core_commands() {
   local cmd
-  for cmd in sway waybar foot fuzzel mako yazi ya wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send python lsblk nmtui btop ncspot pyradio; do
+  for cmd in sway waybar foot fuzzel mako yazi ya wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send python lsblk impala iwctl btop ncspot pyradio; do
     check_cmd "$cmd"
   done
 }
@@ -543,6 +584,7 @@ check_polkit
 check_bootloader
 check_sshd
 check_nftables
+check_iwd
 check_repo_state
 
 printf '\nResumen: %d fallos, %d advertencias\n' "$FAILS" "$WARNS"
