@@ -25,7 +25,8 @@ completa los cambios de sistema con:
 ```
 
 Este paso instala `/etc/iwd/main.conf`, habilita `systemd-resolved.service`,
-apunta `/etc/resolv.conf` a su stub y habilita `iwd.service`.
+apunta `/etc/resolv.conf` a su stub, configura el dominio regulatorio `AR` en
+`/etc/conf.d/wireless-regdom` y habilita `iwd.service`.
 
 Después se puede abrir el módulo de red de Waybar o ejecutar:
 

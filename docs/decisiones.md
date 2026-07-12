@@ -90,6 +90,10 @@ loopback, conexiones establecidas, ICMP/ICMPv6 básico y DHCP cliente.
 SSH queda permitido solo desde `192.168.1.0/24`, porque la auditoría de red
 mostró `sshd` escuchando en todas las interfaces y sin firewall activo.
 
+LocalSend queda permitido en TCP/UDP 53317 solo desde `192.168.1.0/24`. La
+salida continúa abierta y ningún puerto de LocalSend se expone fuera de la LAN
+confiable.
+
 ## Wi-Fi
 
 Impala reemplaza a nmtui como interfaz de gestión y se abre desde el módulo de
@@ -101,3 +105,12 @@ systemd-resolved. Los perfiles de `/var/lib/iwd` contienen secretos y no se
 versionan. NetworkManager y `tlp-rdw` se retiran: el complemento RDW no tenía
 reglas configuradas y depende de NetworkManager. TLP permanece instalado para
 la gestión general de energía.
+
+El dominio regulatorio se fija en `AR` para evitar el estado global genérico
+`00` y el fallo del helper `set-wireless-regdom` cuando la variable queda vacía.
+
+## Endurecimiento local
+
+`kernel.kptr_restrict=1` oculta direcciones del kernel a usuarios sin
+privilegios. El ajuste se versiona en `sysctl/99-local-hardening.conf` y se
+instala explícitamente mediante `./restore.sh --sysctl`.

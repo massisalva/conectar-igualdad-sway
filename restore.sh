@@ -13,6 +13,7 @@ INSTALL_BOOTLOADER=0
 INSTALL_SSHD=0
 INSTALL_NFTABLES=0
 INSTALL_IWD=0
+INSTALL_SYSCTL=0
 INSTALL_YAZI=1
 
 usage() {
@@ -32,7 +33,8 @@ Opciones:
   --sshd        Copia hardening de sshd a /etc/ssh/sshd_config.d/.
   --nftables    Copia firewall nftables y habilita nftables.service.
   --iwd         Configura iwd y systemd-resolved.
-  --all         Ejecuta packages, aur, user, yazi, polkit, bootloader, sshd, nftables e iwd.
+  --sysctl      Instala ajustes locales de endurecimiento del kernel.
+  --all         Ejecuta packages, aur, user, yazi y todas las piezas de sistema.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
   --dry-run     Muestra acciones sin ejecutarlas.
@@ -211,11 +213,17 @@ install_nftables_config() {
 
 install_iwd_config() {
   local file="$ROOT_DIR/iwd/main.conf"
+  local regdom_file="$ROOT_DIR/iwd/wireless-regdom.conf"
   [ -f "$file" ] || { log "No existe $file"; return 1; }
+  [ -f "$regdom_file" ] || { log "No existe $regdom_file"; return 1; }
 
   confirm "Esto instalará la configuración de iwd y systemd-resolved. ¿Continuar?"
   log "Instalando configuración de iwd"
   run sudo install -Dm644 "$file" /etc/iwd/main.conf
+
+  log "Configurando dominio regulatorio Wi-Fi de Argentina"
+  run sudo install -Dm644 "$regdom_file" /etc/conf.d/wireless-regdom
+  run sudo /usr/bin/set-wireless-regdom
 
   log "Configurando resolución DNS con systemd-resolved"
   run sudo systemctl enable --now systemd-resolved.service
@@ -223,6 +231,16 @@ install_iwd_config() {
 
   log "Habilitando el gestor Wi-Fi iwd"
   run sudo systemctl enable --now iwd.service
+}
+
+install_sysctl_config() {
+  local file="$ROOT_DIR/sysctl/99-local-hardening.conf"
+  [ -f "$file" ] || { log "No existe $file"; return 1; }
+
+  confirm "Esto instalará ajustes locales de endurecimiento del kernel. ¿Continuar?"
+  log "Instalando ajustes sysctl locales"
+  run sudo install -Dm644 "$file" /etc/sysctl.d/99-local-hardening.conf
+  run sudo sysctl --system
 }
 
 while [ "$#" -gt 0 ]; do
@@ -234,6 +252,7 @@ while [ "$#" -gt 0 ]; do
     --sshd) INSTALL_SSHD=1 ;;
     --nftables) INSTALL_NFTABLES=1 ;;
     --iwd) INSTALL_IWD=1 ;;
+    --sysctl) INSTALL_SYSCTL=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -244,6 +263,7 @@ while [ "$#" -gt 0 ]; do
       INSTALL_SSHD=1
       INSTALL_NFTABLES=1
       INSTALL_IWD=1
+      INSTALL_SYSCTL=1
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
@@ -264,5 +284,6 @@ done
 [ "$INSTALL_SSHD" -eq 1 ] && install_sshd_config
 [ "$INSTALL_NFTABLES" -eq 1 ] && install_nftables_config
 [ "$INSTALL_IWD" -eq 1 ] && install_iwd_config
+[ "$INSTALL_SYSCTL" -eq 1 ] && install_sysctl_config
 
 log "Restauración finalizada"

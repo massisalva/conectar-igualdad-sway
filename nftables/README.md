@@ -10,7 +10,7 @@ Politica:
 - loopback y conexiones establecidas permitidas;
 - ICMP/ICMPv6 basico permitido;
 - DHCP cliente permitido;
-- SSH permitido solo desde `192.168.1.0/24`.
+- SSH y LocalSend permitidos solo desde `192.168.1.0/24`.
 
 Instalacion:
 
@@ -24,5 +24,6 @@ Verificacion:
 ./check.sh --system --sudo
 ```
 
-Si cambia la LAN de confianza, ajustar `trusted_ssh_ipv4` en
+LocalSend usa TCP/UDP 53317 para descubrimiento y transferencia. Si cambia la
+LAN de confianza, ajustar `trusted_lan_ipv4` en
 `nftables.conf` antes de instalar.

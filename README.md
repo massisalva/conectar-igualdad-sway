@@ -28,6 +28,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - `sshd/`: hardening conservador de OpenSSH.
 - `nftables/`: firewall local conservador.
 - `iwd/`: configuración del gestor de Wi-Fi usado por Impala.
+- `sysctl/`: endurecimiento local de parámetros del kernel.
 - `docs/`: inventario, decisiones y listas de paquetes.
 - `docs/media/`: capturas o material visual para documentación.
 
@@ -130,6 +131,12 @@ La configuración habilita iwd y systemd-resolved. NetworkManager y `tlp-rdw` no
 forman parte de esta instalación. Las redes se administran con Impala desde
 Waybar o ejecutando `impala`. La aplicación, verificación y recuperación se
 detallan en `iwd/README.md`.
+
+Aplicar endurecimiento sysctl local:
+
+```sh
+./restore.sh --sysctl
+```
 
 ## Post-restauración
 

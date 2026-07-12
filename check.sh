@@ -339,6 +339,7 @@ check_iwd() {
   local service output resolv_target
 
   check_same_system_file "$ROOT_DIR/iwd/main.conf" /etc/iwd/main.conf "$severity"
+  check_same_system_file "$ROOT_DIR/iwd/wireless-regdom.conf" /etc/conf.d/wireless-regdom "$severity"
 
   for service in iwd.service systemd-resolved.service; do
     output="$(systemctl is-enabled "$service" 2>&1)"
@@ -380,6 +381,22 @@ check_iwd() {
     warn "/etc/resolv.conf no usa el stub de systemd-resolved"
   else
     fail "/etc/resolv.conf no usa el stub de systemd-resolved"
+  fi
+}
+
+check_sysctl() {
+  local severity="warn"
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+  local actual
+
+  check_same_system_file "$ROOT_DIR/sysctl/99-local-hardening.conf" /etc/sysctl.d/99-local-hardening.conf "$severity"
+  actual="$(sysctl -n kernel.kptr_restrict 2>/dev/null || true)"
+  if [ "$actual" = "1" ]; then
+    ok "kernel.kptr_restrict = 1"
+  elif [ "$severity" = "warn" ]; then
+    warn "kernel.kptr_restrict esperado 1, actual ${actual:-desconocido}"
+  else
+    fail "kernel.kptr_restrict esperado 1, actual ${actual:-desconocido}"
   fi
 }
 
@@ -464,7 +481,7 @@ check_yazi() {
   fi
 
   local dep
-  for dep in "ueberzugpp" "pdftoppm" "magick" "fzf" "chafa" "zoxide"; do
+  for dep in "pdftoppm" "magick" "fzf" "chafa" "zoxide"; do
     if printf '%s\n' "$debug" | grep -Eq "^[[:space:]]+$dep[[:space:]]+:[[:space:]]+[0-9]"; then
       ok "Yazi detecta dependencia: $dep"
     else
@@ -594,6 +611,7 @@ check_bootloader
 check_sshd
 check_nftables
 check_iwd
+check_sysctl
 check_repo_state
 
 printf '\nResumen: %d fallos, %d advertencias\n' "$FAILS" "$WARNS"

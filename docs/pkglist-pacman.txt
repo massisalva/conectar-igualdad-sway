@@ -26,8 +26,8 @@ fzf
 git
 gnome-themes-extra
 grim
-impala
 imagemagick
+impala
 imv
 intel-media-driver
 intel-ucode
@@ -39,7 +39,6 @@ libnotify
 libva-utils
 linux-firmware
 linux-zen
-linux-zen-headers
 mako
 man-db
 man-pages
@@ -55,6 +54,7 @@ ncmpcpp
 ncspot
 neovim
 nftables
+nmap
 nodejs
 noto-fonts
 noto-fonts-emoji
@@ -82,6 +82,7 @@ ripgrep
 rsync
 rtkit
 slurp
+smartmontools
 starship
 sudo
 sway
@@ -99,7 +100,6 @@ ttf-hack-nerd
 ttf-jetbrains-mono-nerd
 udiskie
 udisks2
-ueberzugpp
 unrar
 unzip
 vim
