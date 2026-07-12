@@ -38,6 +38,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Notificaciones con mako.
 - Manejo de dispositivos externos/removibles con disk-manager, disk-status y disk-notify.
 - Power menu con bloqueo, suspensión, reinicio, apagado y salida de Sway.
+- Ahorro de energía que apaga la pantalla y evita suspender mientras hay audio activo.
 - Reglas polkit para discos y energía local.
 - SSH con hardening conservador; las claves autorizadas no se versionan.
 - Firewall local con nftables para limitar entrada y SSH desde la LAN.

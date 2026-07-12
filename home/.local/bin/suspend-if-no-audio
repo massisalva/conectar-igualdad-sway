@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -u
+
+# Una entrada de audio no pausada significa que radio, música o video siguen
+# reproduciéndose. En ese caso dejamos que la pantalla permanezca apagada, pero
+# no suspendemos el equipo para no cortar el sonido.
+if LC_ALL=C pactl list sink-inputs 2>/dev/null | grep -qE '^[[:space:]]*Corked: no$'; then
+  exit 0
+fi
+
+systemctl suspend

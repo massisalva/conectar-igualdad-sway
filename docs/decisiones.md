@@ -39,6 +39,18 @@ de `/usr/bin` cuando sea posible.
 `waybar` y `mako` se levantan como units de `systemd --user` para aprovechar
 sus reinicios y mantener el autostart de Sway centrado en la sesión gráfica.
 
+## Inactividad, pantalla y audio
+
+`start-idle` mantiene separados el ahorro de pantalla y la suspensión del
+equipo: bloquea la sesión a los 10 minutos, apaga las salidas mediante DPMS a
+los 11 minutos y evalúa la suspensión a los 30 minutos de inactividad.
+
+La suspensión automática se delega a `suspend-if-no-audio`. El script consulta
+con `pactl` las entradas de audio de PipeWire-Pulse y solo ejecuta
+`systemctl suspend` cuando ninguna está reproduciéndose (`Corked: no`). De este
+modo la pantalla puede permanecer apagada sin cortar una radio, música o video.
+Una reproducción pausada no impide la suspensión.
+
 ## Waybar
 
 Waybar prioriza estado útil sin ruido visual:

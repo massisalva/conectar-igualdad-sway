@@ -146,6 +146,9 @@ Estado post-auditoría:
 - power-menu notifica fallos de bloqueo, suspensión, reinicio, apagado o salida de Sway.
 - start-idle valida entorno Wayland/Sway antes de lanzar swayidle.
 - start-idle limita el reinicio de swayidle al perfil gestionado por este script.
+- A los 11 minutos de inactividad apaga la pantalla, pero conserva el audio.
+- A los 30 minutos solo suspende si no hay una salida de audio reproduciéndose;
+  así, la radio, la música o un video no se interrumpen.
 
 ## Polkit energía
 

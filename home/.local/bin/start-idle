@@ -42,5 +42,5 @@ swayidle -w \
   timeout 600 "$HOME/.local/bin/lock-screen" \
   timeout 660 'swaymsg "output * dpms off"' \
   resume 'swaymsg "output * dpms on"' \
-  timeout 1800 'systemctl suspend' \
+  timeout 1800 "$HOME/.local/bin/suspend-if-no-audio" \
   before-sleep "$HOME/.local/bin/lock-screen"
