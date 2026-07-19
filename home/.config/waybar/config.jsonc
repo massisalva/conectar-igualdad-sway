@@ -65,11 +65,13 @@
   "bluetooth": {
     "format": "󰂯",
     "format-connected": "󰂱 {device_alias}",
+    "format-connected-battery": "󰂱 {device_alias}  {device_battery_percentage}%",
     "format-disabled": "󰂲 apagado",
     "format-off": "󰂲 apagado",
     "format-no-controller": "󰂲 sin BT",
     "tooltip-format": "Bluetooth: {status}\nControlador: {controller_alias}\nClick para abrir bluetui",
     "tooltip-format-connected": "Conectado: {device_alias}\nControlador: {controller_alias}\nClick para abrir bluetui",
+    "tooltip-format-connected-battery": "Conectado: {device_alias}\nBatería: {device_battery_percentage}%\nControlador: {controller_alias}\nClick para abrir bluetui",
     "tooltip-format-disabled": "Bluetooth apagado\nClick para abrir bluetui",
     "on-click": "~/.local/bin/bluetooth-menu"
   },

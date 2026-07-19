@@ -248,6 +248,11 @@ Estado:
 - bluetooth-menu valida foot y bluetui antes de ejecutar.
 - bluetooth.service activo.
 - Controlador hci0 encendido y sin rfkill.
+- El módulo nativo de Bluetooth de Waybar muestra el nombre del dispositivo
+  conectado y agrega su porcentaje cuando BlueZ publica `org.bluez.Battery1`.
+- Si el dispositivo no informa batería, Waybar conserva el formato con solo el
+  nombre. La JBL Charge 5 fue comprobada en ese caso aun con los servicios
+  resueltos, por lo que no ofrece un porcentaje utilizable mediante BlueZ.
 
 ## Red
 
