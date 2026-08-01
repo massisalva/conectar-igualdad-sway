@@ -63,6 +63,9 @@ Módulos activos:
 - batería
 - power
 
+El reloj nativo usa formato localizado en español, alterna la fecha completa
+con click y muestra el calendario del mes al pasar el cursor.
+
 ## Música
 
 Script:
@@ -197,6 +200,14 @@ Estado:
 
 ## Teclado
 
+Ayuda y controles:
+
+- `Mod+F1` abre una guía rápida de atajos en fuzzel.
+- Las teclas multimedia controlan reproducción, pistas y micrófono mediante
+  `playerctl` y `wpctl`.
+- `Mod+N` cierra la última notificación, `Mod+Shift+N` la recupera y
+  `Mod+Ctrl+N` alterna el modo No molestar.
+
 Script:
 
 - ~/.local/bin/waybar-capslock
@@ -206,6 +217,13 @@ Estado:
 - Waybar muestra un indicador solo cuando Caps Lock está activo.
 - El script lee `/sys/class/leds/input*::capslock/brightness`, sin depender de X11.
 - El módulo se actualiza cada 1 segundo.
+
+## Touchpad
+
+- Toque para hacer click y desplazamiento natural.
+- Desplazamiento con dos dedos.
+- Click secundario apoyando dos dedos y presionando el touchpad.
+- Perfil de aceleración adaptativo y bloqueo mientras se escribe.
 
 ## Batería
 

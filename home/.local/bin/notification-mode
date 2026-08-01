@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -u
+
+is_dnd() {
+  makoctl mode 2>/dev/null | grep -Fxq 'do-not-disturb'
+}
+
+status() {
+  if ! command -v makoctl >/dev/null 2>&1; then
+    printf '{"text":"","class":"inactive","tooltip":"Mako no está disponible"}\n'
+  elif is_dnd; then
+    printf '{"text":"󰁎 No molestar","class":"active","tooltip":"No molestar activo\\nClick para desactivar"}\n'
+  else
+    printf '{"text":"","class":"inactive","tooltip":"Notificaciones activas"}\n'
+  fi
+}
+
+toggle() {
+  command -v makoctl >/dev/null 2>&1 || exit 1
+
+  if is_dnd; then
+    makoctl mode -r do-not-disturb
+    notify-send -t 1500 "Notificaciones" "No molestar desactivado" 2>/dev/null || true
+  else
+    makoctl mode -a do-not-disturb
+  fi
+}
+
+case "${1:---status}" in
+  --status) status ;;
+  --toggle) toggle ;;
+  *) exit 2 ;;
+esac

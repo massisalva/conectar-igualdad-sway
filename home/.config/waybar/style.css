@@ -5,7 +5,7 @@
 
 * {
   font-family: "Lexend", "JetBrainsMono Nerd Font";
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   border: none;
   border-radius: 0;
@@ -80,6 +80,7 @@ tooltip label {
 #mode,
 #clock,
 #custom-capslock,
+#custom-dnd,
 #custom-disk,
 #cpu,
 #memory,
@@ -98,6 +99,7 @@ tooltip label {
 /* Respuesta sutil en los módulos que admiten click */
 #custom-music:hover,
 #custom-disk:hover,
+#custom-dnd:hover,
 #cpu:hover,
 #memory:hover,
 #bluetooth:hover,
@@ -143,6 +145,18 @@ tooltip label {
 }
 
 #custom-capslock.inactive {
+  background-color: transparent;
+  padding: 0px;
+  margin: 0px;
+}
+
+#custom-dnd {
+  color: #11111b;
+  background-color: #f9e2af;
+  margin-right: 6px;
+}
+
+#custom-dnd.inactive {
   background-color: transparent;
   padding: 0px;
   margin: 0px;

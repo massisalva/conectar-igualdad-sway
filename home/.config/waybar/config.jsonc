@@ -1,12 +1,12 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 32,
+  "height": 33,
   "spacing": 4,
 
   "modules-left": ["sway/workspaces", "custom/music", "sway/mode"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/capslock", "custom/disk", "cpu", "memory", "bluetooth", "network", "pulseaudio", "backlight", "custom/battery", "custom/power"],
+  "modules-right": ["custom/capslock", "custom/dnd", "custom/disk", "bluetooth", "network", "pulseaudio", "backlight", "custom/battery", "custom/power"],
 
   "custom/music": {
     "exec": "~/.local/bin/waybar-music --watch",
@@ -27,8 +27,9 @@
   },
 
   "clock": {
-    "format": " {:%H:%M}",
-    "format-alt": " {:%d/%m/%Y %H:%M}",
+    "locale": "es_AR.UTF-8",
+    "format": " {:L%a %d · %H:%M}",
+    "format-alt": " {:L%A %d de %B de %Y · %H:%M}",
     "tooltip-format": "<tt>{calendar}</tt>"
   },
 
@@ -37,6 +38,15 @@
     "return-type": "json",
     "interval": 1,
     "format": "{}",
+    "tooltip": true
+  },
+
+  "custom/dnd": {
+    "exec": "~/.local/bin/notification-mode --status",
+    "return-type": "json",
+    "interval": 5,
+    "format": "{}",
+    "on-click": "~/.local/bin/notification-mode --toggle",
     "tooltip": true
   },
 

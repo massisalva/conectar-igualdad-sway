@@ -35,3 +35,6 @@ default-timeout=4500
 [urgency=high]
 border-color=#f38ba8
 default-timeout=0
+
+[mode=do-not-disturb]
+invisible=1

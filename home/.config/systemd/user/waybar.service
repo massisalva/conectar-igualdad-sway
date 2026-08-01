@@ -5,6 +5,7 @@ PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
+Environment=LC_ALL=es_AR.UTF-8
 ExecStart=/usr/bin/waybar
 ExecReload=kill -SIGUSR2 $MAINPID
 Restart=on-failure
