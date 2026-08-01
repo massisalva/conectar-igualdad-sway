@@ -306,7 +306,17 @@ check_sshd() {
   fi
 
   local effective setting expected actual
-  effective="$(sudo_check sshd -T || true)"
+  effective="$(sudo_check sshd -T \
+    -C user=massisalva,host=localhost,addr=127.0.0.1 2>/dev/null || true)"
+  if [ -z "$effective" ]; then
+    if [ "$severity" = "warn" ]; then
+      warn "sshd -T no devolvió la configuración efectiva"
+    else
+      fail "sshd -T no devolvió la configuración efectiva"
+    fi
+    return
+  fi
+
   while read -r setting expected; do
     actual="$(printf '%s\n' "$effective" | awk -v key="$setting" '$1 == key {$1=""; sub(/^ /, ""); print; exit}')"
     if [ "$actual" = "$expected" ]; then
