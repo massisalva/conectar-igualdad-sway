@@ -318,7 +318,7 @@ check_sshd() {
   fi
 
   while read -r setting expected; do
-    actual="$(printf '%s\n' "$effective" | awk -v key="$setting" '$1 == key {$1=""; sub(/^ /, ""); print; exit}')"
+    actual="$(printf '%s\n' "$effective" | awk -v key="$setting" 'tolower($1) == key {$1=""; sub(/^ /, ""); print; exit}')"
     if [ "$actual" = "$expected" ]; then
       ok "SSH efectivo: $setting $expected"
     elif [ "$severity" = "warn" ]; then
