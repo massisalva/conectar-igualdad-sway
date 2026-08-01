@@ -202,7 +202,7 @@ Estado:
 
 Ayuda y controles:
 
-- `Mod+F1` abre una guía rápida de atajos en fuzzel.
+- `Mod+F1` abre una guía de atajos por categorías en menús de fuzzel.
 - Las teclas multimedia controlan reproducción, pistas y micrófono mediante
   `playerctl` y `wpctl`.
 - `Mod+N` cierra la última notificación, `Mod+Shift+N` la recupera y
@@ -224,6 +224,11 @@ Estado:
 - Desplazamiento con dos dedos.
 - Click secundario apoyando dos dedos y presionando el touchpad.
 - Perfil de aceleración adaptativo y bloqueo mientras se escribe.
+
+## btop
+
+- Usa un tema Catppuccin Mocha local, coherente con Sway, Waybar y Foot.
+- La configuración se versiona para restaurar el aspecto del monitor del sistema.
 
 ## Batería
 

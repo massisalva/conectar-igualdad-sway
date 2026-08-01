@@ -73,7 +73,7 @@ ensure_backup_dir() {
   [ "$BACKUP_ENABLED" -eq 1 ] || return 0
   [ -z "$BACKUP_DIR" ] || return 0
 
-  BACKUP_DIR="$BACKUP_ROOT/restore-$(date +%Y%m%d-%H%M%S)-$$"
+  BACKUP_DIR="$BACKUP_ROOT/restore-$(date +%Y%m%d-%H%M%S-%N)-$$"
   log "Backup previo: $BACKUP_DIR"
   run mkdir -p "$BACKUP_DIR/files"
 }

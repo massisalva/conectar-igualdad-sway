@@ -8,27 +8,74 @@ if ! command -v fuzzel >/dev/null 2>&1; then
   exit 1
 fi
 
-printf '%s\n' \
-  'Mod + D               Aplicaciones' \
-  'Mod + Enter           Terminal' \
-  'Mod + B               Firefox' \
-  'Mod + E               Archivos' \
-  'Mod + M               Música' \
-  'Mod + P               CPU y memoria' \
-  'Mod + 1…10            Cambiar de escritorio' \
-  'Mod + Shift + 1…10    Mover ventana de escritorio' \
-  'Mod + flechas         Cambiar el foco' \
-  'Mod + Shift + flechas Mover ventana' \
-  'Mod + F               Pantalla completa' \
-  'Mod + R               Redimensionar' \
-  'Mod + Q               Cerrar ventana' \
-  'Mod + Ctrl + L        Bloquear' \
-  'Mod + Shift + P       Menú de energía' \
-  'Mod + Shift + S       Menú de capturas' \
-  'Print                 Capturar pantalla' \
-  'Mod + N               Cerrar notificación' \
-  'Mod + Shift + N       Recuperar notificación' \
-  'Mod + Ctrl + N        Alternar No molestar' \
-  'Mod + F1              Mostrar esta ayuda' |
-  fuzzel --dmenu --font='Lexend:size=9.5' --line-height=19 \
-    --width=50 --lines=21 --prompt='Atajos: ' >/dev/null
+menu() {
+  local prompt="$1"
+  local lines="$2"
+  shift 2
+
+  printf '%s\n' "$@" |
+    fuzzel --dmenu --font='Lexend:size=10' --line-height=21 \
+      --width=42 --lines="$lines" --prompt="$prompt"
+}
+
+show_page() {
+  local title="$1"
+  shift
+  menu "$title: " "$(( $# + 1 ))" "$@" '← Volver' >/dev/null || true
+}
+
+while true; do
+  category="$(
+    menu 'Atajos: ' 6 \
+      '󰇚   Aplicaciones' \
+      '󰛥   Ventanas y escritorios' \
+      '󰍱   Multimedia y capturas' \
+      '󰣃   Sistema y sesión' \
+      '󰄲   Notificaciones' \
+      'Salir'
+  )" || exit 0
+
+  case "$category" in
+    '󰇚   Aplicaciones')
+      show_page 'Aplicaciones' \
+        'Mod + D       Lanzador de aplicaciones' \
+        'Mod + Enter   Terminal' \
+        'Mod + B       Firefox' \
+        'Mod + E       Archivos' \
+        'Mod + M       Música' \
+        'Mod + P       CPU y memoria'
+      ;;
+    '󰛥   Ventanas y escritorios')
+      show_page 'Ventanas' \
+        'Mod + flechas          Cambiar el foco' \
+        'Mod + Shift + flechas  Mover ventana' \
+        'Mod + 1…10             Cambiar de escritorio' \
+        'Mod + Shift + 1…10     Mover a escritorio' \
+        'Mod + F                Pantalla completa' \
+        'Mod + R                Redimensionar' \
+        'Mod + Q                Cerrar ventana'
+      ;;
+    '󰍱   Multimedia y capturas')
+      show_page 'Multimedia' \
+        'Teclas multimedia      Reproducción y pistas' \
+        'Teclas de volumen      Volumen y silencio' \
+        'Teclas de brillo       Ajustar pantalla' \
+        'Mod + Shift + S        Menú de capturas' \
+        'Print                  Capturar pantalla'
+      ;;
+    '󰣃   Sistema y sesión')
+      show_page 'Sistema' \
+        'Mod + Ctrl + L   Bloquear' \
+        'Mod + Shift + P  Menú de energía' \
+        'Mod + Shift + C  Recargar Sway' \
+        'Mod + F1         Mostrar esta guía'
+      ;;
+    '󰄲   Notificaciones')
+      show_page 'Notificaciones' \
+        'Mod + N          Cerrar la última' \
+        'Mod + Shift + N  Recuperar la última' \
+        'Mod + Ctrl + N   Alternar No molestar'
+      ;;
+    *) exit 0 ;;
+  esac
+done
