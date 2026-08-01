@@ -52,7 +52,17 @@ tooltip label {
   border-radius: 12px;
 }
 
+#workspaces button:hover {
+  color: #cdd6f4;
+  background-color: #313244;
+}
+
 #workspaces button.focused {
+  color: #11111b;
+  background-color: #89b4fa;
+}
+
+#workspaces button.focused:hover {
   color: #11111b;
   background-color: #89b4fa;
 }
@@ -83,6 +93,19 @@ tooltip label {
   padding: 1px 10px;
   margin: 5px 0px;
   border-radius: 15px;
+}
+
+/* Respuesta sutil en los módulos que admiten click */
+#custom-music:hover,
+#custom-disk:hover,
+#cpu:hover,
+#memory:hover,
+#bluetooth:hover,
+#network:hover,
+#pulseaudio:hover,
+#custom-battery:hover,
+#custom-power:hover {
+  background-color: #313244;
 }
 
 /* ------------------------------------------------------------
@@ -183,7 +206,34 @@ tooltip label {
 }
 
 #custom-battery.critical {
+  color: #11111b;
+  background-color: #f38ba8;
+}
+
+#custom-battery.plugged {
+  color: #89b4fa;
+}
+
+#custom-battery.unknown {
+  color: #6c7086;
+}
+
+#pulseaudio.muted {
+  color: #6c7086;
+}
+
+#network.disconnected {
   color: #f38ba8;
+}
+
+#network.disabled {
+  color: #6c7086;
+}
+
+#bluetooth.disabled,
+#bluetooth.off,
+#bluetooth.no-controller {
+  color: #6c7086;
 }
 
 #custom-disk.idle {

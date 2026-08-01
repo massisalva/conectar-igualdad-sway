@@ -19,6 +19,8 @@ default-timeout=4500
 max-visible=4
 
 icons=1
+icon-path=/usr/share/icons/Papirus-Dark:/usr/share/icons/Papirus
+max-icon-size=32
 markup=1
 anchor=top-right
 

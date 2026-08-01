@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-swaylock -f -c 1e1e2e
+exec swaylock -f -C "$HOME/.config/swaylock/config"

@@ -53,7 +53,7 @@ for candidate in /sys/class/power_supply/BAT*; do
 done
 
 if [ -z "$bat" ]; then
-  printf '{"text":"","tooltip":"Sin bateria","class":"missing"}\n'
+  printf '{"text":"","tooltip":"Sin batería","class":"missing"}\n'
   exit 0
 fi
 
@@ -68,17 +68,21 @@ case "$status" in
   Charging)
     icon="󰂄"
     class="charging"
+    status_label="Cargando"
     ;;
   Full)
     icon="󰁹"
     class="full"
+    status_label="Completa"
     ;;
   Not\ charging)
     icon="󰚥"
     class="plugged"
+    status_label="Conectada sin cargar"
     ;;
   Discharging)
     icon="$(icon_for_capacity "$capacity")"
+    status_label="Descargando"
     if [ "$capacity" -le 15 ]; then
       class="critical"
     elif [ "$capacity" -le 30 ]; then
@@ -90,8 +94,9 @@ case "$status" in
   *)
     icon="$(icon_for_capacity "$capacity")"
     class="unknown"
+    status_label="Desconocido"
     ;;
 esac
 
-tooltip="$(json_escape "Bateria: ${capacity}% (${status})\nClick para ver detalles")"
+tooltip="$(json_escape "Batería: ${capacity}% (${status_label})\nClick para ver detalles")"
 printf '{"text":"%s %s%%","tooltip":"%s","class":"%s"}\n' "$icon" "$capacity" "$tooltip" "$class"

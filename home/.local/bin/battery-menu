@@ -14,15 +14,11 @@ fi
 exec foot \
   --app-id battery-floating \
   --title "Batería" \
-  --override=main.font="JetBrainsMono Nerd Font:size=8.5" \
-  --override=main.pad=6x4 \
+  --override=main.font="JetBrainsMono Nerd Font:size=9.5" \
+  --override=main.pad=12x10 \
   --override=colors-dark.alpha=1.0 \
-  --window-size-chars=92x28 \
+  --window-size-chars=72x23 \
   -e bash -lc '
-clear
-echo "===== BATERÍA ====="
-echo
-
 found=0
 
 for bat in /sys/class/power_supply/BAT*; do
@@ -32,11 +28,7 @@ for bat in /sys/class/power_supply/BAT*; do
   name="$(basename "$bat")"
   status="$(cat "$bat/status" 2>/dev/null)"
   capacity="$(cat "$bat/capacity" 2>/dev/null)"
-
-  echo "Dispositivo: $name"
-  echo "Estado:      $status"
-  echo "Carga:       ${capacity}%"
-  echo
+  health=""
 
   if [ -r "$bat/energy_full_design" ] && [ -r "$bat/energy_full" ]; then
     design="$(cat "$bat/energy_full_design")"
@@ -44,7 +36,6 @@ for bat in /sys/class/power_supply/BAT*; do
 
     if [ "$design" -gt 0 ] 2>/dev/null; then
       health=$(( full * 100 / design ))
-      echo "Salud aprox.: ${health}%"
     fi
   elif [ -r "$bat/charge_full_design" ] && [ -r "$bat/charge_full" ]; then
     design="$(cat "$bat/charge_full_design")"
@@ -52,8 +43,12 @@ for bat in /sys/class/power_supply/BAT*; do
 
     if [ "$design" -gt 0 ] 2>/dev/null; then
       health=$(( full * 100 / design ))
-      echo "Salud aprox.: ${health}%"
     fi
+  fi
+
+  printf "%s  |  %s  |  Carga: %s%%\n" "$name" "$status" "$capacity"
+  if [ -n "$health" ]; then
+    echo "Salud aprox.: ${health}%"
   fi
 
   echo
@@ -69,5 +64,5 @@ if [ "$found" -eq 0 ]; then
 fi
 
 echo
-read -rp "Presioná Enter para cerrar..."
+read -rp "Presioná Enter para cerrar..." </dev/tty
 '
