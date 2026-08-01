@@ -1,0 +1,9 @@
+[Unit]
+Description=Removable disk monitor for Sway
+PartOf=sway-session.target
+After=sway-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+ExecStart=/usr/bin/udiskie --no-automount --no-notify
+Restart=on-failure

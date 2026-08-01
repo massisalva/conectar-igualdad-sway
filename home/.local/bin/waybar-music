@@ -7,7 +7,7 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
 
 PLAYLIST="$HOME/.config/pyradio/playlists/argentina.csv"
-WATCH_INTERVAL="${WAYBAR_MUSIC_INTERVAL:-2}"
+WATCH_INTERVAL="${WAYBAR_MUSIC_INTERVAL:-5}"
 STARTUP_DELAY="${WAYBAR_MUSIC_STARTUP_DELAY:-0}"
 
 notify_info() {

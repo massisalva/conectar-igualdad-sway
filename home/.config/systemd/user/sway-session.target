@@ -1,0 +1,12 @@
+[Unit]
+Description=Sway graphical session
+Documentation=man:systemd.special(7)
+DefaultDependencies=no
+BindsTo=graphical-session.target
+PropagatesStopTo=graphical-session.target
+Wants=graphical-session-pre.target
+Wants=waybar.service mako.service
+Wants=sway-polkit-agent.service sway-udiskie.service
+Wants=disk-notify.service swayidle.service
+After=graphical-session-pre.target
+Before=graphical-session.target

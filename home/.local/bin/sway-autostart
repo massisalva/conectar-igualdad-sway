@@ -1,91 +1,48 @@
 #!/usr/bin/env bash
 
-set -u
+set -uo pipefail
 
 LOG_DIR="$HOME/.cache"
 LOG="$LOG_DIR/sway-autostart.log"
-
 mkdir -p "$LOG_DIR"
 
 log() {
-  printf '[%(%H:%M:%S)T] %s\n' -1 "$*"
+  printf '[%(%F %T)T] %s\n' -1 "$*" >> "$LOG"
 }
 
-find_sway_env() {
-  export XDG_CURRENT_DESKTOP=sway
-  export XDG_SESSION_TYPE=wayland
-  export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-  export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_TYPE=wayland
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
 
-  if [ -z "${SWAYSOCK:-}" ]; then
-    SWAY_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'sway-ipc.*.sock' 2>/dev/null | sort -V | tail -n1)"
-    if [ -n "$SWAY_SOCKET" ]; then
-      export SWAYSOCK="$SWAY_SOCKET"
-    fi
-  fi
+log "importando entorno Sway en systemd y D-Bus"
+systemctl --user import-environment \
+  WAYLAND_DISPLAY \
+  XDG_CURRENT_DESKTOP \
+  XDG_SESSION_TYPE \
+  SWAYSOCK
+dbus-update-activation-environment --systemd \
+  WAYLAND_DISPLAY \
+  XDG_CURRENT_DESKTOP \
+  XDG_SESSION_TYPE \
+  SWAYSOCK
 
-  if [ -z "${WAYLAND_DISPLAY:-}" ]; then
-    if [ -S "$XDG_RUNTIME_DIR/wayland-1" ]; then
-      export WAYLAND_DISPLAY="wayland-1"
-    else
-      WAYLAND_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' -printf '%T@ %p\n' 2>/dev/null | sort -n | awk 'NR==1{print $2}')"
-      if [ -n "$WAYLAND_SOCKET" ]; then
-        export WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
-      fi
-    fi
-  fi
-}
+mkdir -p "$HOME/Imágenes"
 
-sway_exec() {
-  local cmd="$1"
+log "iniciando sway-session.target"
+if ! systemctl --user start sway-session.target; then
+  log "no pude iniciar sway-session.target"
+  exit 1
+fi
 
-  if command -v swaymsg >/dev/null 2>&1 && [ -n "${SWAYSOCK:-}" ]; then
-    swaymsg exec "$cmd" >/dev/null 2>&1
-  else
-    echo "No pude lanzar vía swaymsg: $cmd"
-  fi
-}
-
-{
-  echo
-  echo "===== SWAY AUTOSTART $(date) ====="
-
-  log "preparando entorno Sway"
-  find_sway_env
-
-  log "importando entorno systemd/dbus"
-  systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE SWAYSOCK
-  dbus-update-activation-environment --systemd \
-    WAYLAND_DISPLAY \
-    XDG_CURRENT_DESKTOP \
-    XDG_SESSION_TYPE \
-    SWAYSOCK
-
-  mkdir -p "$HOME/Imágenes"
-
-  log "limpiando procesos gestionados"
-  pkill -f '/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1' 2>/dev/null || true
-  pkill -f '/usr/bin/.*udiskie' 2>/dev/null || true
-  pkill -f "$HOME/.local/bin/disk-notify" 2>/dev/null || true
-  pkill -f '^udevadm monitor --udev --subsystem-match=block --property$' 2>/dev/null || true
-
-  log "iniciando mako y waybar"
-  command -v systemctl >/dev/null 2>&1 && systemctl --user start mako.service waybar.service >/dev/null 2>&1
-
-  if [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
-    log "iniciando polkit agent"
-    sway_exec "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
-  else
-    echo "No encontrado: polkit-gnome-authentication-agent-1"
-  fi
-
-  log "iniciando udiskie/disk-notify"
-  command -v udiskie >/dev/null 2>&1 && sway_exec "udiskie --no-automount --no-notify"
-
-  if [ -x "$HOME/.local/bin/disk-notify" ]; then
-    sway_exec "$HOME/.local/bin/disk-notify"
-  fi
-
-  log "autostart listo"
-
-} >> "$LOG" 2>&1
+log "sesión Sway lista; esperando evento shutdown"
+swaymsg -m -t subscribe '["shutdown"]' 2>/dev/null |
+  while IFS= read -r event; do
+    case "$event" in
+      *'"change":"exit"'*)
+        log "deteniendo sway-session.target"
+        systemctl --user --no-block stop sway-session.target
+        break
+        ;;
+    esac
+  done

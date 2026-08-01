@@ -1,0 +1,9 @@
+[Unit]
+Description=Idle management for Sway
+PartOf=sway-session.target
+After=sway-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+ExecStart=%h/.local/bin/start-idle
+Restart=on-failure

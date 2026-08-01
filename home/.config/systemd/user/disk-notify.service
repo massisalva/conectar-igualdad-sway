@@ -1,0 +1,9 @@
+[Unit]
+Description=External disk notifications for Sway
+PartOf=sway-session.target
+After=sway-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+ExecStart=%h/.local/bin/disk-notify
+Restart=on-failure

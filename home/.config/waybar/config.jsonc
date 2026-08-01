@@ -11,6 +11,7 @@
   "custom/music": {
     "exec": "~/.local/bin/waybar-music --watch",
     "return-type": "text",
+    "escape": true,
     "on-click": "~/.local/bin/waybar-music --open",
     "on-click-right": "~/.local/bin/waybar-music --toggle",
     "on-scroll-up": "~/.local/bin/waybar-music --next",

@@ -31,6 +31,18 @@ python -c 'import json,sys; data=json.loads(sys.argv[1]); assert data["class"] =
   fail "disk-status no escapó correctamente la etiqueta simulada"
 ok "disk-status con etiqueta externa adversa"
 
+python -c '
+import json
+import sys
+
+config = json.load(open(sys.argv[1], encoding="utf-8"))
+assert config["custom/music"]["escape"] is True
+' "$ROOT_DIR/home/.config/waybar/config.jsonc" || \
+  fail "Waybar no escapa el markup del módulo musical"
+grep -Fq 'WAYBAR_MUSIC_INTERVAL:-5' "$ROOT_DIR/home/.local/bin/waybar-music" || \
+  fail "el watcher musical no usa el intervalo esperado"
+ok "módulo musical con markup seguro y polling reducido"
+
 pactl() {
   case "$*" in
     'list short sinks')
@@ -62,5 +74,10 @@ export -f pactl fuzzel wpctl notify-send
 bash "$ROOT_DIR/home/.local/bin/audio-output-menu"
 grep -Fxq 'set-default 20' "$CALL_FILE" || fail "audio-output-menu eligió un ID incorrecto"
 ok "audio-output-menu distingue descripciones duplicadas"
+
+if rg --hidden -q -- 'override=colors\.alpha' "$ROOT_DIR/home/.local/bin"; then
+  fail "persisten overrides obsoletos de Foot"
+fi
+ok "overrides de Foot actualizados"
 
 printf 'Pruebas de scripts UI: OK\n'

@@ -36,8 +36,11 @@ foot con el `app_id` correspondiente para que fuzzel no dependa del escritorio
 actual. Evitar rutas absolutas al usuario en archivos `.desktop`; usar binarios
 de `/usr/bin` cuando sea posible.
 
-`waybar` y `mako` se levantan como units de `systemd --user` para aprovechar
-sus reinicios y mantener el autostart de Sway centrado en la sesión gráfica.
+`sway-session.target` representa la sesión gráfica y activa Waybar, Mako,
+swayidle, el agente polkit, udiskie y disk-notify como units de `systemd --user`.
+Cada proceso obtiene reinicio y logs independientes. `sway-autostart` importa el
+entorno gráfico, inicia el target y lo detiene al recibir el evento de cierre de
+Sway.
 
 ## Inactividad, pantalla y audio
 
