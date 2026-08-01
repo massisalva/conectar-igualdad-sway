@@ -83,11 +83,34 @@ Antes de aplicar cambios se puede revisar qué haría:
 ./restore.sh --all --dry-run
 ```
 
+Cada archivo reemplazado se respalda previamente bajo `backups/` junto con un
+manifiesto. Para deshacer una restauración:
+
+```sh
+./restore.sh --rollback backups/restore-AAAAMMDD-HHMMSS-PID
+```
+
+El rollback recupera archivos. Si involucra configuración de sistema, después
+hay que recargar o reiniciar el servicio correspondiente para aplicar nuevamente
+el estado restaurado.
+
+Los scripts antiguos de `~/.local/bin` se conservan por defecto. Para revisar
+y quitar únicamente los que no existen en el repositorio, siempre con backup:
+
+```sh
+./restore.sh --prune --dry-run
+./restore.sh --prune
+```
+
 Verificación del estado restaurado:
 
 ```sh
 ./check.sh
 ```
+
+El chequeo también ejecuta las pruebas automatizadas de `tests/`, valida las
+salidas JSON de Waybar y detecta procesos duplicados, paquetes huérfanos y
+scripts residuales.
 
 Para exigir también polkit y bootloader como obligatorios:
 
@@ -100,6 +123,10 @@ Para permitir que la verificación pida contraseña de sudo y compare archivos p
 ```sh
 ./check.sh --system --sudo
 ```
+
+En modo de sistema también se verifican la configuración efectiva de SSH, el
+ruleset vivo de nftables, unidades fallidas, errores del arranque, puertos TCP
+en escucha y el estado SMART del disco raíz.
 
 Aplicar hardening de SSH:
 

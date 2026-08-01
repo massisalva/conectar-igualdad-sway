@@ -15,6 +15,12 @@ INSTALL_NFTABLES=0
 INSTALL_IWD=0
 INSTALL_SYSCTL=0
 INSTALL_YAZI=1
+PRUNE=0
+BACKUP_ENABLED=1
+BACKUP_DIR=""
+BACKUP_ROOT="${RESTORE_BACKUP_ROOT:-$ROOT_DIR/backups}"
+ROLLBACK_DIR=""
+declare -A BACKED_UP
 
 usage() {
   cat <<'EOF'
@@ -37,6 +43,9 @@ Opciones:
   --all         Ejecuta packages, aur, user, yazi y todas las piezas de sistema.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
+  --prune       Elimina scripts residuales de ~/.local/bin después de respaldarlos.
+  --no-backup   No crea backup previo de los archivos reemplazados.
+  --rollback DIR  Restaura los archivos registrados en un backup anterior.
   --dry-run     Muestra acciones sin ejecutarlas.
   -y, --yes     No pide confirmación.
   -h, --help    Muestra esta ayuda.
@@ -58,6 +67,105 @@ run() {
   else
     "$@"
   fi
+}
+
+ensure_backup_dir() {
+  [ "$BACKUP_ENABLED" -eq 1 ] || return 0
+  [ -z "$BACKUP_DIR" ] || return 0
+
+  BACKUP_DIR="$BACKUP_ROOT/restore-$(date +%Y%m%d-%H%M%S)-$$"
+  log "Backup previo: $BACKUP_DIR"
+  run mkdir -p "$BACKUP_DIR/files"
+}
+
+is_system_path() {
+  case "$1" in
+    /etc/*|/boot/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+backup_target() {
+  local target="$1"
+  local backup_file
+  local exists=0
+
+  [ "$BACKUP_ENABLED" -eq 1 ] || return 0
+  [ -z "${BACKED_UP[$target]:-}" ] || return 0
+  BACKED_UP[$target]=1
+  ensure_backup_dir
+  backup_file="$BACKUP_DIR/files$target"
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '+ backup-if-present %q -> %q\n' "$target" "$backup_file"
+    return 0
+  fi
+
+  if is_system_path "$target"; then
+    sudo -v
+    if sudo test -e "$target" || sudo test -L "$target"; then
+      exists=1
+    fi
+  elif [ -e "$target" ] || [ -L "$target" ]; then
+    exists=1
+  fi
+
+  if [ "$exists" -eq 1 ]; then
+    mkdir -p "$(dirname "$backup_file")"
+    if is_system_path "$target"; then
+      sudo cp -a "$target" "$backup_file"
+    else
+      cp -a "$target" "$backup_file"
+    fi
+    printf 'present\t%s\n' "$target" >> "$BACKUP_DIR/manifest.tsv"
+  else
+    printf 'missing\t%s\n' "$target" >> "$BACKUP_DIR/manifest.tsv"
+  fi
+}
+
+rollback_backup() {
+  local dir="$1"
+  local manifest="$dir/manifest.tsv"
+  local state target backup_file
+
+  [ -f "$manifest" ] || { log "No existe un manifiesto válido en $dir"; return 1; }
+  confirm "Esto restaurará los archivos registrados en $dir. ¿Continuar?"
+
+  while IFS=$'\t' read -r state target; do
+    [ -n "$target" ] || continue
+    backup_file="$dir/files$target"
+
+    case "$state" in
+      present)
+        [ -e "$backup_file" ] || [ -L "$backup_file" ] || {
+          log "Falta el archivo respaldado: $backup_file"
+          return 1
+        }
+        log "Restaurando $target"
+        if is_system_path "$target"; then
+          run sudo mkdir -p "$(dirname "$target")"
+          run sudo cp -a --remove-destination "$backup_file" "$target"
+        else
+          run mkdir -p "$(dirname "$target")"
+          run cp -a --remove-destination "$backup_file" "$target"
+        fi
+        ;;
+      missing)
+        log "Quitando archivo que no existía antes: $target"
+        if is_system_path "$target"; then
+          run sudo rm -f "$target"
+        else
+          run rm -f "$target"
+        fi
+        ;;
+      *)
+        log "Estado desconocido en manifiesto: $state"
+        return 1
+        ;;
+    esac
+  done < "$manifest"
+
+  log "Rollback finalizado"
 }
 
 confirm() {
@@ -106,9 +214,16 @@ install_aur_packages() {
 
 restore_user_files() {
   local source="$ROOT_DIR/home"
+  local source_file rel target
   [ -d "$source" ] || { log "No existe $source"; return 1; }
 
   confirm "Esto copiará $source/ sobre $HOME. ¿Continuar?"
+  while IFS= read -r source_file; do
+    rel="${source_file#"$source/"}"
+    target="$HOME/$rel"
+    backup_target "$target"
+  done < <(find "$source" \( -type f -o -type l \) | sort)
+
   log "Restaurando archivos de usuario"
   run mkdir -p "$HOME"
   run cp -a "$source/." "$HOME/"
@@ -146,6 +261,30 @@ restore_user_files() {
     log "Recargando units de systemd de usuario"
     run systemctl --user daemon-reload
   fi
+
+  if [ "$PRUNE" -eq 1 ]; then
+    prune_user_bin
+  fi
+}
+
+prune_user_bin() {
+  local file name found=0
+
+  for file in "$HOME"/.local/bin/*; do
+    [ -f "$file" ] || [ -L "$file" ] || continue
+    name="$(basename "$file")"
+    [ -e "$ROOT_DIR/home/.local/bin/$name" ] && continue
+
+    if [ "$found" -eq 0 ]; then
+      confirm "Se quitarán scripts de ~/.local/bin que no están en el repo, con backup previo. ¿Continuar?"
+    fi
+    found=1
+    backup_target "$file"
+    log "Quitando script residual: $file"
+    run rm -f "$file"
+  done
+
+  [ "$found" -eq 1 ] || log "No hay scripts residuales para quitar"
 }
 
 install_yazi_packages() {
@@ -173,13 +312,41 @@ install_polkit_rules() {
   log "Instalando reglas polkit"
   for file in "$dir"/*.rules; do
     [ -f "$file" ] || continue
+    backup_target "/etc/polkit-1/rules.d/$(basename "$file")"
     run sudo install -Dm644 "$file" "/etc/polkit-1/rules.d/$(basename "$file")"
   done
 }
 
 install_bootloader_files() {
+  local entry="$ROOT_DIR/bootloader/arch.conf"
+  local configured_uuid actual_uuid
+
+  [ -f "$entry" ] || { log "No existe $entry"; return 1; }
+
+  configured_uuid="$(sed -n 's/.*root=UUID=\([^[:space:]]*\).*/\1/p' "$entry" | head -n1)"
+  actual_uuid="$(findmnt -no UUID / 2>/dev/null || true)"
+
+  if [ -z "$configured_uuid" ]; then
+    log "No pude encontrar root=UUID en $entry"
+    return 1
+  fi
+
+  if [ -z "$actual_uuid" ]; then
+    log "No pude determinar el UUID de la raíz activa"
+    return 1
+  fi
+
+  if [ "$configured_uuid" != "$actual_uuid" ]; then
+    log "El UUID de arch.conf ($configured_uuid) no coincide con la raíz activa ($actual_uuid)"
+    log "No instalo el bootloader para evitar una entrada que no pueda arrancar"
+    return 1
+  fi
+
+  log "UUID del bootloader verificado: $actual_uuid"
   confirm "Esto copiará archivos a /boot/loader/. Revisá antes si el disco/entrada coincide. ¿Continuar?"
   log "Instalando configuración de systemd-boot"
+  backup_target /boot/loader/loader.conf
+  backup_target /boot/loader/entries/arch.conf
   run sudo install -Dm644 "$ROOT_DIR/bootloader/loader.conf" /boot/loader/loader.conf
   run sudo install -Dm644 "$ROOT_DIR/bootloader/arch.conf" /boot/loader/entries/arch.conf
 }
@@ -192,6 +359,7 @@ install_sshd_config() {
   log "Instalando configuración de sshd"
   for file in "$dir"/*.conf; do
     [ -f "$file" ] || continue
+    backup_target "/etc/ssh/sshd_config.d/$(basename "$file")"
     run sudo install -Dm644 "$file" "/etc/ssh/sshd_config.d/$(basename "$file")"
   done
   run sudo sshd -t
@@ -207,6 +375,7 @@ install_nftables_config() {
   run sudo nft -c -f "$file"
 
   log "Instalando configuración de nftables"
+  backup_target /etc/nftables.conf
   run sudo install -Dm644 "$file" /etc/nftables.conf
   run sudo systemctl enable --now nftables.service
 }
@@ -219,14 +388,17 @@ install_iwd_config() {
 
   confirm "Esto instalará la configuración de iwd y systemd-resolved. ¿Continuar?"
   log "Instalando configuración de iwd"
+  backup_target /etc/iwd/main.conf
   run sudo install -Dm644 "$file" /etc/iwd/main.conf
 
   log "Configurando dominio regulatorio Wi-Fi de Argentina"
+  backup_target /etc/conf.d/wireless-regdom
   run sudo install -Dm644 "$regdom_file" /etc/conf.d/wireless-regdom
   run sudo /usr/bin/set-wireless-regdom
 
   log "Configurando resolución DNS con systemd-resolved"
   run sudo systemctl enable --now systemd-resolved.service
+  backup_target /etc/resolv.conf
   run sudo ln -sfn /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
   log "Habilitando el gestor Wi-Fi iwd"
@@ -239,6 +411,7 @@ install_sysctl_config() {
 
   confirm "Esto instalará ajustes locales de endurecimiento del kernel. ¿Continuar?"
   log "Instalando ajustes sysctl locales"
+  backup_target /etc/sysctl.d/99-local-hardening.conf
   run sudo install -Dm644 "$file" /etc/sysctl.d/99-local-hardening.conf
   run sudo sysctl --system
 }
@@ -267,6 +440,13 @@ while [ "$#" -gt 0 ]; do
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
+    --prune) PRUNE=1 ;;
+    --no-backup) BACKUP_ENABLED=0 ;;
+    --rollback)
+      [ "$#" -ge 2 ] || { log "--rollback requiere un directorio"; exit 2; }
+      ROLLBACK_DIR="$2"
+      shift
+      ;;
     --dry-run) DRY_RUN=1 ;;
     -y|--yes) YES=1 ;;
     -h|--help) usage; exit 0 ;;
@@ -274,6 +454,16 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
+
+if [ "$PRUNE" -eq 1 ] && [ "$BACKUP_ENABLED" -ne 1 ]; then
+  log "--prune requiere backups; quitá --no-backup"
+  exit 2
+fi
+
+if [ -n "$ROLLBACK_DIR" ]; then
+  rollback_backup "$ROLLBACK_DIR"
+  exit 0
+fi
 
 [ "$INSTALL_PACKAGES" -eq 1 ] && install_pacman_packages
 [ "$INSTALL_AUR" -eq 1 ] && install_aur_packages
@@ -286,4 +476,11 @@ done
 [ "$INSTALL_IWD" -eq 1 ] && install_iwd_config
 [ "$INSTALL_SYSCTL" -eq 1 ] && install_sysctl_config
 
+if [ -n "$BACKUP_DIR" ]; then
+  if [ "$DRY_RUN" -eq 1 ]; then
+    log "El backup se crearía en: $BACKUP_DIR"
+  else
+    log "Backup disponible en: $BACKUP_DIR"
+  fi
+fi
 log "Restauración finalizada"

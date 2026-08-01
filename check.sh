@@ -287,6 +287,46 @@ check_sshd() {
     [ -f "$file" ] || continue
     check_same_system_file "$file" "/etc/ssh/sshd_config.d/$(basename "$file")" "$severity"
   done
+
+  if ! sudo_check true; then
+    if [ "$severity" = "warn" ]; then
+      warn "no puedo verificar la configuración efectiva de SSH $(sudo_check_label)"
+    else
+      fail "no puedo verificar la configuración efectiva de SSH $(sudo_check_label)"
+    fi
+    return
+  fi
+
+  if sudo_check sshd -t; then
+    ok "sintaxis efectiva de SSH válida"
+  elif [ "$severity" = "warn" ]; then
+    warn "la configuración efectiva de SSH tiene errores de sintaxis"
+  else
+    fail "la configuración efectiva de SSH tiene errores de sintaxis"
+  fi
+
+  local effective setting expected actual
+  effective="$(sudo_check sshd -T || true)"
+  while read -r setting expected; do
+    actual="$(printf '%s\n' "$effective" | awk -v key="$setting" '$1 == key {$1=""; sub(/^ /, ""); print; exit}')"
+    if [ "$actual" = "$expected" ]; then
+      ok "SSH efectivo: $setting $expected"
+    elif [ "$severity" = "warn" ]; then
+      warn "SSH efectivo: $setting esperado '$expected', actual '${actual:-desconocido}'"
+    else
+      fail "SSH efectivo: $setting esperado '$expected', actual '${actual:-desconocido}'"
+    fi
+  done <<'EOF'
+allowusers massisalva
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+permitemptypasswords no
+maxauthtries 3
+logingracetime 30
+x11forwarding no
+EOF
 }
 
 check_nftables() {
@@ -331,6 +371,46 @@ check_nftables() {
       fail "nftables no está aplicado o habilitado"
     fi
   fi
+
+
+  if ! sudo_check true; then
+    if [ "$severity" = "warn" ]; then
+      warn "no puedo verificar el ruleset vivo de nftables $(sudo_check_label)"
+    else
+      fail "no puedo verificar el ruleset vivo de nftables $(sudo_check_label)"
+    fi
+    return
+  fi
+
+  local ruleset
+  ruleset="$(sudo_check nft list table inet filter || true)"
+  if [ -z "$ruleset" ]; then
+    if [ "$severity" = "warn" ]; then
+      warn "no existe el ruleset vivo esperado de nftables"
+    else
+      fail "no existe el ruleset vivo esperado de nftables"
+    fi
+    return
+  fi
+
+  local pattern label
+  while IFS='|' read -r pattern label; do
+    if printf '%s\n' "$ruleset" | grep -Eq "$pattern"; then
+      ok "nftables vivo: $label"
+    elif [ "$severity" = "warn" ]; then
+      warn "nftables vivo no confirma: $label"
+    else
+      fail "nftables vivo no confirma: $label"
+    fi
+  done <<'EOF'
+hook input .*policy drop|entrada con política drop
+hook forward .*policy drop|forwarding con política drop
+hook output .*policy accept|salida con política accept
+192\.168\.1\.0/24|LAN confiable 192.168.1.0/24
+tcp dport 22 accept|SSH permitido por la regla esperada
+tcp dport 53317 accept|LocalSend TCP permitido
+udp dport 53317 accept|LocalSend UDP permitido
+EOF
 }
 
 check_iwd() {
@@ -578,6 +658,148 @@ check_bash_scripts() {
   done
 }
 
+check_session_config() {
+  local output
+
+  if output="$(HOME="$ROOT_DIR/home" sway -C -c "$ROOT_DIR/home/.config/sway/config" 2>&1)"; then
+    ok "configuración de Sway válida"
+  elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Unable to create backend|Could not connect to remote display'; then
+    warn "no puedo validar Sway por permisos del entorno"
+  else
+    fail "configuración de Sway inválida"
+    printf '%s\n' "$output"
+  fi
+
+  if python -c 'import json, sys; json.load(open(sys.argv[1], encoding="utf-8"))' \
+      "$ROOT_DIR/home/.config/waybar/config.jsonc"; then
+    ok "configuración JSON de Waybar válida"
+  else
+    fail "configuración JSON de Waybar inválida"
+  fi
+
+  local script
+  for script in waybar-battery disk-status; do
+    if "$ROOT_DIR/home/.local/bin/$script" | python -c 'import json, sys; json.load(sys.stdin)'; then
+      ok "salida JSON válida: $script"
+    else
+      fail "salida JSON inválida: $script"
+    fi
+  done
+}
+
+check_session_processes() {
+  local process expected count output
+
+  for process in swayidle disk-notify; do
+    expected=1
+    if [ "$process" = "swayidle" ]; then
+      count="$(pgrep -u "$(id -u)" -xc swayidle 2>/dev/null || true)"
+    else
+      count="$(pgrep -u "$(id -u)" -fc "$HOME/.local/bin/disk-notify" 2>/dev/null || true)"
+    fi
+
+    if [ "$count" = "$expected" ]; then
+      ok "una instancia activa: $process"
+    elif [ "$count" -gt "$expected" ] 2>/dev/null; then
+      fail "hay $count instancias activas de $process"
+    else
+      warn "$process no está activo"
+    fi
+  done
+
+  for process in waybar.service mako.service; do
+    if output="$(systemctl --user is-active "$process" 2>&1)"; then
+      ok "$process activo"
+    elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to user scope bus'; then
+      warn "no puedo verificar $process por permisos del entorno"
+    else
+      fail "$process no está activo"
+    fi
+  done
+}
+
+check_package_hygiene() {
+  local orphans
+  orphans="$(pacman -Qdtq 2>/dev/null || true)"
+  if [ -z "$orphans" ]; then
+    ok "sin paquetes huérfanos"
+  else
+    warn "paquetes huérfanos detectados: $(printf '%s' "$orphans" | tr '\n' ' ')"
+  fi
+}
+
+check_managed_bin_extras() {
+  local file name
+  local extras=0
+
+  for file in "$HOME"/.local/bin/*; do
+    [ -f "$file" ] || continue
+    name="$(basename "$file")"
+    if [ ! -f "$ROOT_DIR/home/.local/bin/$name" ]; then
+      warn "script local no administrado por el repo: $file"
+      extras=$((extras + 1))
+    fi
+  done
+
+  if [ "$extras" -eq 0 ]; then
+    ok "sin scripts residuales en ~/.local/bin"
+  fi
+}
+
+check_project_tests() {
+  local test
+  for test in "$ROOT_DIR"/tests/test-*.sh; do
+    [ -f "$test" ] || continue
+    if "$test" >/dev/null; then
+      ok "prueba automatizada: $(basename "$test")"
+    else
+      fail "falló prueba automatizada: $(basename "$test")"
+    fi
+  done
+}
+
+check_system_health() {
+  [ "$STRICT_SYSTEM" -eq 1 ] || return 0
+
+  local failed journal_errors root_source root_disk smart_output listeners
+  failed="$(systemctl --failed --no-legend --plain 2>/dev/null | sed '/^[[:space:]]*$/d' | wc -l)"
+  if [ "$failed" -eq 0 ]; then
+    ok "sin unidades de sistema fallidas"
+  else
+    fail "$failed unidades de sistema fallidas"
+    systemctl --failed --no-pager || true
+  fi
+
+  journal_errors="$(journalctl -b -p err --no-pager -q 2>/dev/null | sed '/^[[:space:]]*$/d' | wc -l)"
+  if [ "$journal_errors" -eq 0 ]; then
+    ok "journal del arranque sin errores"
+  else
+    warn "$journal_errors entradas de error en el journal del arranque"
+  fi
+
+  listeners="$(ss -lntH 2>/dev/null | awk '{print $4}' | sort -u | tr '\n' ' ')"
+  if [ -n "$listeners" ]; then
+    ok "puertos TCP en escucha inventariados: $listeners"
+  else
+    warn "no pude inventariar puertos TCP en escucha"
+  fi
+
+  if ! sudo_check true; then
+    fail "no puedo verificar SMART $(sudo_check_label)"
+    return
+  fi
+
+  root_source="$(findmnt -no SOURCE / 2>/dev/null || true)"
+  root_disk="$(lsblk -ndo PKNAME "$root_source" 2>/dev/null | head -n1)"
+  [ -n "$root_disk" ] || root_disk="$(basename "$root_source")"
+  smart_output="$(sudo_check smartctl -H "/dev/$root_disk" || true)"
+  if printf '%s\n' "$smart_output" | grep -Eq 'PASSED|OK'; then
+    ok "SMART saludable: /dev/$root_disk"
+  else
+    fail "SMART no confirmó estado saludable: /dev/$root_disk"
+  fi
+}
+
 check_core_commands() {
   local cmd
   for cmd in sway waybar foot fuzzel mako yazi ya wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send python lsblk impala iwctl btop ncspot pyradio; do
@@ -602,6 +824,12 @@ check_packages AUR "$ROOT_DIR/docs/pkglist-aur.txt"
 check_core_commands
 check_user_files
 check_bash_scripts
+check_session_config
+check_session_processes
+check_package_hygiene
+check_managed_bin_extras
+check_project_tests
+check_system_health
 check_xdg_dirs
 check_trash
 check_yazi

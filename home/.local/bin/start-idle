@@ -36,7 +36,9 @@ if [ -z "${WAYLAND_DISPLAY:-}" ] || [ -z "${SWAYSOCK:-}" ]; then
   exit 1
 fi
 
-pkill -f 'swayidle -w timeout 600 .*/lock-screen timeout 660 swaymsg "output \* dpms off"' 2>/dev/null || true
+# Sway vuelve a ejecutar este script al recargar la configuración. Finalizar por
+# nombre evita depender de la representación exacta de todos sus argumentos.
+pkill -u "$(id -u)" -x swayidle 2>/dev/null || true
 
 swayidle -w \
   timeout 600 "$HOME/.local/bin/lock-screen" \

@@ -21,15 +21,16 @@ if [ -z "${SWAYSOCK:-}" ]; then
   fi
 fi
 
-MAP="$(mktemp)"
 MENU="$(mktemp)"
 
 cleanup() {
-  rm -f "$MAP" "$MENU"
+  rm -f "$MENU"
 }
 trap cleanup EXIT
 
 declare -A SEEN
+declare -A ACTION_BY_ID DEV_BY_ID MOUNTPOINT_BY_ID DISK_BY_ID FSTYPE_BY_ID
+ITEM_COUNT=0
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
@@ -71,10 +72,14 @@ add_item() {
   local disk="$5"
   local fstype="$6"
 
-  local id
-  id=$(($(wc -l < "$MAP") + 1))
+  ITEM_COUNT=$((ITEM_COUNT + 1))
+  local id="$ITEM_COUNT"
 
-  printf '%s|%s|%s|%s|%s|%s\n' "$id" "$action" "$dev" "$mountpoint" "$disk" "$fstype" >> "$MAP"
+  ACTION_BY_ID[$id]="$action"
+  DEV_BY_ID[$id]="$dev"
+  MOUNTPOINT_BY_ID[$id]="$mountpoint"
+  DISK_BY_ID[$id]="$disk"
+  FSTYPE_BY_ID[$id]="$fstype"
   printf '%s) %s\n' "$id" "$text" >> "$MENU"
 }
 
@@ -101,6 +106,8 @@ while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM; do
   SEEN[$NAME]=1
 
   LABEL_DISPLAY="${LABEL:-Sin etiqueta}"
+  LABEL_DISPLAY="${LABEL_DISPLAY//$'\n'/ }"
+  LABEL_DISPLAY="${LABEL_DISPLAY//$'\t'/ }"
   MOUNTED="$(findmnt -rn -S "$NAME" -o TARGET | head -n1)"
 
   if [ -n "$PKNAME" ]; then
@@ -167,15 +174,17 @@ CHOICE="$(cat "$MENU" | fuzzel --dmenu --width=42 --lines=8 --prompt="Discos: ")
 [ -z "$CHOICE" ] && exit 0
 
 ID="$(echo "$CHOICE" | cut -d')' -f1)"
-ENTRY="$(awk -F'|' -v id="$ID" '$1 == id {print; exit}' "$MAP")"
+case "$ID" in
+  ''|*[!0-9]*) exit 1 ;;
+esac
 
-[ -z "$ENTRY" ] && exit 1
+ACTION="${ACTION_BY_ID[$ID]:-}"
+DEV="${DEV_BY_ID[$ID]:-}"
+MOUNTPOINT="${MOUNTPOINT_BY_ID[$ID]:-}"
+DISK="${DISK_BY_ID[$ID]:-}"
+FSTYPE="${FSTYPE_BY_ID[$ID]:-}"
 
-ACTION="$(echo "$ENTRY" | awk -F'|' '{print $2}')"
-DEV="$(echo "$ENTRY" | awk -F'|' '{print $3}')"
-MOUNTPOINT="$(echo "$ENTRY" | awk -F'|' '{print $4}')"
-DISK="$(echo "$ENTRY" | awk -F'|' '{print $5}')"
-FSTYPE="$(echo "$ENTRY" | awk -F'|' '{print $6}')"
+[ -n "$ACTION" ] || exit 1
 
 case "$ACTION" in
   open)

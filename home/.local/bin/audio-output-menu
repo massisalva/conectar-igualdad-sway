@@ -48,26 +48,26 @@ menu="$(
       marker="  [actual]"
     fi
 
-    printf '%s\t%s%s\n' "$id" "$desc" "$marker"
+    printf '[%s] %s%s\n' "$id" "$desc" "$marker"
   done
 )"
 
 choice="$(
   printf '%s\n' "$menu" \
-    | cut -f2- \
     | fuzzel --dmenu --prompt="Salida de audio: "
 )"
 
 [ -n "$choice" ] || exit 0
 
-selected_id="$(
-  printf '%s\n' "$menu" \
-    | awk -F '\t' -v c="$choice" '$2 == c {print $1; exit}'
-)"
+selected_id="${choice%%]*}"
+selected_id="${selected_id#[}"
 
-[ -n "$selected_id" ] || exit 1
+case "$selected_id" in
+  ''|*[!0-9]*) exit 1 ;;
+esac
 
 wpctl set-default "$selected_id"
 
-clean_choice="${choice%  [actual]}"
+clean_choice="${choice#*] }"
+clean_choice="${clean_choice%  [actual]}"
 notify "Salida seleccionada: $clean_choice"
