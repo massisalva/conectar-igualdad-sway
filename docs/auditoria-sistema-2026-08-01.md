@@ -42,6 +42,12 @@ regresión reproducible finalizó con 0 fallos.
   huérfanos, scripts residuales, unidades fallidas, journal, puertos y SMART.
 - `restore.sh` crea backups con manifiesto, permite rollback y ofrece un modo
   `--prune` recuperable para scripts residuales.
+- Una segunda revisión corrigió `--prune` para preservar explícitamente
+  `headroom`, `uv` y `uvx`; antes podían confundirse con scripts residuales y
+  eliminarse pese a ser herramientas externas legítimas.
+- El rollback rechaza destinos fuera de `$HOME`, `/etc` y `/boot`, incluidas
+  rutas con componentes `..`, para impedir que un manifiesto alterado escriba o
+  elimine archivos arbitrarios.
 - Se agregaron pruebas automatizadas para restauración, rollback, prune, discos
   con etiquetas adversas y salidas de audio con descripciones duplicadas.
 - Se retiraron Qutebrowser, Mission Center, Nano y Vim; Firefox, btop y Neovim
@@ -57,6 +63,17 @@ regresión reproducible finalizó con 0 fallos.
 `./check.sh` terminó con 0 fallos. Las advertencias sin privilegios corresponden
 a archivos protegidos, la comprobación efectiva de SSH/nftables y el estado Git
 local. Las pruebas automatizadas finalizaron correctamente.
+
+La segunda pasada sumó una regresión para la preservación de herramientas
+externas y otra para manifiestos de rollback manipulados. Ambas pruebas pasan;
+`check.sh` ahora reconoce esas herramientas y ya no las reporta como residuos.
+
+La validación privilegiada terminó con 0 fallos. El journal contenía 6 eventos
+de prioridad error, aunque la salida multilínea hacía que el verificador
+informara 19. Se corrigió el conteo usando registros JSON. El único core dump
+era un proceso temporal `sway --validate` ejecutado durante la auditoría en un
+entorno aislado; no fue la sesión gráfica activa, que permaneció saludable y
+validó correctamente desde la terminal real.
 
 La comprobación privilegiada completa debe ejecutarse en una terminal con:
 

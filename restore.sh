@@ -20,6 +20,7 @@ BACKUP_ENABLED=1
 BACKUP_DIR=""
 BACKUP_ROOT="${RESTORE_BACKUP_ROOT:-$ROOT_DIR/backups}"
 ROLLBACK_DIR=""
+LOCAL_BIN_KEEP_FILE="$ROOT_DIR/docs/local-bin-keep.txt"
 declare -A BACKED_UP
 
 usage() {
@@ -85,6 +86,26 @@ is_system_path() {
   esac
 }
 
+is_allowed_target() {
+  local target="$1"
+
+  case "/$target/" in
+    */../*|*/./*) return 1 ;;
+  esac
+
+  case "$target" in
+    "$HOME"/*|/etc/*|/boot/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_kept_local_bin() {
+  local name="$1"
+
+  [ -f "$LOCAL_BIN_KEEP_FILE" ] || return 1
+  grep -Fqx -- "$name" "$LOCAL_BIN_KEEP_FILE"
+}
+
 backup_target() {
   local target="$1"
   local backup_file
@@ -133,6 +154,10 @@ rollback_backup() {
 
   while IFS=$'\t' read -r state target; do
     [ -n "$target" ] || continue
+    if ! is_allowed_target "$target"; then
+      log "Ruta no permitida en el manifiesto: $target"
+      return 1
+    fi
     backup_file="$dir/files$target"
 
     case "$state" in
@@ -274,6 +299,7 @@ prune_user_bin() {
     [ -f "$file" ] || [ -L "$file" ] || continue
     name="$(basename "$file")"
     [ -e "$ROOT_DIR/home/.local/bin/$name" ] && continue
+    is_kept_local_bin "$name" && continue
 
     if [ "$found" -eq 0 ]; then
       confirm "Se quitarán scripts de ~/.local/bin que no están en el repo, con backup previo. ¿Continuar?"

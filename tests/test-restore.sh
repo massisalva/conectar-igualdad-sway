@@ -54,6 +54,7 @@ grep -Fxq 'contenido anterior' "$TEST_HOME/.local/bin/disk-status" || \
 ok "rollback de archivos existentes y nuevos"
 
 printf 'script residual\n' > "$TEST_HOME/.local/bin/obsoleto"
+printf 'herramienta externa\n' > "$TEST_HOME/.local/bin/uv"
 HOME="$TEST_HOME" \
 PATH="$MOCK_BIN:$PATH" \
 RESTORE_BACKUP_ROOT="$BACKUP_ROOT" \
@@ -61,6 +62,7 @@ RESTORE_BACKUP_ROOT="$BACKUP_ROOT" \
 
 prune_backup="$(latest_backup)"
 [ ! -e "$TEST_HOME/.local/bin/obsoleto" ] || fail "prune no quitó el script residual"
+[ -e "$TEST_HOME/.local/bin/uv" ] || fail "prune quitó una herramienta externa preservada"
 grep -Fq $'present\t'"$TEST_HOME/.local/bin/obsoleto" "$prune_backup/manifest.tsv" || \
   fail "prune no respaldó el script residual"
 
@@ -68,5 +70,14 @@ HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
   "$ROOT_DIR/restore.sh" --rollback "$prune_backup" -y >/dev/null
 [ -f "$TEST_HOME/.local/bin/obsoleto" ] || fail "rollback no recuperó el script residual"
 ok "prune recuperable"
+
+malicious_backup="$TEST_ROOT/malicious-backup"
+mkdir -p "$malicious_backup"
+printf 'missing\t%s/../restore-no-permitido\n' "$TEST_HOME" > "$malicious_backup/manifest.tsv"
+if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" -y >/dev/null 2>&1; then
+  fail "rollback aceptó una ruta fuera de los destinos permitidos"
+fi
+ok "rollback rechaza rutas no permitidas"
 
 printf 'Pruebas de restore: OK\n'

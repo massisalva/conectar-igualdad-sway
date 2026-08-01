@@ -107,6 +107,9 @@ y quitar únicamente los que no existen en el repositorio, siempre con backup:
 ./restore.sh --prune
 ```
 
+Las herramientas externas enumeradas en `docs/local-bin-keep.txt` se preservan
+durante la limpieza y se muestran como reconocidas en `check.sh`.
+
 Verificación del estado restaurado:
 
 ```sh

@@ -8,6 +8,7 @@ WARNS=0
 STRICT_SYSTEM=0
 ALLOW_SUDO_PROMPT=0
 SUDO_READY=0
+LOCAL_BIN_KEEP_FILE="$ROOT_DIR/docs/local-bin-keep.txt"
 
 usage() {
   cat <<'EOF'
@@ -754,8 +755,12 @@ check_managed_bin_extras() {
     [ -f "$file" ] || continue
     name="$(basename "$file")"
     if [ ! -f "$ROOT_DIR/home/.local/bin/$name" ]; then
-      warn "script local no administrado por el repo: $file"
-      extras=$((extras + 1))
+      if [ -f "$LOCAL_BIN_KEEP_FILE" ] && grep -Fqx -- "$name" "$LOCAL_BIN_KEEP_FILE"; then
+        ok "herramienta externa preservada: $file"
+      else
+        warn "script local no administrado por el repo: $file"
+        extras=$((extras + 1))
+      fi
     fi
   done
 
@@ -788,7 +793,9 @@ check_system_health() {
     systemctl --failed --no-pager || true
   fi
 
-  journal_errors="$(journalctl -b -p err --no-pager -q 2>/dev/null | sed '/^[[:space:]]*$/d' | wc -l)"
+  # JSON emite un registro por línea; la salida humana puede incluir stacks
+  # multilínea y exagerar el número real de eventos.
+  journal_errors="$(journalctl -b -p err --no-pager -q -o json 2>/dev/null | wc -l)"
   if [ "$journal_errors" -eq 0 ]; then
     ok "journal del arranque sin errores"
   else
