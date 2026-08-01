@@ -117,3 +117,16 @@ El dominio regulatorio se fija en `AR` para evitar el estado global genérico
 `kernel.kptr_restrict=1` oculta direcciones del kernel a usuarios sin
 privilegios. El ajuste se versiona en `sysctl/99-local-hardening.conf` y se
 instala explícitamente mediante `./restore.sh --sysctl`.
+
+## Headroom y Codex
+
+Headroom se instala con `uv` como herramienta aislada y corre como servicio de
+usuario, limitado a localhost. Se eligió el perfil `proxy,code` en lugar de
+`all` para evitar dependencias de aprendizaje automático y CUDA sin uso en el
+hardware Intel.
+
+El proxy usa backend OpenAI, modo conservador `cache`, compresión de código y
+telemetría desactivada. El repositorio documenta el procedimiento, pero no
+versiona `~/.codex/config.toml`, `~/.headroom`, logs, métricas ni credenciales.
+La configuración del proveedor es personal y Codex solo la acepta en el nivel
+global del usuario.

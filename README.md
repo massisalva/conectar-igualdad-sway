@@ -55,6 +55,7 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Carpetas XDG del usuario registradas en español.
 - OneDrive con cliente `onedrive-abraunegg` y configuración local segura.
 - MPD/ncmpcpp local con PipeWire, visualizador FIFO y biblioteca en `~/Música`.
+- Headroom como proxy local opcional para optimizar el contexto de Codex.
 
 ## Restauración
 
@@ -66,6 +67,8 @@ Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
 - Firewall nftables versionado bajo `nftables/`.
 
 Ver criterios de alcance y qué se versiona en `docs/decisiones.md`.
+La instalación local de Headroom y su integración con Codex se documentan en
+`docs/headroom-codex.md`; no se versionan credenciales ni `~/.codex/config.toml`.
 
 Restauración de usuario:
 

@@ -23,6 +23,8 @@ regresión reproducible finalizó con 0 fallos.
 - Sway, Waybar, Mako, MPD, PipeWire, WirePlumber y OneDrive activos.
 - iwd, systemd-resolved, sshd, nftables, Bluetooth y TLP habilitados o activos.
 - Sin paquetes huérfanos ni errores en la base de datos de pacman.
+- 710 paquetes instalados, 119 explícitos y ninguna actualización pendiente.
+- Raíz ext4 al 4 % después de limpiar cachés regenerables.
 
 ## Correcciones implementadas
 
@@ -42,6 +44,13 @@ regresión reproducible finalizó con 0 fallos.
   `--prune` recuperable para scripts residuales.
 - Se agregaron pruebas automatizadas para restauración, rollback, prune, discos
   con etiquetas adversas y salidas de audio con descripciones duplicadas.
+- Se retiraron Qutebrowser, Mission Center, Nano y Vim; Firefox, btop y Neovim
+  quedan como alternativas principales.
+- Se limpiaron las cachés de npm, Cargo, Pub y uv sin retirar sus SDK.
+- Headroom 0.33.0 quedó instalado con el perfil `proxy,code`, como servicio de
+  usuario local para Codex, con telemetría desactivada.
+- Una ejecución mínima de Codex atravesó el proxy correctamente y quedó
+  registrada por `headroom perf`.
 
 ## Validación
 
