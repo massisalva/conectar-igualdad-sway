@@ -15,7 +15,7 @@ menu() {
 
   printf '%s\n' "$@" |
     fuzzel --dmenu --font='Lexend:size=10' --line-height=21 \
-      --width=42 --lines="$lines" --prompt="$prompt"
+      --width=55 --lines="$lines" --prompt="$prompt"
 }
 
 show_page() {
@@ -26,55 +26,111 @@ show_page() {
 
 while true; do
   category="$(
-    menu 'Atajos: ' 6 \
-      '󰇚   Aplicaciones' \
-      '󰛥   Ventanas y escritorios' \
-      '󰍱   Multimedia y capturas' \
-      '󰣃   Sistema y sesión' \
-      '󰄲   Notificaciones' \
+    menu 'Atajos: ' 11 \
+      'Aplicaciones' \
+      'Foco y movimiento' \
+      'Escritorios' \
+      'Apertura y disposición' \
+      'Flotantes y scratchpad' \
+      'Redimensionado' \
+      'Multimedia' \
+      'Capturas' \
+      'Sistema y sesión' \
+      'Notificaciones' \
       'Salir'
   )" || exit 0
 
   case "$category" in
-    '󰇚   Aplicaciones')
+    'Aplicaciones')
       show_page 'Aplicaciones' \
-        'Mod + D       Lanzador de aplicaciones' \
-        'Mod + Enter   Terminal' \
-        'Mod + B       Firefox' \
-        'Mod + E       Archivos' \
-        'Mod + M       Música' \
-        'Mod + P       CPU y memoria'
+        'Super + D       Lanzador de aplicaciones' \
+        'Super + Enter   Terminal' \
+        'Super + B       Firefox' \
+        'Super + E       Archivos' \
+        'Super + M       Música' \
+        'Super + P       CPU y memoria'
       ;;
-    '󰛥   Ventanas y escritorios')
-      show_page 'Ventanas' \
-        'Mod + flechas          Cambiar el foco' \
-        'Mod + Shift + flechas  Mover ventana' \
-        'Mod + 1…10             Cambiar de escritorio' \
-        'Mod + Shift + 1…10     Mover a escritorio' \
-        'Mod + F                Pantalla completa' \
-        'Mod + R                Redimensionar' \
-        'Mod + Q                Cerrar ventana'
+    'Foco y movimiento')
+      show_page 'Foco y movimiento' \
+        'Super + H/J/K/L o flechas          Cambiar el foco' \
+        'Super + Shift + H/J/K/L o flechas  Mover ventana' \
+        'Super + A                          Enfocar contenedor padre' \
+        'Super + Shift + A                  Enfocar contenedor hijo' \
+        'Super + U                          Ir a la ventana urgente' \
+        'Super + Q                          Cerrar ventana'
       ;;
-    '󰍱   Multimedia y capturas')
+    'Escritorios')
+      show_page 'Escritorios' \
+        '1–5 con nombre: term, web, music, files, system' \
+        '6–10 disponibles cuando los necesites' \
+        'Super + 1–9          Ir al escritorio 1–9' \
+        'Super + 0            Ir al escritorio 10' \
+        'Super + Shift + 1–9  Mover ventana sin seguirla' \
+        'Super + Shift + 0    Mover al 10 sin seguirla' \
+        'Super + Ctrl + 1–9   Mover ventana y seguirla' \
+        'Super + Ctrl + 0     Mover al 10 y seguirla' \
+        'Super + Tab          Volver al escritorio anterior'
+      ;;
+    'Apertura y disposición')
+      show_page 'Apertura y disposición' \
+        'Super + V          Abrir la próxima ventana debajo' \
+        'Super + Shift + B  Abrir la próxima ventana al lado' \
+        'Super + S          Apilar ventanas' \
+        'Super + W          Mostrar ventanas en pestañas' \
+        'Super + T          Alternar mosaico horizontal/vertical' \
+        'Super + F          Alternar pantalla completa'
+      ;;
+    'Flotantes y scratchpad')
+      show_page 'Flotantes y scratchpad' \
+        'Super + Shift + Espacio  Alternar ventana flotante' \
+        'Super + Espacio          Foco entre mosaico y flotantes' \
+        'Super + Shift + F        Centrar ventana flotante' \
+        'Super + Shift + -        Enviar al scratchpad' \
+        'Super + -                Mostrar/ocultar scratchpad'
+      ;;
+    'Redimensionado')
+      show_page 'Redimensionado' \
+        'Super + R                    Entrar al modo redimensionar' \
+        'H o Izquierda              Reducir ancho 10 px' \
+        'L o Derecha                Aumentar ancho 10 px' \
+        'K o Arriba                 Reducir alto 10 px' \
+        'J o Abajo                  Aumentar alto 10 px' \
+        'Shift + dirección          Hacer el mismo cambio en 30 px' \
+        'Enter o Escape             Salir del modo redimensionar'
+      ;;
+    'Multimedia')
       show_page 'Multimedia' \
-        'Teclas multimedia      Reproducción y pistas' \
-        'Teclas de volumen      Volumen y silencio' \
-        'Teclas de brillo       Ajustar pantalla' \
-        'Mod + Shift + S        Menú de capturas' \
-        'Print                  Capturar pantalla'
+        'Volumen + / -       Subir o bajar volumen' \
+        'Silencio            Silenciar/activar audio' \
+        'Silencio micrófono  Silenciar/activar micrófono' \
+        'Play o Pausa        Reproducir/pausar' \
+        'Pista siguiente     Avanzar pista' \
+        'Pista anterior      Retroceder pista' \
+        'Brillo + / -        Subir o bajar brillo'
       ;;
-    '󰣃   Sistema y sesión')
+    'Capturas')
+      show_page 'Capturas' \
+        'Super + Shift + S      Abrir menú de capturas' \
+        'Print                Guardar pantalla completa' \
+        'Super + Print          Guardar una región' \
+        'Shift + Print        Guardar la ventana enfocada' \
+        'Ctrl + Print         Copiar pantalla completa' \
+        'Super + Shift + Print  Copiar una región'
+      ;;
+    'Sistema y sesión')
       show_page 'Sistema' \
-        'Mod + Ctrl + L   Bloquear' \
-        'Mod + Shift + P  Menú de energía' \
-        'Mod + Shift + C  Recargar Sway' \
-        'Mod + F1         Mostrar esta guía'
+        'Super + Ctrl + L   Bloquear' \
+        'Super + Ctrl + T   Activar/desactivar touchpad' \
+        'Super + Shift + P  Menú de energía' \
+        'Super + Shift + C  Recargar Sway' \
+        'Super + Shift + E  Salir de Sway (con confirmación)' \
+        'Super + F1         Mostrar esta guía'
       ;;
-    '󰄲   Notificaciones')
+    'Notificaciones')
       show_page 'Notificaciones' \
-        'Mod + N          Cerrar la última' \
-        'Mod + Shift + N  Recuperar la última' \
-        'Mod + Ctrl + N   Alternar No molestar'
+        'Super + N          Cerrar la última' \
+        'Super + Shift + N  Recuperar la última' \
+        'Super + Ctrl + N   Alternar No molestar'
       ;;
     *) exit 0 ;;
   esac
