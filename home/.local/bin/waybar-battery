@@ -99,4 +99,4 @@ case "$status" in
 esac
 
 tooltip="$(json_escape "Batería: ${capacity}% (${status_label})\nClick para ver detalles")"
-printf '{"text":"%s %s%%","tooltip":"%s","class":"%s"}\n' "$icon" "$capacity" "$tooltip" "$class"
+printf '{"text":"%s  %s%%","tooltip":"%s","class":"%s"}\n' "$icon" "$capacity" "$tooltip" "$class"

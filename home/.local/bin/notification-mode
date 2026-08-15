@@ -10,7 +10,7 @@ status() {
   if ! command -v makoctl >/dev/null 2>&1; then
     printf '{"text":"","class":"inactive","tooltip":"Mako no está disponible"}\n'
   elif is_dnd; then
-    printf '{"text":"󰁎 No molestar","class":"active","tooltip":"No molestar activo\\nClick para desactivar"}\n'
+    printf '{"text":"󰁎  No molestar","class":"active","tooltip":"No molestar activo\\nClick para desactivar"}\n'
   else
     printf '{"text":"","class":"inactive","tooltip":"Notificaciones activas"}\n'
   fi

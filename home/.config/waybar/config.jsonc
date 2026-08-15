@@ -60,14 +60,14 @@
   },
 
   "cpu": {
-    "format": "󰻠 {usage}%",
+    "format": "󰻠  {usage}%",
     "interval": 3,
     "on-click": "foot --app-id foot-system -e btop",
     "tooltip": true
   },
 
   "memory": {
-    "format": "󰍛 {used:0.1f}G",
+    "format": "󰍛  {used:0.1f}G",
     "interval": 3,
     "on-click": "foot --app-id foot-system -e btop",
     "tooltip": true
@@ -75,11 +75,11 @@
 
   "bluetooth": {
     "format": "󰂯",
-    "format-connected": "󰂱 {device_alias}",
-    "format-connected-battery": "󰂱 {device_alias}  {device_battery_percentage}%",
-    "format-disabled": "󰂲 apagado",
-    "format-off": "󰂲 apagado",
-    "format-no-controller": "󰂲 sin BT",
+    "format-connected": "󰂱  {device_alias}",
+    "format-connected-battery": "󰂱  {device_alias}    {device_battery_percentage}%",
+    "format-disabled": "󰂲  apagado",
+    "format-off": "󰂲  apagado",
+    "format-no-controller": "󰂲  sin BT",
     "tooltip-format": "Bluetooth: {status}\nControlador: {controller_alias}\nClick para abrir bluetui",
     "tooltip-format-connected": "Conectado: {device_alias}\nControlador: {controller_alias}\nClick para abrir bluetui",
     "tooltip-format-connected-battery": "Conectado: {device_alias}\nBatería: {device_battery_percentage}%\nControlador: {controller_alias}\nClick para abrir bluetui",
@@ -88,16 +88,16 @@
   },
 
   "network": {
-    "format-wifi": "󰤨 {essid}",
-    "format-disconnected": "󰤭 Sin red",
+    "format-wifi": "󰤨  {essid}",
+    "format-disconnected": "󰤭  Sin red",
     "tooltip-format-wifi": "Red: {essid}\nInterfaz: {ifname}\nIP: {ipaddr}\nSeñal: {signalStrength}%",
     "tooltip-format-disconnected": "Sin conexión\nClick para abrir redes",
     "on-click": "~/.local/bin/network-menu"
   },
 
   "pulseaudio": {
-    "format": "{icon} {volume}%",
-    "format-muted": "󰝟 silenciado",
+    "format": "{icon}  {volume}%",
+    "format-muted": "󰝟  silenciado",
     "format-icons": {
       "default": ["󰕿", "󰖀", "󰕾"]
     },
@@ -108,7 +108,7 @@
   },
 
   "backlight": {
-    "format": "{icon} {percent}%",
+    "format": "{icon}  {percent}%",
     "format-icons": ["󰃞", "󰃟", "󰃠"],
     "tooltip": true,
     "tooltip-format": "Brillo: {percent}%"

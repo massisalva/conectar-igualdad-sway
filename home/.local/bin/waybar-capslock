@@ -14,7 +14,7 @@ for led in /sys/class/leds/input*::capslock/brightness; do
 done
 
 if [ "$caps_active" -eq 1 ]; then
-  printf '{"text":"󰌌 A","tooltip":"Mayúsculas activadas","class":"active"}\n'
+  printf '{"text":"󰌌  A","tooltip":"Mayúsculas activadas","class":"active"}\n'
 else
   printf '{"text":"","tooltip":"Mayúsculas desactivadas","class":"inactive"}\n'
 fi

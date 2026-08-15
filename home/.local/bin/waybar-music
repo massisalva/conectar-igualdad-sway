@@ -456,9 +456,9 @@ current_radio() {
 
   if [ -n "$station" ]; then
     station="$(shorten "$station" 30)"
-    printf "󰠃 %s\n" "$station"
+    printf "󰠃  %s\n" "$station"
   else
-    printf "󰠃 Radio\n"
+    printf "󰠃  Radio\n"
   fi
 }
 
@@ -478,7 +478,7 @@ current_song() {
   # 1) MPD / ncmpcpp reproduciendo
   if [ "$mpd_state" = "playing" ] && [ -n "$mpd_song" ]; then
     song="$(shorten "$mpd_song" 36)"
-    printf "󰎈 %s\n" "$song"
+    printf "󰎈  %s\n" "$song"
     return
   fi
 
@@ -501,9 +501,9 @@ current_song() {
 
           song="$(shorten "$song" 36)"
           if [ "$status" = "Playing" ]; then
-            printf "󰓇 %s\n" "$song"
+            printf "󰓇  %s\n" "$song"
           else
-            printf "󰏤 %s\n" "$song"
+            printf "󰏤  %s\n" "$song"
           fi
           return
         fi
@@ -514,7 +514,7 @@ current_song() {
   # 3) MPD pausado
   if [ "$mpd_state" = "paused" ] && [ -n "$mpd_song" ]; then
     song="$(shorten "$mpd_song" 36)"
-    printf "󰏤 %s\n" "$song"
+    printf "󰏤  %s\n" "$song"
     return
   fi
 
