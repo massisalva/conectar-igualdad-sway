@@ -1,237 +1,209 @@
-# Conectar Igualdad SF20GM7 - Sway + Waybar
+# Conectar Igualdad + Sway
 
-Configuración personal de Arch Linux en una netbook Conectar Igualdad SF20GM7.
+Un escritorio liviano, cuidado y reproducible para Arch Linux, nacido en una
+netbook Conectar Igualdad SF20GM7.
 
-## Vista
+El repositorio reúne mi configuración diaria de Sway y las herramientas que la
+acompañan: una Waybar informativa, menús simples, música, gestión de discos,
+ahorro de energía y servicios de sesión supervisados por systemd. Sigue siendo
+mi respaldo personal, pero está organizado y documentado para que otras
+personas puedan recorrerlo, reutilizar una parte o instalar el entorno completo.
 
 ![Escritorio Sway + Waybar](docs/media/escritorio.png)
 
-## Entorno
+## Qué vas a encontrar
 
-- Arch Linux
-- Sway
-- Waybar
-- foot
-- fuzzel
-- mako
-- Catppuccin
-- Yazi
-- systemd-boot
+- **Sway modular**, con atajos y aplicaciones distribuidas por espacios de trabajo.
+- **Waybar compacta**, con música, reloj, Bluetooth, red, audio, brillo, batería,
+  discos externos y controles de energía.
+- **Menús con fuzzel y foot** para redes, Bluetooth, audio, energía y discos.
+- **Sesión mantenible**, con Waybar, Mako, swayidle, polkit y utilidades bajo
+  unidades de `systemd --user`.
+- **Música y archivos**, con MPD/ncmpcpp, PyRadio, mpv y Yazi tematizados.
+- **Respaldo y restauración**, con vista previa, copia de seguridad automática,
+  rollback y verificaciones posteriores.
+- **Piezas opcionales de sistema**, como polkit, iwd, nftables, OpenSSH,
+  systemd-boot y ajustes conservadores del kernel.
 
-## Estructura
+La estética combina Catppuccin Mocha con Lexend y glifos Nerd Font. El objetivo
+no es llenar la pantalla de información, sino mostrar lo útil sin distraer.
 
-- `home/`: archivos que se restauran sobre `$HOME`.
-- `home/.config/`: configuración de aplicaciones de usuario.
-- `home/.local/bin/`: scripts locales ejecutables.
-- `polkit/`: reglas de polkit para copiar con permisos de sistema.
-- `bootloader/`: archivos de systemd-boot para revisar/restaurar manualmente.
-- `sshd/`: hardening conservador de OpenSSH.
-- `nftables/`: firewall local conservador.
-- `iwd/`: configuración del gestor de Wi-Fi usado por Impala.
-- `sysctl/`: endurecimiento local de parámetros del kernel.
-- `docs/`: inventario, decisiones y listas de paquetes.
-- `docs/media/`: capturas o material visual para documentación.
+## Antes de instalar
 
-## Características principales
+Este no es un paquete universal ni una distribución. Es un conjunto de dotfiles
+para **Arch Linux + Sway** que refleja decisiones personales y el hardware donde
+se desarrolló.
 
-- Configuración modular de Sway.
-- Waybar con módulos de música, Caps Lock, discos, CPU, memoria, Bluetooth, red, audio, brillo, batería y energía.
-- Menús flotantes con foot y fuzzel.
-- Notificaciones con mako.
-- Manejo de dispositivos externos/removibles con disk-manager, disk-status y disk-notify.
-- Power menu con bloqueo, suspensión, reinicio, apagado y salida de Sway.
-- Ahorro de energía que apaga la pantalla y evita suspender mientras hay audio activo.
-- Servicios de la sesión agrupados bajo `sway-session.target`, con supervisión
-  y logs de systemd para Waybar, Mako, swayidle, polkit y discos.
-- Reglas polkit para discos y energía local.
-- SSH con hardening conservador; las claves autorizadas no se versionan.
-- Firewall local con nftables para limitar entrada y SSH desde la LAN.
-- Impala con iwd para gestionar Wi-Fi desde una interfaz de terminal.
-- systemd-boot ajustado con console-mode max.
-- Scripts locales con validación básica de dependencias y fallos no fatales de notificación.
-- Verificador local para restauración, paquetes, scripts, Yazi, XDG, polkit y bootloader.
-- Yazi con Catppuccin Mocha, plugins oficiales y previews de texto/metadata.
-- Papelera XDG para Yazi con `d` para enviar a papelera y `D` para borrado permanente.
-- Carpetas XDG del usuario registradas en español.
-- OneDrive con cliente `onedrive-abraunegg` y configuración local segura.
-- MPD/ncmpcpp local con PipeWire, visualizador FIFO y biblioteca en `~/Música`.
-- Headroom como proxy local opcional para optimizar el contexto de Codex.
+Conviene revisar especialmente:
 
-## Restauración
+- los nombres y reglas de workspaces;
+- las carpetas XDG en español y la biblioteca `~/Música`;
+- la interfaz y el dominio regulatorio de iwd;
+- la red confiable `192.168.1.0/24` usada por nftables;
+- las entradas de systemd-boot;
+- cualquier configuración de SSH antes de aplicarla.
 
-- Paquetes pacman actuales: `docs/pkglist-pacman.txt`
-- Paquetes AUR actuales: `docs/pkglist-aur.txt`
-- Configuración de usuario versionada bajo `home/`.
-- Configuración de sistema versionada bajo `polkit/` y `bootloader/`.
-- Hardening de SSH versionado bajo `sshd/`.
-- Firewall nftables versionado bajo `nftables/`.
+No se incluyen contraseñas, tokens, claves privadas, perfiles Wi-Fi, sesiones de
+navegador ni claves SSH autorizadas. OneDrive también requiere vincular la cuenta
+localmente después de restaurar.
 
-Ver criterios de alcance y qué se versiona en `docs/decisiones.md`.
-La instalación local de Headroom y su integración con Codex se documentan en
-`docs/headroom-codex.md`; no se versionan credenciales ni `~/.codex/config.toml`.
+## Instalación recomendada
 
-Restauración de usuario:
+### 1. Clonar y revisar
+
+```sh
+git clone https://github.com/massisalva/conectar-igualdad-sway.git
+cd conectar-igualdad-sway
+./restore.sh --help
+```
+
+Para ver los cambios sobre tu `$HOME` sin escribir archivos:
+
+```sh
+./restore.sh --dry-run
+```
+
+### 2. Restaurar solo el entorno de usuario
+
+Este es el punto de partida más seguro. Copia `home/` sobre tu directorio
+personal, ajusta los permisos de los scripts e instala los complementos de Yazi
+si `ya` ya está disponible:
 
 ```sh
 ./restore.sh
 ```
 
-Restauración completa:
+Cada archivo reemplazado se guarda antes en `backups/restore-*`. Al terminar,
+podés comprobar el resultado con:
 
 ```sh
-./restore.sh --all
+./check.sh
 ```
 
-Antes de aplicar cambios se puede revisar qué haría:
+Después iniciá Sway nuevamente o recargá su configuración con `Mod+Shift+c`.
+
+### 3. Instalar paquetes, si los necesitás
+
+Las listas reproducibles están en `docs/pkglist-pacman.txt` y
+`docs/pkglist-aur.txt`. Se pueden aplicar por separado:
+
+```sh
+./restore.sh --packages
+./restore.sh --aur
+```
+
+La segunda opción necesita `yay` instalado. Ambas listas representan este
+entorno completo; revisalas si solo querés adoptar una parte de la configuración.
+
+### 4. Aplicar cambios del sistema de forma explícita
+
+Las piezas que requieren privilegios no se instalan durante la restauración
+normal. Cada una tiene su propia opción:
+
+```sh
+./restore.sh --polkit
+./restore.sh --iwd
+./restore.sh --nftables
+./restore.sh --sshd
+./restore.sh --sysctl
+./restore.sh --bootloader
+```
+
+No recomiendo usar `--all` en otra máquina sin haber revisado antes esas
+configuraciones. Para inspeccionar el conjunto completo sin aplicarlo:
 
 ```sh
 ./restore.sh --all --dry-run
 ```
 
-Cada archivo reemplazado se respalda previamente bajo `backups/` junto con un
-manifiesto. Para deshacer una restauración:
+Si ya adaptaste todo a tu equipo:
+
+```sh
+./restore.sh --all
+./check.sh --system --sudo
+```
+
+## Volver atrás
+
+Cada restauración crea un respaldo con manifiesto. Para recuperar el estado
+anterior de los archivos:
 
 ```sh
 ./restore.sh --rollback backups/restore-AAAAMMDD-HHMMSS-PID
 ```
 
-El rollback recupera archivos. Si involucra configuración de sistema, después
-hay que recargar o reiniciar el servicio correspondiente para aplicar nuevamente
-el estado restaurado.
+El rollback restaura archivos; si alcanzó una configuración del sistema, puede
+ser necesario recargar o reiniciar el servicio correspondiente.
 
-Los scripts antiguos de `~/.local/bin` se conservan por defecto. Para revisar
-y quitar únicamente los que no existen en el repositorio, siempre con backup:
+Los scripts antiguos de `~/.local/bin` se conservan por defecto. Se pueden
+detectar y quitar, siempre con respaldo previo, mediante:
 
 ```sh
 ./restore.sh --prune --dry-run
 ./restore.sh --prune
 ```
 
-Las herramientas externas enumeradas en `docs/local-bin-keep.txt` se preservan
-durante la limpieza y se muestran como reconocidas en `check.sh`.
+## Mapa del repositorio
 
-Verificación del estado restaurado:
+| Ruta | Contenido |
+| --- | --- |
+| `home/` | Archivos que se restauran sobre `$HOME` |
+| `home/.config/` | Configuración de Sway, Waybar, foot, fuzzel, Mako, Yazi y otras aplicaciones |
+| `home/.local/bin/` | Scripts que implementan menús, módulos y comportamiento de la sesión |
+| `polkit/` | Reglas locales para discos y energía |
+| `iwd/` | Wi-Fi con iwd, Impala y systemd-resolved |
+| `nftables/` | Firewall local y acceso desde la LAN confiable |
+| `sshd/` | Endurecimiento conservador de OpenSSH |
+| `sysctl/` | Ajustes locales del kernel |
+| `bootloader/` | Ejemplos de systemd-boot para revisión manual |
+| `docs/` | Inventario, decisiones, auditorías, paquetes y notas de recuperación |
+| `tests/` | Pruebas de restauración y scripts de interfaz |
+
+## Verificación y mantenimiento
+
+La comprobación habitual es:
 
 ```sh
 ./check.sh
 ```
 
-El chequeo también ejecuta las pruebas automatizadas de `tests/`, valida las
-salidas JSON de Waybar y detecta procesos duplicados, paquetes huérfanos y
-scripts residuales.
+Además de comparar los archivos activos con el repositorio, valida scripts,
+JSON de Waybar, dependencias, procesos duplicados, paquetes huérfanos y las
+pruebas automatizadas.
 
-Para exigir también polkit y bootloader como obligatorios:
-
-```sh
-./check.sh --system
-```
-
-Para permitir que la verificación pida contraseña de sudo y compare archivos protegidos:
+Para incluir archivos protegidos y el estado efectivo de servicios del sistema:
 
 ```sh
 ./check.sh --system --sudo
 ```
 
-En modo de sistema también se verifican la configuración efectiva de SSH, el
-ruleset vivo de nftables, unidades fallidas, errores del arranque, puertos TCP
-en escucha y el estado SMART del disco raíz.
+Ese modo también revisa SSH, nftables, unidades fallidas, errores del arranque,
+puertos TCP en escucha y el estado SMART del disco raíz.
 
-Aplicar hardening de SSH:
+## Notas de uso
 
-```sh
-./restore.sh --sshd
-```
+- La configuración de OneDrive limita la sincronización a `02 - Linux`, pero no
+  guarda credenciales. La cuenta se vincula ejecutando `onedrive` y el servicio
+  se habilita con `systemctl --user enable --now onedrive.service`.
+- Las claves reales de `authorized_keys` quedan fuera del repositorio. Solo se
+  incluye `home/.ssh/authorized_keys.example`.
+- El firewall permite LocalSend y SSH únicamente desde la LAN configurada. Hay
+  más contexto en `nftables/README.md`.
+- La migración a iwd y sus pasos de recuperación están documentados en
+  `iwd/README.md`.
+- Las decisiones de alcance y los datos que deliberadamente no se versionan se
+  explican en `docs/decisiones.md`.
 
-La configuración deja `PasswordAuthentication no`; el acceso por clave se gestiona en `~/.ssh/authorized_keys` fuera del repo.
+## Adaptarlo y compartir mejoras
 
-Las claves autorizadas reales no se guardan en el repo. Hay un ejemplo en
-`home/.ssh/authorized_keys.example`.
+Podés tomar el repositorio completo o copiar solo las partes que te resulten
+útiles. Para una instalación propia, lo más razonable es hacer un fork, cambiar
+las preferencias ligadas al equipo y comenzar con `--dry-run`.
 
-Aplicar firewall local:
+Si encontrás una mejora generalizable, una corrección o una forma más clara de
+documentar algo, los issues y pull requests son bienvenidos.
 
-```sh
-./restore.sh --nftables
-```
+---
 
-La configuración permite salida normal y SSH solo desde `192.168.1.0/24`.
-Si cambia la red de confianza, ajustar `nftables/nftables.conf` antes de instalar.
-
-Configurar Impala con iwd:
-
-```sh
-./restore.sh --iwd
-```
-
-La configuración habilita iwd y systemd-resolved. NetworkManager y `tlp-rdw` no
-forman parte de esta instalación. Las redes se administran con Impala desde
-Waybar o ejecutando `impala`. La aplicación, verificación y recuperación se
-detallan en `iwd/README.md`.
-
-Aplicar endurecimiento sysctl local:
-
-```sh
-./restore.sh --sysctl
-```
-
-## Post-restauración
-
-Después de restaurar una instalación nueva:
-
-```sh
-./restore.sh --all
-./check.sh
-```
-
-Si se restauran reglas de sistema, verificar con:
-
-```sh
-./check.sh --system --sudo
-```
-
-Reiniciar Sway o ejecutar `Mod+Shift+c` para recargar la configuración de la
-sesión gráfica.
-
-## OneDrive
-
-La configuración versionada en `home/.config/onedrive/config` solo ajusta opciones seguras del cliente. No se versionan tokens, bases SQLite ni credenciales.
-
-La sincronización está limitada por `home/.config/onedrive/sync_list` a la carpeta remota:
-
-```text
-02 - Linux
-```
-
-Después de restaurar, vincular la cuenta:
-
-```sh
-onedrive
-```
-
-Habilitar sincronización automática:
-
-```sh
-systemctl --user enable --now onedrive.service
-```
-
-El repo incluye un override de usuario para quitar la espera fija de 15s del unit del paquete. Si se modifica esa configuración, recargar systemd:
-
-```sh
-systemctl --user daemon-reload
-systemctl --user restart onedrive.service
-```
-
-Consultar el estado:
-
-```sh
-systemctl --user status onedrive.service
-journalctl --user -u onedrive.service -f
-```
-
-## Notas
-
-Esta configuración está pensada para uso personal en la netbook conectar-igualdad.
-
-No incluye backups, claves privadas, tokens, credenciales ni claves SSH
-autorizadas personales.
-
-Los backups manuales de auditoría se guardan fuera del historial Git y están ignorados mediante `backups/`.
+Hecho para prolongar la vida útil de una netbook sencilla y mantener un entorno
+que pueda reconstruirse sin depender de la memoria.
