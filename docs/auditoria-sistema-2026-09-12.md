@@ -52,6 +52,6 @@ en Sway, servicios, red, almacenamiento o configuraciones de sistema:
 
 ## Estado final
 
-La auditoría queda cerrada una vez que se ejecute nuevamente el verificador
-con este ajuste. La única decisión funcional opcional restante es retirar
-`python-keyutils`.
+El verificador se ejecutó nuevamente desde la sesión real y terminó con 0
+fallos y 2 advertencias esperadas. La auditoría queda cerrada. La única
+decisión funcional opcional restante es retirar `python-keyutils`.
