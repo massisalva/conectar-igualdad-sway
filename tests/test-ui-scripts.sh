@@ -80,4 +80,11 @@ if rg --hidden -q -- 'override=colors\.alpha' "$ROOT_DIR/home/.local/bin"; then
 fi
 ok "overrides de Foot actualizados"
 
+if rg -q -- 'yazi --debug' "$ROOT_DIR/check.sh"; then
+  fail "check.sh depende de yazi --debug, que requiere una TTY"
+fi
+grep -Eq 'dark.*catppuccin-mocha' "$ROOT_DIR/check.sh" || \
+  fail "check.sh no valida el tema de Yazi desde theme.toml"
+ok "verificación de Yazi apta para ejecuciones no interactivas"
+
 printf 'Pruebas de scripts UI: OK\n'

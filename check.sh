@@ -563,20 +563,19 @@ check_yazi() {
   check_cmd ya
   has_cmd yazi || return
 
-  local debug
-  debug="$(yazi --debug 2>&1)"
-  if printf '%s\n' "$debug" | grep -q 'Dark/light flavor: ArcSwapAny("catppuccin-mocha")'; then
+  local theme="$HOME/.config/yazi/theme.toml"
+  if [ -f "$theme" ] && grep -Eq '^[[:space:]]*dark[[:space:]]*=[[:space:]]*"catppuccin-mocha"[[:space:]]*$' "$theme"; then
     ok "Yazi usa Catppuccin Mocha"
   else
-    fail "Yazi no reporta Catppuccin Mocha"
+    fail "Yazi no configura Catppuccin Mocha"
   fi
 
   local dep
   for dep in "pdftoppm" "magick" "fzf" "chafa" "zoxide"; do
-    if printf '%s\n' "$debug" | grep -Eq "^[[:space:]]+$dep[[:space:]]+:[[:space:]]+[0-9]"; then
-      ok "Yazi detecta dependencia: $dep"
+    if has_cmd "$dep"; then
+      ok "Yazi tiene dependencia disponible: $dep"
     else
-      warn "Yazi no detecta dependencia: $dep"
+      warn "Yazi no tiene dependencia disponible: $dep"
     fi
   done
 
