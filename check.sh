@@ -15,10 +15,10 @@ usage() {
 Uso: ./check.sh [opciones]
 
 Por defecto verifica el estado de usuario, paquetes, Yazi, XDG y repo.
-Los archivos de sistema en polkit/, bootloader/, sshd/, nftables/ e iwd/ se reportan como advertencia.
+Los archivos de sistema en polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/ y zram/ se reportan como advertencia.
 
 Opciones:
-  --system    Trata polkit/, bootloader/, sshd/, nftables/ e iwd/ como checks obligatorios.
+  --system    Trata polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/ y zram/ como checks obligatorios.
   --sudo      Permite pedir contraseña para verificar archivos de sistema
               si hay una terminal interactiva disponible.
   -h, --help  Muestra esta ayuda.
@@ -489,6 +489,30 @@ check_sysctl() {
   else
     fail "kernel.kptr_restrict esperado 1, actual ${actual:-desconocido}"
   fi
+
+  check_same_system_file "$ROOT_DIR/sysctl/99-zram.conf" /etc/sysctl.d/99-zram.conf "$severity"
+  actual="$(sysctl -n vm.swappiness 2>/dev/null || true)"
+  if [ "$actual" = "100" ]; then
+    ok "vm.swappiness = 100"
+  elif [ "$severity" = "warn" ]; then
+    warn "vm.swappiness esperado 100, actual ${actual:-desconocido}"
+  else
+    fail "vm.swappiness esperado 100, actual ${actual:-desconocido}"
+  fi
+}
+
+check_zram() {
+  local severity="warn"
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+
+  check_same_system_file "$ROOT_DIR/zram/zram-generator.conf" /etc/systemd/zram-generator.conf "$severity"
+  if [ -e /dev/zram0 ]; then
+    ok "/dev/zram0 presente"
+  elif [ "$severity" = "warn" ]; then
+    warn "/dev/zram0 no encontrado"
+  else
+    fail "/dev/zram0 no encontrado"
+  fi
 }
 
 check_xdg_dirs() {
@@ -864,6 +888,7 @@ check_sshd
 check_nftables
 check_iwd
 check_sysctl
+check_zram
 check_repo_state
 
 printf '\nResumen: %d fallos, %d advertencias\n' "$FAILS" "$WARNS"

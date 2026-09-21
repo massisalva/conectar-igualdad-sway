@@ -14,6 +14,7 @@ INSTALL_SSHD=0
 INSTALL_NFTABLES=0
 INSTALL_IWD=0
 INSTALL_SYSCTL=0
+INSTALL_ZRAM=0
 INSTALL_YAZI=1
 PRUNE=0
 BACKUP_ENABLED=1
@@ -40,7 +41,8 @@ Opciones:
   --sshd        Copia hardening de sshd a /etc/ssh/sshd_config.d/.
   --nftables    Copia firewall nftables y habilita nftables.service.
   --iwd         Configura iwd y systemd-resolved.
-  --sysctl      Instala ajustes locales de endurecimiento del kernel.
+  --sysctl      Instala ajustes locales de sysctl en /etc/sysctl.d/.
+  --zram        Instala configuración de zram-generator en /etc/systemd/.
   --all         Ejecuta packages, aur, user, yazi y todas las piezas de sistema.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
@@ -432,14 +434,28 @@ install_iwd_config() {
 }
 
 install_sysctl_config() {
-  local file="$ROOT_DIR/sysctl/99-local-hardening.conf"
+  local dir="$ROOT_DIR/sysctl"
+  [ -d "$dir" ] || { log "No existe $dir"; return 1; }
+
+  confirm "Esto instalará ajustes locales de sysctl en /etc/sysctl.d/. ¿Continuar?"
+  log "Instalando ajustes sysctl locales"
+  local file
+  for file in "$dir"/*.conf; do
+    [ -f "$file" ] || continue
+    backup_target "/etc/sysctl.d/$(basename "$file")"
+    run sudo install -Dm644 "$file" "/etc/sysctl.d/$(basename "$file")"
+  done
+  run sudo sysctl --system
+}
+
+install_zram_config() {
+  local file="$ROOT_DIR/zram/zram-generator.conf"
   [ -f "$file" ] || { log "No existe $file"; return 1; }
 
-  confirm "Esto instalará ajustes locales de endurecimiento del kernel. ¿Continuar?"
-  log "Instalando ajustes sysctl locales"
-  backup_target /etc/sysctl.d/99-local-hardening.conf
-  run sudo install -Dm644 "$file" /etc/sysctl.d/99-local-hardening.conf
-  run sudo sysctl --system
+  confirm "Esto instalará la configuración de zram-generator en /etc/systemd/. ¿Continuar?"
+  log "Instalando configuración de zram-generator"
+  backup_target /etc/systemd/zram-generator.conf
+  run sudo install -Dm644 "$file" /etc/systemd/zram-generator.conf
 }
 
 while [ "$#" -gt 0 ]; do
@@ -452,6 +468,7 @@ while [ "$#" -gt 0 ]; do
     --nftables) INSTALL_NFTABLES=1 ;;
     --iwd) INSTALL_IWD=1 ;;
     --sysctl) INSTALL_SYSCTL=1 ;;
+    --zram) INSTALL_ZRAM=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -463,6 +480,7 @@ while [ "$#" -gt 0 ]; do
       INSTALL_NFTABLES=1
       INSTALL_IWD=1
       INSTALL_SYSCTL=1
+      INSTALL_ZRAM=1
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
@@ -501,6 +519,7 @@ fi
 [ "$INSTALL_NFTABLES" -eq 1 ] && install_nftables_config
 [ "$INSTALL_IWD" -eq 1 ] && install_iwd_config
 [ "$INSTALL_SYSCTL" -eq 1 ] && install_sysctl_config
+[ "$INSTALL_ZRAM" -eq 1 ] && install_zram_config
 
 if [ -n "$BACKUP_DIR" ]; then
   if [ "$DRY_RUN" -eq 1 ]; then

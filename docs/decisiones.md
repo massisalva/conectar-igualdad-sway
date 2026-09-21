@@ -130,3 +130,24 @@ telemetría desactivada. El repositorio documenta el procedimiento, pero no
 versiona `~/.codex/config.toml`, `~/.headroom`, logs, métricas ni credenciales.
 La configuración del proveedor es personal y Codex solo la acepta en el nivel
 global del usuario.
+
+## Tema visual, cursores y aplicaciones Qt
+
+El entorno unifica el cursor `Breeze_Light` de tamaño 24 en Sway (`10-vars.conf`),
+GTK 3/4 (`settings.ini`) y el entorno de usuario (`environment.d/10-visual-theme.conf`).
+
+Para asegurar coherencia visual en aplicaciones Qt, la variable
+`QT_QPA_PLATFORMTHEME` se define como `qt5ct` y `QT_STYLE_OVERRIDE` como
+`kvantum`. Las configuraciones base de `qt5ct.conf` y `qt6ct.conf` se versionan
+en `home/.config/` para garantizar fuentes JetBrains Mono, iconos Papirus-Dark y
+estilo Kvantum tras la restauración.
+
+## Zram y gestión de memoria
+
+En este equipo con 8 GiB de RAM se utiliza zram-generator para crear `/dev/zram0`
+equivalente al 50 % de la memoria física (`ram / 2`) con compresión `zstd`.
+
+La agresividad de intercambio se fija en `vm.swappiness=100` mediante
+`sysctl/99-zram.conf` para favorecer la compresión en RAM frente a la expulsión
+de caches o el I/O sobre disco. La configuración del generador se versiona en
+`zram/zram-generator.conf` y se instala mediante `./restore.sh --zram`.
