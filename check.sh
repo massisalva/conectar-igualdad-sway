@@ -504,14 +504,79 @@ check_sysctl() {
 check_zram() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+  local swap_info priority comp_algorithm zram_bytes ram_bytes ratio device_present=0
 
   check_same_system_file "$ROOT_DIR/zram/zram-generator.conf" /etc/systemd/zram-generator.conf "$severity"
   if [ -e /dev/zram0 ]; then
+    device_present=1
     ok "/dev/zram0 presente"
-  elif [ "$severity" = "warn" ]; then
-    warn "/dev/zram0 no encontrado"
+  fi
+
+  if ! has_cmd swapon; then
+    if [ "$severity" = "warn" ]; then
+      warn "falta comando: swapon"
+    else
+      fail "falta comando: swapon"
+    fi
   else
-    fail "/dev/zram0 no encontrado"
+    swap_info="$(swapon --noheadings --raw --show=NAME,PRIO 2>/dev/null || true)"
+    priority="$(printf '%s\n' "$swap_info" | awk '$1 == "/dev/zram0" {print $2; exit}')"
+    if [ "$priority" = "100" ]; then
+      ok "/dev/zram0 activa como swap con prioridad 100"
+    elif [ -n "$priority" ]; then
+      if [ "$severity" = "warn" ]; then
+        warn "/dev/zram0 activa con prioridad inesperada: $priority"
+      else
+        fail "/dev/zram0 activa con prioridad inesperada: $priority"
+      fi
+    elif [ "$severity" = "warn" ]; then
+      warn "/dev/zram0 no está activa como swap"
+    else
+      fail "/dev/zram0 no está activa como swap"
+    fi
+  fi
+
+  if [ "$device_present" -eq 0 ] && [ -z "$priority" ]; then
+    if [ "$severity" = "warn" ]; then
+      warn "/dev/zram0 no encontrado"
+    else
+      fail "/dev/zram0 no encontrado"
+    fi
+    return
+  elif [ "$device_present" -eq 0 ]; then
+    ok "/dev/zram0 detectado mediante la swap activa"
+  fi
+
+  if [ -r /sys/block/zram0/comp_algorithm ]; then
+    comp_algorithm="$(tr '\n' ' ' < /sys/block/zram0/comp_algorithm)"
+    if printf '%s\n' "$comp_algorithm" | grep -Eq '(^|[[:space:]])\[zstd\]([[:space:]]|$)'; then
+      ok "/dev/zram0 usa compresión zstd"
+    elif [ "$severity" = "warn" ]; then
+      warn "/dev/zram0 no tiene zstd seleccionado: ${comp_algorithm:-desconocido}"
+    else
+      fail "/dev/zram0 no tiene zstd seleccionado: ${comp_algorithm:-desconocido}"
+    fi
+  elif [ "$severity" = "warn" ]; then
+    warn "no puedo leer el algoritmo de compresión de /dev/zram0"
+  else
+    fail "no puedo leer el algoritmo de compresión de /dev/zram0"
+  fi
+
+  if [ -r /sys/block/zram0/disksize ] && [ -r /proc/meminfo ]; then
+    zram_bytes="$(cat /sys/block/zram0/disksize 2>/dev/null || true)"
+    ram_bytes="$(awk '/^MemTotal:/{print $2 * 1024; exit}' /proc/meminfo)"
+    ratio="$(awk -v zram="$zram_bytes" -v ram="$ram_bytes" 'BEGIN { if (ram > 0) print zram / ram }')"
+    if awk -v ratio="$ratio" 'BEGIN { exit !(ratio >= 0.49 && ratio <= 0.51) }'; then
+      ok "/dev/zram0 tiene un tamaño equivalente al 50 % de la RAM"
+    elif [ "$severity" = "warn" ]; then
+      warn "/dev/zram0 tiene tamaño inesperado: ${ratio:-desconocido} de la RAM"
+    else
+      fail "/dev/zram0 tiene tamaño inesperado: ${ratio:-desconocido} de la RAM"
+    fi
+  elif [ "$severity" = "warn" ]; then
+    warn "no puedo calcular el tamaño de /dev/zram0 respecto de la RAM"
+  else
+    fail "no puedo calcular el tamaño de /dev/zram0 respecto de la RAM"
   fi
 }
 
