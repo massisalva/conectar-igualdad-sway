@@ -110,6 +110,10 @@ normal. Cada una tiene su propia opción:
 ./restore.sh --bootloader
 ```
 
+`--zram` instala la configuración, pero el generador de systemd la aplica de
+forma más segura en el próximo reinicio. No reinicia automáticamente la unidad
+en caliente, porque eso puede desplazar temporalmente páginas de la swap.
+
 No recomiendo usar `--all` en otra máquina sin haber revisado antes esas
 configuraciones. Para inspeccionar el conjunto completo sin aplicarlo:
 

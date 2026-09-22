@@ -94,4 +94,8 @@ El sistema se encuentra en un estado **excepcionalmente bueno, saludable y livia
 
 ## Conclusión
 
-Con las mejoras aplicadas en tema Qt, cursores y Zram, el repositorio cubre ahora el 100 % de los subsistemas y dotfiles de la máquina. El sistema se encuentra en su punto óptimo de estabilidad, reproducibilidad y rendimiento.
+Con las mejoras aplicadas en tema Qt, cursores y Zram, el repositorio cubre los
+subsistemas y dotfiles auditados de la máquina. La comprobación de servicios
+que requieren permisos puede depender de la sesión desde la que se ejecute
+`check.sh`; debe complementarse con una revisión administrativa cuando
+corresponda.
