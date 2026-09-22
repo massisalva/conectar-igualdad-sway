@@ -37,8 +37,12 @@ import sys
 
 config = json.load(open(sys.argv[1], encoding="utf-8"))
 assert config["custom/music"]["escape"] is True
+assert config["custom/capslock"]["interval"] == "once"
+assert config["custom/capslock"]["signal"] == 8
+assert config["custom/disk"]["interval"] == 60
+assert "signal" not in config["custom/disk"]
 ' "$ROOT_DIR/home/.config/waybar/config.jsonc" || \
-  fail "Waybar no escapa el markup del módulo musical"
+  fail "la configuración de módulos personalizados de Waybar es inválida"
 grep -Fq 'WAYBAR_MUSIC_INTERVAL:-5' "$ROOT_DIR/home/.local/bin/waybar-music" || \
   fail "el watcher musical no usa el intervalo esperado"
 ok "módulo musical con markup seguro y polling reducido"

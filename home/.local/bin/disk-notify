@@ -97,7 +97,6 @@ handle_add() {
 
   body="$(describe_disk "$dev")"
   notify_disk "Disco conectado" "$body"
-  pkill -RTMIN+9 waybar 2>/dev/null || true
 }
 
 handle_remove() {
@@ -106,7 +105,6 @@ handle_remove() {
 
   key="$(basename "$dev")"
   rm -f "$STATE_DIR/$key.added"
-  pkill -RTMIN+9 waybar 2>/dev/null || true
 }
 
 current_action=""

@@ -36,7 +36,7 @@
   "custom/capslock": {
     "exec": "~/.local/bin/waybar-capslock",
     "return-type": "json",
-    "interval": 30,
+    "interval": "once",
     "signal": 8,
     "format": "{}",
     "tooltip": true
@@ -55,7 +55,6 @@
     "exec": "~/.local/bin/disk-status",
     "return-type": "json",
     "interval": 60,
-    "signal": 9,
     "format": "{}",
     "on-click": "~/.local/bin/disk-manager",
     "tooltip": true
