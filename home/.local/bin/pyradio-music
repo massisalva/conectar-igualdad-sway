@@ -3,6 +3,6 @@
 set -euo pipefail
 
 exec pyradio \
-  --theme catppuccin-macchiato \
+  --theme catppuccin-mocha \
   --use-player mpv \
   "$@"

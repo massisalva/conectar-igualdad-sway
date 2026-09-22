@@ -48,7 +48,9 @@ while true; do
         'Super + B       Firefox' \
         'Super + E       Archivos' \
         'Super + M       Música' \
-        'Super + P       CPU y memoria'
+        'Super + P       CPU y memoria' \
+        'Super + Shift + W Redes (Wi-Fi)' \
+        'Super + Ctrl + A  Salida de audio'
       ;;
     'Foco y movimiento')
       show_page 'Foco y movimiento' \
