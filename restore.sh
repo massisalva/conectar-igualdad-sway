@@ -504,6 +504,12 @@ if [ "$PRUNE" -eq 1 ] && [ "$BACKUP_ENABLED" -ne 1 ]; then
   exit 2
 fi
 
+if [ "$EUID" -eq 0 ] && { [ "$RESTORE_USER" -eq 1 ] || [ "$INSTALL_AUR" -eq 1 ] || [ "$INSTALL_YAZI" -eq 1 ]; }; then
+  log "No ejecutes restore.sh como root: la restauración de usuario, Yazi y yay deben correr como tu usuario."
+  log "Usá ./restore.sh --all -y; el script pedirá sudo solo para los pasos administrativos."
+  exit 1
+fi
+
 if [ -n "$ROLLBACK_DIR" ]; then
   rollback_backup "$ROLLBACK_DIR"
   exit 0

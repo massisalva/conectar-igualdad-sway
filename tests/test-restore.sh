@@ -80,4 +80,8 @@ if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
 fi
 ok "rollback rechaza rutas no permitidas"
 
+grep -Fq 'No ejecutes restore.sh como root' "$ROOT_DIR/restore.sh" || \
+  fail "restore no protege la ejecución como root"
+ok "restore protege los pasos de usuario frente a root"
+
 printf 'Pruebas de restore: OK\n'

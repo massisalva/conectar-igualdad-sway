@@ -94,6 +94,8 @@ Las listas reproducibles están en `docs/pkglist-pacman.txt` y
 
 La segunda opción necesita `yay` instalado. Ambas listas representan este
 entorno completo; revisalas si solo querés adoptar una parte de la configuración.
+Ejecutá `restore.sh` como tu usuario normal (sin `sudo`): el script solicita
+privilegios solo para los pasos que los requieren.
 
 ### 4. Aplicar cambios del sistema de forma explícita
 
