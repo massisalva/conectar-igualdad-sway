@@ -90,6 +90,34 @@ El sistema se encuentra en un estado **excepcionalmente bueno, saludable y livia
 - Habilitar `i915.enable_guc=3` activa GuC submission, el cual ha mostrado regresiones de estabilidad y consumo durante suspensión (`s2idle`/`deep`) en arquitecturas Gen9/Gen9.5.
 - La recomendación es **mantener los parámetros por defecto del kernel**. Solo en caso de requerir pruebas experimentales específicas, se debería evaluar exclusivamente `i915.enable_guc=2` (solo HuC) y con una entrada alternativa de systemd-boot para revertir de inmediato.
 
+### 5. Validación final y publicación
+
+Antes de publicar se revisaron los cambios acumulados respecto de `origin/main`.
+El árbol de trabajo estaba limpio, `git diff --check` no informó errores de
+formato y `bash -n` validó todos los scripts Bash del repositorio.
+
+- Las pruebas `tests/test-restore.sh` y `tests/test-ui-scripts.sh` finalizaron
+  correctamente.
+- `./check.sh` terminó con **0 fallos**. Las advertencias restantes corresponden
+  principalmente a comprobaciones de servicios que esta sesión sin privilegios
+  no puede consultar y a `python-keyutils`, paquete huérfano ya documentado
+  arriba.
+- La configuración versionada y activa coincidió para los archivos de usuario,
+  sysctl, zram-generator, SSH, nftables e iwd que el entorno permitió revisar.
+- `swapon --show` confirmó la swap `/dev/zram0` de aproximadamente 3.8 GiB,
+  prioridad 100 y sin uso al momento de la auditoría. El aviso de `check.sh`
+  sobre la existencia del dispositivo fue un falso negativo provocado por el
+  aislamiento de permisos de la sesión de auditoría.
+
+Los cambios se publicaron en `origin/main` mediante los commits `cebb871`,
+`6b07dae`, `a6db87d` y `8abf638`. La validación posterior al reinicio queda
+pendiente con:
+
+```sh
+./check.sh --system --sudo
+swapon --show
+```
+
 ---
 
 ## Conclusión
