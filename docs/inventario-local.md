@@ -342,9 +342,14 @@ Estado:
 
 ## Luz nocturna
 
-Servicio:
+Script y servicio:
 
+- ~/.local/bin/nightlight-mode
 - ~/.config/systemd/user/wlsunset.service
+
+Atajo:
+
+- `Mod+Ctrl+S`: alternar activación del filtro de luz nocturna con notificación.
 
 Estado:
 

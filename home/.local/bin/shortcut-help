@@ -124,6 +124,7 @@ while true; do
       show_page 'Sistema' \
         'Super + Ctrl + L   Bloquear' \
         'Super + Ctrl + T   Activar/desactivar touchpad' \
+        'Super + Ctrl + S   Alternar luz nocturna' \
         'Super + Shift + P  Menú de energía' \
         'Super + Shift + C  Recargar Sway' \
         'Super + Shift + E  Salir de Sway (con confirmación)' \
