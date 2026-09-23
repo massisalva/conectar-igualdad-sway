@@ -8,5 +8,6 @@ Wants=graphical-session-pre.target
 Wants=waybar.service mako.service
 Wants=sway-polkit-agent.service sway-udiskie.service
 Wants=disk-notify.service swayidle.service
+Wants=sway-cliphist.service wlsunset.service
 After=graphical-session-pre.target
 Before=graphical-session.target

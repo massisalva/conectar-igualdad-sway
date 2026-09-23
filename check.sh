@@ -814,7 +814,9 @@ check_session_processes() {
     sway-polkit-agent.service \
     sway-udiskie.service \
     disk-notify.service \
-    swayidle.service; do
+    swayidle.service \
+    sway-cliphist.service \
+    wlsunset.service; do
     if output="$(systemctl --user is-active "$process" 2>&1)"; then
       ok "$process activo"
     elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to user scope bus'; then

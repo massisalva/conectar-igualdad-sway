@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -u
+
+notify_info() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Portapapeles" "$1" 2>/dev/null || true
+  fi
+}
+
+if ! command -v cliphist >/dev/null 2>&1; then
+  notify_info "No encontré cliphist"
+  exit 1
+fi
+
+if ! command -v fuzzel >/dev/null 2>&1; then
+  notify_info "No encontré fuzzel"
+  exit 1
+fi
+
+items="$(cliphist list 2>/dev/null)"
+if [ -z "$items" ]; then
+  notify_info "El portapapeles está vacío"
+  exit 0
+fi
+
+selected="$(printf "%s\n────────────\n󰃢  Limpiar historial" "$items" | fuzzel --dmenu --width=50 --lines=10 --prompt="󰅌  Portapapeles: ")" || exit 0
+
+case "$selected" in
+  "󰃢  Limpiar historial")
+    cliphist wipe
+    notify_info "Historial borrado"
+    ;;
+  "────────────"|"")
+    exit 0
+    ;;
+  *)
+    printf "%s" "$selected" | cliphist decode | wl-copy
+    notify_info "Copiado al portapapeles"
+    ;;
+esac
