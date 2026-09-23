@@ -202,7 +202,8 @@ Estado:
 
 Ayuda y controles:
 
-- `Mod+F1` abre una guía de atajos por categorías en menús de fuzzel.
+- `Mod+F1` abre una guía interactiva de atajos por categorías en menús de fuzzel.
+- `Mod+Shift+V` abre el selector e historial del portapapeles con fuzzel (`cliphist`).
 - Las teclas multimedia controlan reproducción, pistas y micrófono mediante
   `playerctl` y `wpctl`.
 - `Mod+N` cierra la última notificación, `Mod+Shift+N` la recupera y
@@ -321,6 +322,35 @@ Estado:
 - screenshot-menu valida WAYLAND_DISPLAY y SWAYSOCK antes de capturar.
 - screenshot-menu acepta una ruta de salida como segundo argumento para generar capturas versionables.
 - Las notificaciones no cortan el script si DBus o notify-send fallan.
+
+## Portapapeles
+
+Script y servicio:
+
+- ~/.local/bin/clipboard-menu
+- ~/.config/systemd/user/sway-cliphist.service
+
+Atajo:
+
+- `Mod+Shift+V`: menú interactivo de historial con fuzzel y decodificación automática.
+
+Estado:
+
+- Daemon de captura `wl-paste --watch cliphist store` integrado a `sway-session.target`.
+- Conserva el contenido del portapapeles aun tras cerrar la aplicación de origen.
+- Permite buscar en el historial o vaciarlo con confirmación.
+
+## Luz nocturna
+
+Servicio:
+
+- ~/.config/systemd/user/wlsunset.service
+
+Estado:
+
+- Administrado por `wlsunset`, ligero (C puro para Wayland/wlroots).
+- Supervisado bajo `sway-session.target`.
+- Coordenadas geográficas configuradas para Argentina (-34.6, -58.4) con cálculo solar automático y transición a 4500K.
 
 ## Batería
 

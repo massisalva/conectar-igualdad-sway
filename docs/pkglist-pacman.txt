@@ -11,6 +11,7 @@ brightnessctl
 btop
 cava
 chafa
+cliphist
 dosfstools
 duf
 efibootmgr
@@ -25,6 +26,7 @@ foot
 fuzzel
 fzf
 git
+gnome-keyring
 gnome-themes-extra
 grim
 imagemagick
@@ -107,6 +109,7 @@ waybar
 wireless-regdb
 wireplumber
 wl-clipboard
+wlsunset
 xdg-desktop-portal
 xdg-desktop-portal-gtk
 xdg-desktop-portal-wlr

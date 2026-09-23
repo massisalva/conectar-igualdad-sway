@@ -43,14 +43,15 @@ while true; do
   case "$category" in
     'Aplicaciones')
       show_page 'Aplicaciones' \
-        'Super + D       Lanzador de aplicaciones' \
-        'Super + Enter   Terminal' \
-        'Super + B       Firefox' \
-        'Super + E       Archivos' \
-        'Super + M       Música' \
-        'Super + P       CPU y memoria' \
-        'Super + Shift + W Redes (Wi-Fi)' \
-        'Super + Ctrl + A  Salida de audio'
+        'Super + D           Lanzador de aplicaciones' \
+        'Super + Enter       Terminal' \
+        'Super + B           Firefox' \
+        'Super + E           Archivos' \
+        'Super + M           Música' \
+        'Super + P           CPU y memoria' \
+        'Super + Shift + V   Portapapeles (historial)' \
+        'Super + Shift + W   Redes (Wi-Fi)' \
+        'Super + Ctrl + A    Salida de audio'
       ;;
     'Foco y movimiento')
       show_page 'Foco y movimiento' \
@@ -75,8 +76,8 @@ while true; do
       ;;
     'Apertura y disposición')
       show_page 'Apertura y disposición' \
-        'Super + V          Abrir la próxima ventana debajo' \
-        'Super + Shift + B  Abrir la próxima ventana al lado' \
+        'Super + V          Abrir la próxima ventana debajo (split v)' \
+        'Super + Shift + B  Abrir la próxima ventana al lado (split h)' \
         'Super + S          Apilar ventanas' \
         'Super + W          Mostrar ventanas en pestañas' \
         'Super + T          Alternar mosaico horizontal/vertical' \

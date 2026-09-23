@@ -16,8 +16,8 @@ personas puedan recorrerlo, reutilizar una parte o instalar el entorno completo.
 - **Sway modular**, con atajos y aplicaciones distribuidas por espacios de trabajo.
 - **Waybar compacta**, con música, reloj, Bluetooth, red, audio, brillo, batería,
   discos externos y controles de energía.
-- **Menús con fuzzel y foot** para redes, Bluetooth, audio, energía y discos.
-- **Sesión mantenible**, con Waybar, Mako, swayidle, polkit y utilidades bajo
+- **Menús con fuzzel y foot** para redes, Bluetooth, audio, energía, portapapeles y discos.
+- **Sesión mantenible**, con Waybar, Mako, swayidle, polkit, luz nocturna y utilidades bajo
   unidades de `systemd --user`.
 - **Música y archivos**, con MPD/ncmpcpp, PyRadio, mpv y Yazi tematizados.
 - **Respaldo y restauración**, con vista previa, copia de seguridad automática,
