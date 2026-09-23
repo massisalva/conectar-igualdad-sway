@@ -151,3 +151,17 @@ La agresividad de intercambio se fija en `vm.swappiness=100` mediante
 `sysctl/99-zram.conf` para favorecer la compresión en RAM frente a la expulsión
 de caches o el I/O sobre disco. La configuración del generador se versiona en
 `zram/zram-generator.conf` y se instala mediante `./restore.sh --zram`.
+
+## Portapapeles y luz nocturna
+
+En Wayland puro sin Xwayland, el portapapeles se pierde al cerrar la ventana
+emisora. Para resolverlo de forma liviana sin consumir recursos de CPU/RAM, se
+adoptó `cliphist` supervisado por `sway-session.target`. El menú interactivo
+`clipboard-menu` se integra con Fuzzel y el atajo `Super+Shift+V` para evitar
+colisiones con `Super+V` (`split v`).
+
+La luz nocturna se implementa mediante `wlsunset`, desarrollado en C nativo para
+wlroots y Wayland. Se ejecuta como servicio de usuario con las coordenadas de
+Argentina (-34.6, -58.4) y transición suave a 4500 K. El helper `nightlight-mode`
+provee alternancia manual mediante `Super+Ctrl+S`, emitiendo notificaciones
+sincrónicas y formato visual alineado con Mako y Catppuccin.

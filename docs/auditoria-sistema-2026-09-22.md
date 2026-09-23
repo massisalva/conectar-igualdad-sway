@@ -75,6 +75,11 @@ Principales resultados:
   el servicio en espacio de usuario `home/.config/systemd/user/wlsunset.service`.
 - Utiliza coordenadas para Argentina (`-l -34.6 -L -58.4`) con temperatura de 4500K de noche
   y 6500K de día, calculando transiciones suaves según la trayectoria solar.
+- Se incorporó el script controlador [nightlight-mode](file:///home/massisalva/Proyectos/conectar-igualdad-sway/home/.local/bin/nightlight-mode) (`--toggle` y `--status`),
+  asignando el atajo **`Super + Ctrl + S`** en `home/.config/sway/config.d/40-keybindings.conf`.
+- Se estandarizó la emisión de notificaciones en Mako para el atajo (`-a "Luz nocturna"`,
+  `-h string:x-canonical-private-synchronous:nightlight`), emitiendo `󰌵 Luz nocturna` (`Filtro activado · 4500 K`)
+  y `󰌶 Luz nocturna` (`Filtro desactivado · 6500 K`) con reemplazo suave sin apilamiento.
 - Ambos servicios se incorporaron a `home/.config/systemd/user/sway-session.target`.
 
 ### 4. Sincronización del repositorio y reproducibilidad
@@ -86,8 +91,8 @@ Principales resultados:
    - Las listas de paquetes declaradas en el repositorio coinciden al 100 % con los
      paquetes instalados explícitamente en el sistema.
 3. **Guía interactiva de atajos**:
-   - Se actualizó [shortcut-help](file:///home/massisalva/Proyectos/conectar-igualdad-sway/home/.local/bin/shortcut-help) (`Super + F1`) incorporando `Super + Shift + V` y clarificando
-     la división de ventanas.
+   - Se actualizó [shortcut-help](file:///home/massisalva/Proyectos/conectar-igualdad-sway/home/.local/bin/shortcut-help) (`Super + F1`) incorporando `Super + Shift + V` (portapapeles),
+     `Super + Ctrl + S` (luz nocturna) y clarificando la división de ventanas.
 
 ---
 
