@@ -1,21 +1,35 @@
 # Catppuccin Mocha para PyRadio
-# base: #1e1e2e
-# text: #cdd6f4
-# mauve: #cba6f7
-# blue: #89b4fa
-# green: #a6e3a1
-# yellow: #f9e2af
-# red: #f38ba8
-# surface: #313244
+# Formato compatible con PyRadio actual.
 
-Stations            #cdd6f4 #1e1e2e
-Active Station      #a6e3a1 #1e1e2e
-Status Bar          #1e1e2e #cba6f7
-Normal Cursor       #1e1e2e #89b4fa
-Active Cursor       #1e1e2e #a6e3a1
-Edit Cursor         #1e1e2e #f9e2af
-Extra Func          #f9e2af #1e1e2e
-PyRadio URL         #89b4fa #1e1e2e
-Messages Border     #cba6f7 #1e1e2e
-Window Border       #cba6f7 #1e1e2e
-Search Border       #89b4fa #1e1e2e
+# Main foreground and background
+Stations            #CDD6F4 #1E1E2E
+
+# Playing station text color (the background comes from Stations)
+Active Station      #A6E3A1
+
+# Status bar foreground and background
+Status Bar          #1E1E2E #A6E3A1
+
+# Normal cursor foreground and background
+Normal Cursor       #CDD6F4 #313244
+
+# Cursor foreground and background when on the playing station
+Active Cursor       #1E1E2E #B4BEFE
+
+# Line editor cursor foreground and background
+Edit Cursor         #1E1E2E #F5E0DC
+
+# Extra function indication and jump numbers
+Extra Func          #CBA6F7
+
+# URL text color
+PyRadio URL         #CBA6F7
+
+# Luminance factor for secondary-window backgrounds
+Color Factor        0.06
+
+# Message border; background is calculated by PyRadio
+Messages Border     #CBA6F7
+
+# 0: opaque, 1: transparent, 2: obey PyRadio's config setting
+transparency        2
