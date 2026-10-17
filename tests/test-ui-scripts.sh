@@ -91,4 +91,10 @@ grep -Eq 'dark.*catppuccin-mocha' "$ROOT_DIR/check.sh" || \
   fail "check.sh no valida el tema de Yazi desde theme.toml"
 ok "verificación de Yazi apta para ejecuciones no interactivas"
 
+grep -Fq 'enabled_output="$(systemctl is-enabled nftables.service 2>&1 || true)"' "$ROOT_DIR/check.sh" || \
+  fail "check.sh no conserva la salida de systemctl para nftables"
+grep -Fq "Operation not permitted|Failed to connect to system scope bus" "$ROOT_DIR/check.sh" || \
+  fail "check.sh no distingue restricciones del entorno al verificar nftables"
+ok "verificación de nftables tolera restricciones del entorno"
+
 printf 'Pruebas de scripts UI: OK\n'

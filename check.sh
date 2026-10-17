@@ -343,7 +343,7 @@ EOF
 check_nftables() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
-  local output active_state sub_state result unit_file_state
+  local output enabled_output active_state sub_state result unit_file_state
 
   check_same_system_file "$ROOT_DIR/nftables/nftables.conf" /etc/nftables.conf "$severity"
 
@@ -355,8 +355,14 @@ check_nftables() {
 
   output="$(systemctl show nftables.service -p ActiveState -p SubState -p Result -p UnitFileState 2>/dev/null || true)"
   if [ -z "$output" ]; then
-    if systemctl is-enabled nftables.service >/dev/null 2>&1; then
+    enabled_output="$(systemctl is-enabled nftables.service 2>&1 || true)"
+    if [ "$enabled_output" = "enabled" ]; then
       warn "nftables no pudo verificarse por permisos del entorno"
+      return
+    fi
+
+    if printf '%s\n' "$enabled_output" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
+      warn "no puedo verificar nftables por permisos del entorno"
       return
     fi
 
