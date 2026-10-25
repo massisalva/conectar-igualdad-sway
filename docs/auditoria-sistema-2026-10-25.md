@@ -43,21 +43,16 @@ versiones antiguas y liberó **1.33 GiB**.
 
 ## Archivos `.pacnew`
 
-Se revisaron los cinco archivos pendientes. No se reemplazó ningún archivo de
-forma automática para preservar la configuración activa.
+Se fusionaron y limpiaron los cinco archivos `.pacnew` pendientes en `/etc`, preservando las preferencias locales:
 
-| Archivo | Decisión recomendada |
+| Archivo | Acción aplicada |
 |---|---|
-| `/etc/pacman.d/mirrorlist.pacnew` | Actualizar mediante `pacdiff` o regenerar una lista de espejos; conservar los servidores elegidos manualmente. |
-| `/etc/bluetooth/main.conf.pacnew` | Integrar las nuevas opciones comentadas de `ChannelSounding`; preservar `AutoEnable=true` si se desea mantener el comportamiento actual. |
-| `/etc/locale.gen.pacnew` | Conservar `es_AR.UTF-8 UTF-8` descomentado e incorporar solamente la nueva entrada `hrx_BR.UTF-8` si hiciera falta. |
-| Perfiles `tpm2-tss` ECC y RSA | Adoptar la versión nueva tras revisar con `pacdiff`: moderniza la sintaxis y agrega `noda` al SRK. |
+| `/etc/pacman.d/mirrorlist.pacnew` | Se adoptó la lista actualizada de espejos (incluyendo Worldwide y Argentina) manteniendo las líneas `Server =` activas. |
+| `/etc/bluetooth/main.conf.pacnew` | Se integró la sección `[ChannelSounding]`, se activó `AutoEnable=true` bajo `[Policy]` y se eliminó la sección `[Policy]` duplicada al final del archivo. |
+| `/etc/locale.gen.pacnew` | Se incorporó `#hrx_BR.UTF-8 UTF-8` conservando descomentado únicamente `es_AR.UTF-8 UTF-8`. |
+| Perfiles `tpm2-tss` ECC y RSA | Se adoptaron las nuevas definiciones upstream (sintaxis en minúsculas y atributo `noda` en SRK). |
 
-Para resolverlos interactivamente:
-
-```sh
-sudo DIFFPROG='diff -u' pacdiff
-```
+Tras la fusión, `find /etc -name "*.pacnew" -o -name "*.pacsave"` confirmó **0 archivos pendientes**.
 
 ## Repositorio
 
