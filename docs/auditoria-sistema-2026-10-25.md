@@ -30,15 +30,16 @@ actualmente instalados.
 - La caché de Pacman conserva tres versiones. Pasar a dos con `paccache -rk2`
   libera aproximadamente 1.33 GiB (158 paquetes antiguos).
 
-Las acciones administrativas no se ejecutaron desde el entorno de auditoría,
-porque este no permite elevar privilegios. Deben realizarse localmente en una
-terminal del sistema:
+Las acciones administrativas se ejecutaron desde la sesión gráfica local:
 
 ```sh
 sudo pacman -D --asexplicit libnotify nftables playerctl python
 sudo paccache -rk2
 ./check.sh --system --sudo
 ```
+
+Los cuatro paquetes quedaron marcados como explícitos. `paccache` retiró 158
+versiones antiguas y liberó **1.33 GiB**.
 
 ## Archivos `.pacnew`
 
@@ -66,5 +67,17 @@ Al inicio de la auditoría, `main` estaba dos commits por delante de
 - `2e56737 fix(pyradio): update Catppuccin theme format`
 - `db611f4 fix(check): distinguish nftables permission errors`
 
-La publicación se verifica luego de registrar este informe y ejecutar las
-validaciones del repositorio.
+La publicación se completó en `origin/main` junto con los commits pendientes.
+
+## Validación administrativa final
+
+`./check.sh --system --sudo` finalizó con **0 fallos y 2 advertencias**:
+
+- Las cinco entradas de error del journal de arranque son los avisos inocuos
+  de `i915` e `integrity` ya identificados durante la auditoría.
+- La diferencia temporal respecto de `origin/main` se informó antes del
+  `git push`, que posteriormente terminó correctamente.
+
+Se validaron sin incidencias SMART en `/dev/sda`, configuración efectiva de
+SSHD, ruleset vivo de nftables, servicios de usuario y sistema, ZRAM e
+integridad del repositorio.
