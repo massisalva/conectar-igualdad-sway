@@ -4,7 +4,7 @@ set -euo pipefail
 
 notify() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send "Audio" "$1" 2>/dev/null || true
+    notify-send -a "Audio" -h string:x-canonical-private-synchronous:audio-output "󰓃 Audio" "$1" 2>/dev/null || true
   fi
 }
 
@@ -54,7 +54,7 @@ menu="$(
 
 choice="$(
   printf '%s\n' "$menu" \
-    | fuzzel --dmenu --prompt="Salida de audio: "
+    | fuzzel --dmenu --prompt="󰓃 Salida de audio: "
 )"
 
 [ -n "$choice" ] || exit 0

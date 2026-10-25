@@ -2,7 +2,7 @@
   "layer": "top",
   "position": "top",
   "height": 33,
-  "spacing": 4,
+  "spacing": 0,
 
   "modules-left": ["sway/workspaces", "custom/music", "sway/mode"],
   "modules-center": ["clock"],

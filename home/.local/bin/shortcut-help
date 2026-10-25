@@ -4,7 +4,7 @@ set -u
 
 if ! command -v fuzzel >/dev/null 2>&1; then
   command -v notify-send >/dev/null 2>&1 &&
-    notify-send "Atajos" "No se encontró fuzzel" 2>/dev/null || true
+    notify-send -a "Atajos" -h string:x-canonical-private-synchronous:shortcut-help "󰌌 Atajos" "No se encontró fuzzel" 2>/dev/null || true
   exit 1
 fi
 
@@ -26,7 +26,7 @@ show_page() {
 
 while true; do
   category="$(
-    menu 'Atajos: ' 11 \
+    menu '󰌌 Atajos: ' 11 \
       'Aplicaciones' \
       'Foco y movimiento' \
       'Escritorios' \

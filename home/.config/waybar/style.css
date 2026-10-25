@@ -82,8 +82,6 @@ tooltip label {
 #custom-capslock,
 #custom-dnd,
 #custom-disk,
-#cpu,
-#memory,
 #bluetooth,
 #network,
 #pulseaudio,
@@ -100,8 +98,7 @@ tooltip label {
 #custom-music:hover,
 #custom-disk:hover,
 #custom-dnd:hover,
-#cpu:hover,
-#memory:hover,
+#clock:hover,
 #bluetooth:hover,
 #network:hover,
 #pulseaudio:hover,
@@ -167,18 +164,6 @@ tooltip label {
   margin-right: 6px;
 }
 
-#cpu {
-  color: #94e2d5;
-  border-radius: 15px 0px 0px 15px;
-  margin-left: 6px;
-}
-
-#memory {
-  color: #cba6f7;
-  border-radius: 0px 15px 15px 0px;
-  margin-right: 6px;
-}
-
 #bluetooth {
   color: #b4befe;
   margin-right: 6px;
@@ -226,6 +211,14 @@ tooltip label {
 
 #custom-battery.plugged {
   color: #89b4fa;
+}
+
+#custom-battery.charging {
+  color: #94e2d5;
+}
+
+#custom-battery.full {
+  color: #89dceb;
 }
 
 #custom-battery.unknown {

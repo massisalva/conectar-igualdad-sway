@@ -96,7 +96,7 @@ handle_add() {
   touch "$STATE_DIR/$key.added"
 
   body="$(describe_disk "$dev")"
-  notify_disk "Disco conectado" "$body"
+  notify_disk "󰋊 Disco conectado" "$body"
 }
 
 handle_remove() {

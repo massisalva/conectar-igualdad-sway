@@ -34,7 +34,7 @@ ITEM_COUNT=0
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send "Discos" "$1" 2>/dev/null || true
+    notify-send -a "Discos" -h string:x-canonical-private-synchronous:disk-manager "󰋊 Discos" "$1" 2>/dev/null || true
   fi
 }
 
@@ -170,7 +170,7 @@ if [ "${DISK_MANAGER_DRY_RUN:-0}" = "1" ]; then
   exit 0
 fi
 
-CHOICE="$(cat "$MENU" | fuzzel --dmenu --width=42 --lines=8 --prompt="Discos: ")"
+CHOICE="$(cat "$MENU" | fuzzel --dmenu --width=42 --lines=8 --prompt="󰋊 Discos: ")"
 [ -z "$CHOICE" ] && exit 0
 
 ID="$(echo "$CHOICE" | cut -d')' -f1)"

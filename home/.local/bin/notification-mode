@@ -21,7 +21,7 @@ toggle() {
 
   if is_dnd; then
     makoctl mode -r do-not-disturb
-    notify-send -t 1500 "Notificaciones" "No molestar desactivado" 2>/dev/null || true
+    notify-send -a "Notificaciones" -t 1500 -h string:x-canonical-private-synchronous:notification-mode "󰂛 Notificaciones" "No molestar desactivado" 2>/dev/null || true
   else
     makoctl mode -a do-not-disturb
   fi

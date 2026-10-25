@@ -13,7 +13,7 @@ fi
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send "Energía" "$1" 2>/dev/null || true
+    notify-send -a "Energía" -h string:x-canonical-private-synchronous:power-menu "󰐥 Energía" "$1" 2>/dev/null || true
   fi
 }
 
@@ -22,7 +22,7 @@ confirm() {
 
   choice="$(
     printf "No\nSí\n" |
-      fuzzel --dmenu --width=28 --lines=2 --prompt="Confirmar $action: "
+      fuzzel --dmenu --width=28 --lines=2 --prompt="󰌾 Confirmar $action: "
   )"
 
   [ "$choice" = "Sí" ]
@@ -39,8 +39,8 @@ run_or_notify() {
 }
 
 choice="$(
-  printf "󰌾  Bloquear\n󰒲  Suspender\n󰜉  Reiniciar\n󰐥  Apagar\n󰗼  Salir de Sway\n────────────\nCancelar\n" |
-    fuzzel --dmenu --width=26 --lines=7 --prompt="Energía: "
+  printf "󰌾  Bloquear\n󰒲  Suspender\n󰜉  Reiniciar\n󰐥  Apagar\n󰗼  Salir de Sway\n────────────\n󰜄  Cancelar\n" |
+    fuzzel --dmenu --width=26 --lines=7 --prompt="󰐥 Energía: "
 )"
 
 case "$choice" in

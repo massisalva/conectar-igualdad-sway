@@ -23,7 +23,7 @@ fi
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send -t "${2:-2500}" "Captura" "$1" 2>/dev/null || true
+    notify-send -a "Capturas" -t "${2:-2500}" -h string:x-canonical-private-synchronous:screenshot "󰄀 Captura" "$1" 2>/dev/null || true
   fi
 }
 
@@ -95,8 +95,8 @@ choose_mode() {
     exit 1
   fi
 
-  printf "󰍹  Pantalla completa\n󰩭  Seleccionar región\n󰖲  Ventana enfocada\n󰅍  Copiar pantalla completa\n󰅍  Copiar región\nCancelar\n" |
-    fuzzel --dmenu --width=34 --lines=6 --prompt="Captura: "
+  printf "󰍹  Pantalla completa\n󰩭  Seleccionar región\n󰖲  Ventana enfocada\n󰅍  Copiar pantalla completa\n󰅍  Copiar región\n󰜄  Cancelar\n" |
+    fuzzel --dmenu --width=34 --lines=6 --prompt="󰄀 Captura: "
 }
 
 mode="${1:-}"

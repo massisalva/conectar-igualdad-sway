@@ -1,0 +1,100 @@
+# Starship compacto - Catppuccin Mocha
+
+add_newline = false
+command_timeout = 1000
+
+format = """
+[󰮠](bold mauve) $username[@](overlay0)$hostname [󰉋](bold blue) $directory$git_branch$git_status $character"""
+
+palette = "catppuccin_mocha"
+
+[palettes.catppuccin_mocha]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+overlay0 = "#6c7086"
+surface0 = "#313244"
+base = "#1e1e2e"
+
+[username]
+show_always = true
+style_user = "bold mauve"
+style_root = "bold red"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+style = "bold lavender"
+format = "[$hostname]($style)"
+
+[directory]
+style = "bold blue"
+format = " [$path]($style)"
+truncation_length = 2
+truncation_symbol = "…/"
+home_symbol = "~"
+
+[git_branch]
+symbol = " 󰊢 "
+style = "bold peach"
+format = "[$symbol$branch]($style)"
+
+[git_status]
+style = "bold yellow"
+format = "([$all_status$ahead_behind]($style))"
+conflicted = "="
+ahead = "⇡"
+behind = "⇣"
+diverged = "⇕"
+up_to_date = ""
+untracked = "?"
+stashed = "$"
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold peach)"
+
+[cmd_duration]
+disabled = true
+
+[line_break]
+disabled = true
+
+[package]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[python]
+disabled = true
+
+[rust]
+disabled = true
+
+[golang]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[time]
+disabled = true

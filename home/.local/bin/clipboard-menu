@@ -4,7 +4,7 @@ set -u
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send "Portapapeles" "$1" 2>/dev/null || true
+    notify-send -a "Portapapeles" -h string:x-canonical-private-synchronous:clipboard "󰅌 Portapapeles" "$1" 2>/dev/null || true
   fi
 }
 
