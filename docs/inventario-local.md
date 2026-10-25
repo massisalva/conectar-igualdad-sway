@@ -226,10 +226,12 @@ Estado:
 - Click secundario apoyando dos dedos y presionando el touchpad.
 - Perfil de aceleración adaptativo y bloqueo mientras se escribe.
 
-## btop
+## btop, Starship, Fastfetch y tema visual
 
-- Usa un tema Catppuccin Mocha local, coherente con Sway, Waybar y Foot.
-- La configuración se versiona para restaurar el aspecto del monitor del sistema.
+- `btop` usa un tema Catppuccin Mocha local (`~/.config/btop/themes/catppuccin_mocha.theme`), coherente con Sway, Waybar y Foot.
+- `starship` (`~/.config/starship.toml`) y `fastfetch` (`~/.config/fastfetch/config.jsonc`) se versionan con formato compacto y paleta Catppuccin Mocha.
+- El fondo de pantalla activo (`~/Imágenes/wallpaper.png`, 1366×768) se versiona en `home/Imágenes/wallpaper.png`.
+- GTK 3/4, `xsettingsd` (`~/.config/xsettingsd/xsettingsd.conf`), `qt5ct`, `qt6ct` y `Kvantum` (`~/.config/Kvantum/kvantum.kvconfig` con `KvGnomeDark`) comparten cursor `Breeze_Light`, iconos `Papirus-Dark` y tipografía `Lexend`.
 
 ## Batería
 

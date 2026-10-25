@@ -6,7 +6,8 @@ Conectar Igualdad SF20GM7. No intenta ser una copia completa de `$HOME`.
 ## Qué se versiona
 
 - Configuración de Sway, Waybar, fuzzel, mako, MPD/ncmpcpp, mpv, PyRadio,
-  OneDrive, Yazi y carpetas XDG.
+  OneDrive, Yazi, Starship, Fastfetch y carpetas XDG, junto con el fondo de
+  pantalla en `~/Imágenes/wallpaper.png`.
 - Scripts locales en `~/.local/bin` que forman parte de la sesión.
 - Launchers locales en `~/.local/share/applications` cuando corrigen
   comportamiento, asignan workspaces o limpian fuzzel.
@@ -134,13 +135,15 @@ global del usuario.
 ## Tema visual, cursores y aplicaciones Qt
 
 El entorno unifica el cursor `Breeze_Light` de tamaño 24 en Sway (`10-vars.conf`),
-GTK 3/4 (`settings.ini`) y el entorno de usuario (`environment.d/10-visual-theme.conf`).
+GTK 3/4 (`settings.ini`), `xsettingsd/xsettingsd.conf` y el entorno de usuario
+(`environment.d/10-visual-theme.conf`).
 
 Para asegurar coherencia visual en aplicaciones Qt, la variable
 `QT_QPA_PLATFORMTHEME` se define como `qt5ct` y `QT_STYLE_OVERRIDE` como
-`kvantum`. Las configuraciones base de `qt5ct.conf` y `qt6ct.conf` se versionan
-en `home/.config/` para garantizar fuentes JetBrains Mono, iconos Papirus-Dark y
-estilo Kvantum tras la restauración.
+`kvantum`. Las configuraciones base de `qt5ct.conf`, `qt6ct.conf` y
+`Kvantum/kvantum.kvconfig` (`theme=KvGnomeDark`) se versionan en `home/.config/`
+para garantizar fuente de interfaz Lexend, fuente monoespaciada JetBrains Mono,
+iconos Papirus-Dark y tema oscuro Kvantum tras la restauración.
 
 ## Zram y gestión de memoria
 

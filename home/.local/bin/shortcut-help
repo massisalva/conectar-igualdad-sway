@@ -21,28 +21,28 @@ menu() {
 show_page() {
   local title="$1"
   shift
-  menu "$title: " "$(( $# + 1 ))" "$@" '← Volver' >/dev/null || true
+  menu "$title: " "$(( $# + 1 ))" "$@" '󰁍  Volver' >/dev/null || true
 }
 
 while true; do
   category="$(
     menu '󰌌 Atajos: ' 11 \
-      'Aplicaciones' \
-      'Foco y movimiento' \
-      'Escritorios' \
-      'Apertura y disposición' \
-      'Flotantes y scratchpad' \
-      'Redimensionado' \
-      'Multimedia' \
-      'Capturas' \
-      'Sistema y sesión' \
-      'Notificaciones' \
-      'Salir'
+      '󰀻  Aplicaciones' \
+      '󰆾  Foco y movimiento' \
+      '󰧨  Escritorios' \
+      '󰕰  Apertura y disposición' \
+      '󰖲  Flotantes y scratchpad' \
+      '󰩨  Redimensionado' \
+      '󰕾  Multimedia' \
+      '󰄀  Capturas' \
+      '󰐥  Sistema y sesión' \
+      '󰂚  Notificaciones' \
+      '󰜄  Salir'
   )" || exit 0
 
   case "$category" in
-    'Aplicaciones')
-      show_page 'Aplicaciones' \
+    '󰀻  Aplicaciones')
+      show_page '󰀻 Aplicaciones' \
         'Super + D           Lanzador de aplicaciones' \
         'Super + Enter       Terminal' \
         'Super + B           Firefox' \
@@ -53,8 +53,8 @@ while true; do
         'Super + Shift + W   Redes (Wi-Fi)' \
         'Super + Ctrl + A    Salida de audio'
       ;;
-    'Foco y movimiento')
-      show_page 'Foco y movimiento' \
+    '󰆾  Foco y movimiento')
+      show_page '󰆾 Foco y movimiento' \
         'Super + H/J/K/L o flechas          Cambiar el foco' \
         'Super + Shift + H/J/K/L o flechas  Mover ventana' \
         'Super + A                          Enfocar contenedor padre' \
@@ -62,8 +62,8 @@ while true; do
         'Super + U                          Ir a la ventana urgente' \
         'Super + Q                          Cerrar ventana'
       ;;
-    'Escritorios')
-      show_page 'Escritorios' \
+    '󰧨  Escritorios')
+      show_page '󰧨 Escritorios' \
         '1–5 con nombre: term, web, music, files, system' \
         '6–10 disponibles cuando los necesites' \
         'Super + 1–9          Ir al escritorio 1–9' \
@@ -74,8 +74,8 @@ while true; do
         'Super + Ctrl + 0     Mover al 10 y seguirla' \
         'Super + Tab          Volver al escritorio anterior'
       ;;
-    'Apertura y disposición')
-      show_page 'Apertura y disposición' \
+    '󰕰  Apertura y disposición')
+      show_page '󰕰 Apertura y disposición' \
         'Super + V          Abrir la próxima ventana debajo (split v)' \
         'Super + Shift + B  Abrir la próxima ventana al lado (split h)' \
         'Super + S          Apilar ventanas' \
@@ -83,16 +83,16 @@ while true; do
         'Super + T          Alternar mosaico horizontal/vertical' \
         'Super + F          Alternar pantalla completa'
       ;;
-    'Flotantes y scratchpad')
-      show_page 'Flotantes y scratchpad' \
+    '󰖲  Flotantes y scratchpad')
+      show_page '󰖲 Flotantes y scratchpad' \
         'Super + Shift + Espacio  Alternar ventana flotante' \
         'Super + Espacio          Foco entre mosaico y flotantes' \
         'Super + Shift + F        Centrar ventana flotante' \
         'Super + Shift + -        Enviar al scratchpad' \
         'Super + -                Mostrar/ocultar scratchpad'
       ;;
-    'Redimensionado')
-      show_page 'Redimensionado' \
+    '󰩨  Redimensionado')
+      show_page '󰩨 Redimensionado' \
         'Super + R                    Entrar al modo redimensionar' \
         'H o Izquierda              Reducir ancho 10 px' \
         'L o Derecha                Aumentar ancho 10 px' \
@@ -101,8 +101,8 @@ while true; do
         'Shift + dirección          Hacer el mismo cambio en 30 px' \
         'Enter o Escape             Salir del modo redimensionar'
       ;;
-    'Multimedia')
-      show_page 'Multimedia' \
+    '󰕾  Multimedia')
+      show_page '󰕾 Multimedia' \
         'Volumen + / -       Subir o bajar volumen' \
         'Silencio            Silenciar/activar audio' \
         'Silencio micrófono  Silenciar/activar micrófono' \
@@ -111,8 +111,8 @@ while true; do
         'Pista anterior      Retroceder pista' \
         'Brillo + / -        Subir o bajar brillo'
       ;;
-    'Capturas')
-      show_page 'Capturas' \
+    '󰄀  Capturas')
+      show_page '󰄀 Capturas' \
         'Super + Shift + S      Abrir menú de capturas' \
         'Print                Guardar pantalla completa' \
         'Super + Print          Guardar una región' \
@@ -120,8 +120,8 @@ while true; do
         'Ctrl + Print         Copiar pantalla completa' \
         'Super + Shift + Print  Copiar una región'
       ;;
-    'Sistema y sesión')
-      show_page 'Sistema' \
+    '󰐥  Sistema y sesión')
+      show_page '󰐥 Sistema' \
         'Super + Ctrl + L   Bloquear' \
         'Super + Ctrl + T   Activar/desactivar touchpad' \
         'Super + Ctrl + S   Alternar luz nocturna' \
@@ -130,8 +130,8 @@ while true; do
         'Super + Shift + E  Salir de Sway (con confirmación)' \
         'Super + F1         Mostrar esta guía'
       ;;
-    'Notificaciones')
-      show_page 'Notificaciones' \
+    '󰂚  Notificaciones')
+      show_page '󰂚 Notificaciones' \
         'Super + N          Cerrar la última' \
         'Super + Shift + N  Recuperar la última' \
         'Super + Ctrl + N   Alternar No molestar'

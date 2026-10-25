@@ -15,13 +15,17 @@ para interfaz y JetBrainsMono Nerd Font para contenido monoespaciado e iconos.
   `crust` y el indicador de división `lavender`. El aviso de salida conserva
   confirmación explícita y adopta colores y tipografía Catppuccin.
 - **Menús y avisos**: los prompts de energía, capturas, audio, discos y atajos
-  incluyen iconos coherentes. Notificaciones de portapapeles, capturas, audio,
-  energía, discos y no molestar usan aplicación e identificador sincrónico;
-  el atajo de micrófono muestra su estado real e icono correspondiente.
-- **Qt y cursor**: Qt5/Qt6 usan Lexend como fuente general y JetBrainsMono Nerd
-  Font como fija. `xsettingsd` adopta el cursor `Breeze_Light`.
+  (incluyendo sus 11 categorías y subpáginas) incluyen iconos coherentes, y el
+  selector de salidas de audio ajusta su altura dinámicamente. Notificaciones de
+  portapapeles, capturas, audio, energía, discos y no molestar usan aplicación e
+  identificador sincrónico; el atajo de micrófono muestra su estado real e icono
+  correspondiente (`󰍭` silenciado / `󰍬` activado).
+- **Qt, Kvantum y cursor**: Qt5/Qt6 usan Lexend como fuente general y
+  JetBrainsMono Nerd Font como fija; Kvantum fija el tema oscuro `KvGnomeDark`
+  en `Kvantum/kvantum.kvconfig` y `xsettingsd` adopta el cursor `Breeze_Light`.
 - **Reproducibilidad**: se añadieron al árbol `home/` Starship, Fastfetch,
-  xsettingsd y el wallpaper PNG activo de 1366×768.
+  xsettingsd, Kvantum y el wallpaper PNG activo de 1366×768, actualizando
+  `docs/decisiones.md` y `docs/inventario-local.md`.
 
 ## Aplicación y validación
 

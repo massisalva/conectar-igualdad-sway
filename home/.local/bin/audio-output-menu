@@ -54,7 +54,7 @@ menu="$(
 
 choice="$(
   printf '%s\n' "$menu" \
-    | fuzzel --dmenu --prompt="󰓃 Salida de audio: "
+    | fuzzel --dmenu --width=46 --lines="${#sinks[@]}" --prompt="󰓃 Salida de audio: "
 )"
 
 [ -n "$choice" ] || exit 0
