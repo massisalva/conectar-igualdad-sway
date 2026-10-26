@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=btop++
+GenericName=System Monitor
+Comment=Monitor de recursos del sistema en terminal
+Exec=foot --app-id foot-system -e /usr/bin/btop
+Icon=btop
+Terminal=false
+Categories=System;Monitor;
+Keywords=system;process;task;sistema;procesos;monitor;

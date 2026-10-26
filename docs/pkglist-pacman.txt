@@ -3,7 +3,6 @@ base
 base-devel
 bash-completion
 bat
-blueman
 bluetui
 bluez-utils
 breeze-cursors
@@ -37,7 +36,6 @@ intel-ucode
 iwd
 jq
 kvantum
-kvantum-qt5
 libnotify
 libreoffice-fresh
 libreoffice-fresh-es
@@ -64,11 +62,9 @@ noto-fonts-emoji
 npm
 ntfs-3g
 ntfsprogs
-nwg-look
 openssh
 pacman-contrib
 papirus-icon-theme
-pavucontrol
 pipewire
 pipewire-pulse
 playerctl
@@ -76,8 +72,6 @@ polkit-gnome
 poppler
 pulsemixer
 python
-qt5-wayland
-qt5ct
 qt6-wayland
 qt6ct
 ripgrep
@@ -95,10 +89,7 @@ tealdeer
 tlp
 trash-cli
 tree
-ttf-cascadia-code-nerd
 ttf-dejavu
-ttf-firacode-nerd
-ttf-hack-nerd
 ttf-jetbrains-mono-nerd
 udiskie
 udisks2

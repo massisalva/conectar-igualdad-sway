@@ -20,26 +20,39 @@ La recuperación total aproximada fue de **627 MiB**. Estos elementos fueron
 eliminados por ruta explícita; no afectan la configuración de los navegadores
 actualmente instalados.
 
-## Paquetes y caché de Pacman
+## Paquetes, aplicaciones y caché de Pacman
 
 - No hay paquetes huérfanos.
 - `docs/pkglist-aur.txt` coincide con los paquetes AUR explícitos.
 - `libnotify`, `nftables`, `playerctl` y `python` deben conservarse como
   explícitos para que `pacman -Qqe` coincida con
   `docs/pkglist-pacman.txt`.
-- La caché de Pacman conserva tres versiones. Pasar a dos con `paccache -rk2`
-  libera aproximadamente 1.33 GiB (158 paquetes antiguos).
+- Se retiraron 4 familias de fuentes Nerd Font duplicadas sin uso
+  (`ttf-cascadia-code-nerd`, `ttf-firacode-nerd`, `ttf-hack-nerd` y
+  `otf-atkinsonhyperlegiblemono-nerd`, ~231 MiB), las utilidades GUI
+  redundantes (`blueman`, `pavucontrol`, `nwg-look`) y la pila residual de Qt5
+  (`qt5ct`, `kvantum-qt5`, `qt5-wayland` y dependencias `qt5-*`, ~85 MiB),
+  unificando Qt sobre `qt6ct`.
+- Se añadió `ELECTRON_OZONE_PLATFORM_HINT=auto` en
+  `environment.d/10-visual-theme.conf` para 1Password en Wayland nativo,
+  se creó `btop.desktop` local con `app_id` `foot-system` (`5:system`) y se
+  ocultaron de Fuzzel `mpv.desktop`, `libreoffice-math.desktop` y
+  `libreoffice-base.desktop`.
+- La caché de Pacman conserva dos versiones (`paccache -rk2`), liberando
+  1.33 GiB (158 paquetes antiguos).
 
 Las acciones administrativas se ejecutaron desde la sesión gráfica local:
 
 ```sh
 sudo pacman -D --asexplicit libnotify nftables playerctl python
+sudo pacman -Rns blueman pavucontrol nwg-look qt5ct kvantum-qt5 qt5-wayland ttf-cascadia-code-nerd ttf-firacode-nerd ttf-hack-nerd otf-atkinsonhyperlegiblemono-nerd
 sudo paccache -rk2
 ./check.sh --system --sudo
 ```
 
-Los cuatro paquetes quedaron marcados como explícitos. `paccache` retiró 158
-versiones antiguas y liberó **1.33 GiB**.
+Los cuatro paquetes quedaron marcados como explícitos y se desinstalaron los 26
+paquetes redundantes/Qt5/fuentes sin uso. `paccache` retiró 158 versiones
+antiguas y liberó **1.33 GiB**.
 
 ## Archivos `.pacnew`
 

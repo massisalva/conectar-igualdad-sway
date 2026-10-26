@@ -136,11 +136,13 @@ global del usuario.
 
 El entorno unifica el cursor `Breeze_Light` de tamaño 24 en Sway (`10-vars.conf`),
 GTK 3/4 (`settings.ini`), `xsettingsd/xsettingsd.conf` y el entorno de usuario
-(`environment.d/10-visual-theme.conf`).
+(`environment.d/10-visual-theme.conf`). Allí también se define
+`ELECTRON_OZONE_PLATFORM_HINT=auto` para que aplicaciones Electron como
+1Password ejecuten directamente sobre Wayland nativo sin requerir Xwayland.
 
 Para asegurar coherencia visual en aplicaciones Qt, la variable
-`QT_QPA_PLATFORMTHEME` se define como `qt5ct` y `QT_STYLE_OVERRIDE` como
-`kvantum`. Las configuraciones base de `qt5ct.conf`, `qt6ct.conf` y
+`QT_QPA_PLATFORMTHEME` se define como `qt6ct` y `QT_STYLE_OVERRIDE` como
+`kvantum`. Las configuraciones base de `qt6ct.conf` y
 `Kvantum/kvantum.kvconfig` (`theme=KvGnomeDark`) se versionan en `home/.config/`
 para garantizar fuente de interfaz Lexend, fuente monoespaciada JetBrains Mono,
 iconos Papirus-Dark y tema oscuro Kvantum tras la restauración.

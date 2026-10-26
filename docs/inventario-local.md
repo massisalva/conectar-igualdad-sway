@@ -228,10 +228,10 @@ Estado:
 
 ## btop, Starship, Fastfetch y tema visual
 
-- `btop` usa un tema Catppuccin Mocha local (`~/.config/btop/themes/catppuccin_mocha.theme`), coherente con Sway, Waybar y Foot.
+- `btop` usa un tema Catppuccin Mocha local (`~/.config/btop/themes/catppuccin_mocha.theme`), coherente con Sway, Waybar y Foot, y cuenta con launcher local (`~/.local/share/applications/btop.desktop`) que lo abre en `5:system`.
 - `starship` (`~/.config/starship.toml`) y `fastfetch` (`~/.config/fastfetch/config.jsonc`) se versionan con formato compacto y paleta Catppuccin Mocha.
 - El fondo de pantalla activo (`~/Imágenes/wallpaper.png`, 1366×768) se versiona en `home/Imágenes/wallpaper.png`.
-- GTK 3/4, `xsettingsd` (`~/.config/xsettingsd/xsettingsd.conf`), `qt5ct`, `qt6ct` y `Kvantum` (`~/.config/Kvantum/kvantum.kvconfig` con `KvGnomeDark`) comparten cursor `Breeze_Light`, iconos `Papirus-Dark` y tipografía `Lexend`.
+- GTK 3/4, `xsettingsd` (`~/.config/xsettingsd/xsettingsd.conf`), `qt6ct` y `Kvantum` (`~/.config/Kvantum/kvantum.kvconfig` con `KvGnomeDark`) comparten cursor `Breeze_Light`, iconos `Papirus-Dark` y tipografía `Lexend`.
 
 ## Batería
 
