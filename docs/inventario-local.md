@@ -204,6 +204,8 @@ Ayuda y controles:
 
 - `Mod+F1` abre una guía interactiva de atajos por categorías en menús de fuzzel.
 - `Mod+Shift+V` abre el selector e historial del portapapeles con fuzzel (`cliphist`).
+- `Mod+Ctrl+W` abre el selector de fondos de pantalla con fuzzel. Aplica el fondo
+  al momento y conserva la selección tras reiniciar Sway.
 - Las teclas multimedia controlan reproducción, pistas y micrófono mediante
   `playerctl` y `wpctl`.
 - `Mod+N` cierra la última notificación, `Mod+Shift+N` la recupera y

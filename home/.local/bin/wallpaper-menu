@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+set -u
+
+notify_info() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -a "Fondos de pantalla" \
+      -h string:x-canonical-private-synchronous:wallpaper-menu \
+      "󰸉 Fondos de pantalla" "$1" 2>/dev/null || true
+  fi
+}
+
+for command in fuzzel swaymsg; do
+  if ! command -v "$command" >/dev/null 2>&1; then
+    notify_info "No encontré $command"
+    exit 1
+  fi
+done
+
+pictures_dir="${XDG_PICTURES_DIR:-$HOME/Imágenes}"
+sway_config="$HOME/.config/sway/config.d/20-appearance.conf"
+
+if [ ! -d "$pictures_dir" ]; then
+  notify_info "No existe la carpeta de imágenes"
+  exit 1
+fi
+
+if [ ! -f "$sway_config" ]; then
+  notify_info "No encontré la configuración de apariencia de Sway"
+  exit 1
+fi
+
+mapfile -d '' -t wallpapers < <(
+  find "$pictures_dir" -maxdepth 1 -type f \
+    \( -iname '*.avif' -o -iname '*.bmp' -o -iname '*.jpeg' -o -iname '*.jpg' -o -iname '*.png' -o -iname '*.webp' \) \
+    -print0 | sort -z
+)
+
+if [ "${#wallpapers[@]}" -eq 0 ]; then
+  notify_info "No encontré fondos en $pictures_dir"
+  exit 0
+fi
+
+entries=()
+for index in "${!wallpapers[@]}"; do
+  printf -v entry '%03d  %s' "$((index + 1))" "$(basename "${wallpapers[$index]}")"
+  entries+=("$entry")
+done
+
+selected="$(printf '%s\n' "${entries[@]}" | fuzzel --dmenu --width=55 --lines=10 --prompt='󰸉  Fondo: ')" || exit 0
+selected_index="${selected%% *}"
+
+if [[ ! "$selected_index" =~ ^[0-9]+$ ]]; then
+  exit 0
+fi
+
+index=$((10#$selected_index - 1))
+if [ "$index" -lt 0 ] || [ "$index" -ge "${#wallpapers[@]}" ]; then
+  notify_info "La selección no es válida"
+  exit 1
+fi
+
+wallpaper="${wallpapers[$index]}"
+escaped_wallpaper="${wallpaper//\\/\\\\}"
+escaped_wallpaper="${escaped_wallpaper//\"/\\\"}"
+new_line="output * bg \"$escaped_wallpaper\" fill"
+temporary_config="$(mktemp "${sway_config}.XXXXXX")" || exit 1
+trap 'rm -f "$temporary_config"' EXIT
+
+updated=false
+while IFS= read -r line || [ -n "$line" ]; do
+  if [[ "$line" =~ ^output[[:space:]]+\*[[:space:]]+bg[[:space:]]+ ]]; then
+    printf '%s\n' "$new_line"
+    updated=true
+  else
+    printf '%s\n' "$line"
+  fi
+done < "$sway_config" > "$temporary_config"
+
+if [ "$updated" = false ]; then
+  notify_info "No encontré la línea del fondo en la configuración"
+  exit 1
+fi
+
+if ! swaymsg output '*' bg "$wallpaper" fill >/dev/null; then
+  notify_info "Sway no pudo aplicar el fondo"
+  exit 1
+fi
+
+mv "$temporary_config" "$sway_config"
+trap - EXIT
+notify_info "Aplicado: $(basename "$wallpaper")"

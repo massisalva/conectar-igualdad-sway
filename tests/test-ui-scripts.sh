@@ -79,6 +79,35 @@ bash "$ROOT_DIR/home/.local/bin/audio-output-menu"
 grep -Fxq 'set-default 20' "$CALL_FILE" || fail "audio-output-menu eligió un ID incorrecto"
 ok "audio-output-menu distingue descripciones duplicadas"
 
+WALLPAPER_TEST_HOME="$TEST_ROOT/wallpaper-home"
+WALLPAPER_CALL_FILE="$TEST_ROOT/swaymsg-call"
+mkdir -p "$WALLPAPER_TEST_HOME/Imágenes" "$WALLPAPER_TEST_HOME/.config/sway/config.d"
+printf 'primero' > "$WALLPAPER_TEST_HOME/Imágenes/first.png"
+printf 'segundo' > "$WALLPAPER_TEST_HOME/Imágenes/second.png"
+printf '%s\n' \
+  '# Apariencia' \
+  'output * bg ~/Imágenes/wallpaper-1qowj1.png fill' \
+  > "$WALLPAPER_TEST_HOME/.config/sway/config.d/20-appearance.conf"
+
+fuzzel() {
+  printf '%s\n' '002  second.png'
+}
+
+swaymsg() {
+  printf '%s\n' "$*" > "$WALLPAPER_CALL_FILE"
+}
+
+export WALLPAPER_CALL_FILE
+export -f fuzzel swaymsg
+HOME="$WALLPAPER_TEST_HOME" XDG_PICTURES_DIR="$WALLPAPER_TEST_HOME/Imágenes" \
+  bash "$ROOT_DIR/home/.local/bin/wallpaper-menu"
+grep -Fq "output * bg \"$WALLPAPER_TEST_HOME/Imágenes/second.png\" fill" \
+  "$WALLPAPER_TEST_HOME/.config/sway/config.d/20-appearance.conf" || \
+  fail "wallpaper-menu no persistió el fondo elegido"
+grep -Fq "output * bg $WALLPAPER_TEST_HOME/Imágenes/second.png fill" "$WALLPAPER_CALL_FILE" || \
+  fail "wallpaper-menu no aplicó el fondo elegido"
+ok "selector de fondos aplica y persiste la selección"
+
 if rg --hidden -q -- 'override=colors\.alpha' "$ROOT_DIR/home/.local/bin"; then
   fail "persisten overrides obsoletos de Foot"
 fi

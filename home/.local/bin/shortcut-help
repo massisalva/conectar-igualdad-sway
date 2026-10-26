@@ -49,6 +49,7 @@ while true; do
         'Super + E           Archivos' \
         'Super + M           Música' \
         'Super + P           CPU y memoria' \
+        'Super + Ctrl + W    Elegir fondo de pantalla' \
         'Super + Shift + V   Portapapeles (historial)' \
         'Super + Shift + W   Redes (Wi-Fi)' \
         'Super + Ctrl + A    Salida de audio'
