@@ -15,10 +15,10 @@ usage() {
 Uso: ./check.sh [opciones]
 
 Por defecto verifica el estado de usuario, paquetes, Yazi, XDG y repo.
-Los archivos de sistema en polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/ y zram/ se reportan como advertencia.
+Los archivos de sistema en polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/, zram/ y samba/ se reportan como advertencia.
 
 Opciones:
-  --system    Trata polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/ y zram/ como checks obligatorios.
+  --system    Trata polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/, zram/ y samba/ como checks obligatorios.
   --sudo      Permite pedir contraseña para verificar archivos de sistema
               si hay una terminal interactiva disponible.
   -h, --help  Muestra esta ayuda.
@@ -507,6 +507,32 @@ check_sysctl() {
   fi
 }
 
+check_samba() {
+  local severity="warn"
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+  local unit cred=/etc/samba/credenciales-mini perms
+
+  for unit in home-massisalva-Compartido.mount home-massisalva-Compartido.automount; do
+    check_same_system_file "$ROOT_DIR/samba/$unit" "/etc/systemd/system/$unit" "$severity"
+  done
+
+  perms="$(stat -c '%U %a' "$cred" 2>/dev/null || true)"
+  if [ "$perms" = "root 600" ]; then
+    ok "credenciales de Samba presentes (root 600)"
+  elif [ -z "$perms" ]; then
+    if [ "$severity" = "warn" ]; then warn "faltan credenciales de Samba: $cred"; else fail "faltan credenciales de Samba: $cred"; fi
+  else
+    if [ "$severity" = "warn" ]; then warn "credenciales de Samba con permisos $perms (esperado root 600)"; else fail "credenciales de Samba con permisos $perms (esperado root 600)"; fi
+  fi
+
+  if systemctl is-enabled --quiet home-massisalva-Compartido.automount 2>/dev/null \
+     && systemctl is-active --quiet home-massisalva-Compartido.automount 2>/dev/null; then
+    ok "automount de ~/Compartido habilitado y activo"
+  else
+    if [ "$severity" = "warn" ]; then warn "automount de ~/Compartido no está habilitado/activo"; else fail "automount de ~/Compartido no está habilitado/activo"; fi
+  fi
+}
+
 check_zram() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
@@ -962,6 +988,7 @@ check_nftables
 check_iwd
 check_sysctl
 check_zram
+check_samba
 check_repo_state
 
 printf '\nResumen: %d fallos, %d advertencias\n' "$FAILS" "$WARNS"

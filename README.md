@@ -109,12 +109,18 @@ normal. Cada una tiene su propia opción:
 ./restore.sh --sshd
 ./restore.sh --sysctl
 ./restore.sh --zram
+./restore.sh --samba
 ./restore.sh --bootloader
 ```
 
 `--zram` instala la configuración, pero el generador de systemd la aplica de
 forma más segura en el próximo reinicio. No reinicia automáticamente la unidad
 en caliente, porque eso puede desplazar temporalmente páginas de la swap.
+
+`--samba` instala `cifs-utils` y el montaje automático de la carpeta compartida de
+la Mac mini de casa (`//192.168.1.10/compartido`) en `~/Compartido`: se monta al
+entrar y se desmonta tras 10 minutos sin uso. La contraseña de Samba **no está en
+el repo**: si falta `/etc/samba/credenciales-mini` (root, 600), el script la pide.
 
 No recomiendo usar `--all` en otra máquina sin haber revisado antes esas
 configuraciones. Para inspeccionar el conjunto completo sin aplicarlo:
@@ -163,6 +169,7 @@ detectar y quitar, siempre con respaldo previo, mediante:
 | `sshd/` | Endurecimiento conservador de OpenSSH |
 | `sysctl/` | Ajustes locales del kernel y swappiness |
 | `zram/` | Configuración de zram-generator para swap comprimido |
+| `samba/` | Unidades de systemd para montar la carpeta compartida de la Mac mini en `~/Compartido` |
 | `bootloader/` | Ejemplos de systemd-boot para revisión manual |
 | `docs/` | Inventario, decisiones, auditorías, paquetes y notas de recuperación |
 | `tests/` | Pruebas de restauración y scripts de interfaz |

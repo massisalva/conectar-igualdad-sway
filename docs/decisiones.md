@@ -170,3 +170,22 @@ wlroots y Wayland. Se ejecuta como servicio de usuario con las coordenadas de
 Argentina (-34.6, -58.4) y transición suave a 4500 K. El helper `nightlight-mode`
 provee alternancia manual mediante `Super+Ctrl+S`, emitiendo notificaciones
 sincrónicas y formato visual alineado con Mako y Catppuccin.
+
+## Carpeta compartida de la Mac mini (Samba)
+
+Desde el 2026-11-08 la Mac mini de casa comparte una carpeta por Samba (SMB3) para
+pasar archivos entre equipos. En esta máquina se monta con `cifs-utils` y un
+automount de systemd en `~/Compartido`, en lugar de una línea en `/etc/fstab`:
+la carpeta se monta recién al entrar y se desmonta tras 10 minutos sin uso, así
+que si la mini está apagada o la Conectar está fuera de casa el arranque no se
+traba (`nofail`, `soft`, `TimeoutSec=20`).
+
+Se usa la IP `192.168.1.10` y no `mini.local`, porque `mini.local` también
+devuelve una dirección IPv6 de enlace local donde Samba no atiende.
+
+La contraseña de Samba vive solo en `/etc/samba/credenciales-mini` (root, 600) y
+no se versiona. Las unidades están en `samba/` y se instalan con
+`./restore.sh --samba`; `./check.sh` verifica que coincidan y que el automount
+esté activo. La carpeta compartida **no tiene backup** (decisión del dueño): es
+para pasar archivos.
+

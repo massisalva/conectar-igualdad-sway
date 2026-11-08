@@ -15,6 +15,7 @@ INSTALL_NFTABLES=0
 INSTALL_IWD=0
 INSTALL_SYSCTL=0
 INSTALL_ZRAM=0
+INSTALL_SAMBA=0
 INSTALL_YAZI=1
 PRUNE=0
 BACKUP_ENABLED=1
@@ -43,6 +44,9 @@ Opciones:
   --iwd         Configura iwd y systemd-resolved.
   --sysctl      Instala ajustes locales de sysctl en /etc/sysctl.d/.
   --zram        Instala configuración de zram-generator en /etc/systemd/.
+  --samba       Monta sola la carpeta compartida de la Mac mini en ~/Compartido
+                (automount de systemd). La contraseña no está en el repo: si falta
+                /etc/samba/credenciales-mini, la pide.
   --all         Ejecuta packages, aur, user, yazi y todas las piezas de sistema.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
@@ -458,6 +462,45 @@ install_zram_config() {
   run sudo install -Dm644 "$file" /etc/systemd/zram-generator.conf
 }
 
+install_samba_mount() {
+  local dir="$ROOT_DIR/samba"
+  local cred=/etc/samba/credenciales-mini
+  local unit file clave
+  [ -d "$dir" ] || { log "No existe $dir"; return 1; }
+
+  confirm "Esto instalará el montaje de la carpeta compartida de la mini en ~/Compartido. ¿Continuar?"
+  log "Instalando montaje de la carpeta compartida (Samba)"
+  if ! pacman -Q cifs-utils >/dev/null 2>&1; then
+    run sudo pacman -S --needed --noconfirm cifs-utils
+  fi
+  for file in "$dir"/*.mount "$dir"/*.automount; do
+    [ -f "$file" ] || continue
+    unit="$(basename "$file")"
+    backup_target "/etc/systemd/system/$unit"
+    run sudo install -Dm644 "$file" "/etc/systemd/system/$unit"
+  done
+
+  if [ -e "$cred" ]; then   # /etc/samba es 755: se ve sin sudo
+    log "Credenciales de Samba ya presentes en $cred (no se tocan)"
+  elif [ "$DRY_RUN" -eq 1 ]; then
+    printf '+ pedir contraseña de Samba y crear %q (root 600)\n' "$cred"
+  elif [ -t 0 ]; then
+    printf 'Contraseña de Samba de la mini (no se ve): '
+    IFS= read -rs clave
+    printf '\n'
+    [ -n "$clave" ] || { log "Contraseña vacía: no se crean credenciales"; return 1; }
+    printf 'username=%s\npassword=%s\n' "$USER" "$clave" | sudo install -Dm600 -o root -g root /dev/stdin "$cred"
+    unset clave
+  else
+    log "AVISO: falta $cred y no hay terminal para pedir la contraseña."
+    log "Crealo a mano (root 600, líneas username= y password=); el montaje fallará hasta entonces."
+  fi
+
+  run mkdir -p "$HOME/Compartido"
+  run sudo systemctl daemon-reload
+  run sudo systemctl enable --now home-massisalva-Compartido.automount
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --packages) INSTALL_PACKAGES=1 ;;
@@ -469,6 +512,7 @@ while [ "$#" -gt 0 ]; do
     --iwd) INSTALL_IWD=1 ;;
     --sysctl) INSTALL_SYSCTL=1 ;;
     --zram) INSTALL_ZRAM=1 ;;
+    --samba) INSTALL_SAMBA=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -481,6 +525,7 @@ while [ "$#" -gt 0 ]; do
       INSTALL_IWD=1
       INSTALL_SYSCTL=1
       INSTALL_ZRAM=1
+      INSTALL_SAMBA=1
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
@@ -526,6 +571,7 @@ fi
 [ "$INSTALL_IWD" -eq 1 ] && install_iwd_config
 [ "$INSTALL_SYSCTL" -eq 1 ] && install_sysctl_config
 [ "$INSTALL_ZRAM" -eq 1 ] && install_zram_config
+[ "$INSTALL_SAMBA" -eq 1 ] && install_samba_mount
 
 if [ -n "$BACKUP_DIR" ]; then
   if [ "$DRY_RUN" -eq 1 ]; then

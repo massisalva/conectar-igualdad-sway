@@ -1,0 +1,9 @@
+[Unit]
+Description=Carpeta compartida de la mini (Samba, fase 7)
+
+[Mount]
+What=//192.168.1.10/compartido
+Where=/home/massisalva/Compartido
+Type=cifs
+Options=credentials=/etc/samba/credenciales-mini,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,vers=3.1.1,soft,nofail
+TimeoutSec=20

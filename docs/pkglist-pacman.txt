@@ -10,6 +10,7 @@ brightnessctl
 btop
 cava
 chafa
+cifs-utils
 cliphist
 dosfstools
 duf

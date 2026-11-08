@@ -1,0 +1,9 @@
+[Unit]
+Description=Montaje automático de ~/Compartido (fase 7)
+
+[Automount]
+Where=/home/massisalva/Compartido
+TimeoutIdleSec=10min
+
+[Install]
+WantedBy=multi-user.target
