@@ -6,8 +6,10 @@ Conectar Igualdad SF20GM7. No intenta ser una copia completa de `$HOME`.
 ## Qué se versiona
 
 - Configuración de Sway, Waybar, fuzzel, mako, MPD/ncmpcpp, mpv, PyRadio,
-  OneDrive, Yazi, Starship, Fastfetch y carpetas XDG, junto con el fondo de
-  pantalla en `~/Imágenes/wallpaper.png`.
+  OneDrive, Yazi, Starship, Fastfetch y carpetas XDG, junto con los fondos de
+  pantalla de `~/Imágenes/` que están en `home/Imágenes/` (el predeterminado es
+  `wallpaper-1qowj1.png`; el elegido en cada equipo queda en `25-fondo.conf`,
+  que no se versiona).
 - Scripts locales en `~/.local/bin` que forman parte de la sesión.
 - Launchers locales en `~/.local/share/applications` cuando corrigen
   comportamiento, asignan workspaces o limpian fuzzel.

@@ -234,7 +234,7 @@ Estado:
 
 - `btop` usa un tema Catppuccin Mocha local (`~/.config/btop/themes/catppuccin_mocha.theme`), coherente con Sway, Waybar y Foot, y cuenta con launcher local (`~/.local/share/applications/btop.desktop`) que lo abre en `5:system`.
 - `starship` (`~/.config/starship.toml`) y `fastfetch` (`~/.config/fastfetch/config.jsonc`) se versionan con formato compacto y paleta Catppuccin Mocha.
-- El fondo de pantalla activo (`~/Imágenes/wallpaper.png`, 1366×768) se versiona en `home/Imágenes/wallpaper.png`.
+- Los fondos de pantalla se versionan en `home/Imágenes/` (`wallpaper.png`, 1366×768, el original, y desde el 2026-10-25 `wallpaper-1qowj1.png`, `wallpaper-k8jjxd.jpg` y `wallpaper-zpvj1g.png`). El predeterminado es `wallpaper-1qowj1.png` (`20-appearance.conf`); el que se elige con `wallpaper-menu` queda en `~/.config/sway/config.d/25-fondo.conf`, local, y su imagen puede no estar en el repo.
 - GTK 3/4, `xsettingsd` (`~/.config/xsettingsd/xsettingsd.conf`), `qt6ct` y `Kvantum` (`~/.config/Kvantum/kvantum.kvconfig` con `KvGnomeDark`) comparten cursor `Breeze_Light`, iconos `Papirus-Dark` y tipografía `Lexend`.
 
 ## Batería
