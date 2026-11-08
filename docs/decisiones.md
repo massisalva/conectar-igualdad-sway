@@ -189,3 +189,12 @@ no se versiona. Las unidades están en `samba/` y se instalan con
 esté activo. La carpeta compartida **no tiene backup** (decisión del dueño): es
 para pasar archivos.
 
+## Fondo de pantalla elegido: archivo local
+
+`wallpaper-menu` (Mod+Ctrl+W) guarda el fondo elegido en
+`~/.config/sway/config.d/25-fondo.conf`, que no se versiona. El repo conserva el
+fondo predeterminado en `20-appearance.conf`; Sway lee `25-fondo.conf` después y
+ese gana. Antes (desde el 2026-10-25) el selector reescribía `20-appearance.conf`:
+`check.sh` daba fallo cada vez que se cambiaba el fondo y `restore.sh` volvía al
+fondo del repo. Borrar `25-fondo.conf` vuelve al predeterminado.
+

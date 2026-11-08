@@ -102,8 +102,13 @@ export -f fuzzel swaymsg
 HOME="$WALLPAPER_TEST_HOME" XDG_PICTURES_DIR="$WALLPAPER_TEST_HOME/Imágenes" \
   bash "$ROOT_DIR/home/.local/bin/wallpaper-menu"
 grep -Fq "output * bg \"$WALLPAPER_TEST_HOME/Imágenes/second.png\" fill" \
+  "$WALLPAPER_TEST_HOME/.config/sway/config.d/25-fondo.conf" || \
+  fail "wallpaper-menu no persistió el fondo elegido en 25-fondo.conf"
+grep -Fq 'output * bg ~/Imágenes/wallpaper-1qowj1.png fill' \
   "$WALLPAPER_TEST_HOME/.config/sway/config.d/20-appearance.conf" || \
-  fail "wallpaper-menu no persistió el fondo elegido"
+  fail "wallpaper-menu modificó 20-appearance.conf (versionado)"
+[ "$(stat -c '%a' "$WALLPAPER_TEST_HOME/.config/sway/config.d/25-fondo.conf")" = 644 ] || \
+  fail "wallpaper-menu dejó 25-fondo.conf sin permisos 644"
 grep -Fq "output * bg $WALLPAPER_TEST_HOME/Imágenes/second.png fill" "$WALLPAPER_CALL_FILE" || \
   fail "wallpaper-menu no aplicó el fondo elegido"
 ok "selector de fondos aplica y persiste la selección"

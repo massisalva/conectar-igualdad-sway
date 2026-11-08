@@ -18,15 +18,13 @@ for command in fuzzel swaymsg; do
 done
 
 pictures_dir="${XDG_PICTURES_DIR:-$HOME/Imágenes}"
-sway_config="$HOME/.config/sway/config.d/20-appearance.conf"
+# El fondo elegido se guarda en un archivo propio, fuera del repo: así el repo
+# conserva el fondo predeterminado (20-appearance.conf) y check.sh/restore.sh no
+# chocan con la elección local. Sway lo lee después (25 > 20), así que gana.
+wallpaper_config="$HOME/.config/sway/config.d/25-fondo.conf"
 
 if [ ! -d "$pictures_dir" ]; then
   notify_info "No existe la carpeta de imágenes"
-  exit 1
-fi
-
-if [ ! -f "$sway_config" ]; then
-  notify_info "No encontré la configuración de apariencia de Sway"
   exit 1
 fi
 
@@ -64,29 +62,22 @@ wallpaper="${wallpapers[$index]}"
 escaped_wallpaper="${wallpaper//\\/\\\\}"
 escaped_wallpaper="${escaped_wallpaper//\"/\\\"}"
 new_line="output * bg \"$escaped_wallpaper\" fill"
-temporary_config="$(mktemp "${sway_config}.XXXXXX")" || exit 1
+mkdir -p "$(dirname "$wallpaper_config")"
+# El temporal no puede terminar en .conf: Sway incluye config.d/*.conf.
+temporary_config="$(mktemp "${wallpaper_config%.conf}.XXXXXX")" || exit 1
 trap 'rm -f "$temporary_config"' EXIT
-
-updated=false
-while IFS= read -r line || [ -n "$line" ]; do
-  if [[ "$line" =~ ^output[[:space:]]+\*[[:space:]]+bg[[:space:]]+ ]]; then
-    printf '%s\n' "$new_line"
-    updated=true
-  else
-    printf '%s\n' "$line"
-  fi
-done < "$sway_config" > "$temporary_config"
-
-if [ "$updated" = false ]; then
-  notify_info "No encontré la línea del fondo en la configuración"
-  exit 1
-fi
+{
+  printf '%s\n' '# Fondo elegido con wallpaper-menu (Mod+Ctrl+W). Archivo local: no se versiona.'
+  printf '%s\n' '# Borrarlo vuelve al fondo predeterminado de 20-appearance.conf.'
+  printf '%s\n' "$new_line"
+} > "$temporary_config"
+chmod 644 "$temporary_config"
 
 if ! swaymsg output '*' bg "$wallpaper" fill >/dev/null; then
   notify_info "Sway no pudo aplicar el fondo"
   exit 1
 fi
 
-mv "$temporary_config" "$sway_config"
+mv "$temporary_config" "$wallpaper_config"
 trap - EXIT
 notify_info "Aplicado: $(basename "$wallpaper")"
