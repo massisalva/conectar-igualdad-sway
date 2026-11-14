@@ -294,6 +294,12 @@ restore_user_files() {
     run systemctl --user daemon-reload
   fi
 
+  if command -v gsettings >/dev/null 2>&1; then
+    log "Aplicando preferencias GTK/Wayland (gsettings)"
+    run gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark
+    run gsettings set org.gnome.desktop.interface icon-theme Qogir-Dark
+  fi
+
   if [ "$PRUNE" -eq 1 ]; then
     prune_user_bin
   fi

@@ -1,0 +1,96 @@
+/* Thunar: Catppuccin Mocha sobre Adwaita-dark.
+ * Todos los selectores se limitan a su clase .thunar. */
+.thunar {
+  background-color: #1e1e2e;
+  color: #cdd6f4;
+}
+
+.thunar .view,
+.thunar .standard-view,
+.thunar scrolledwindow {
+  background-color: #1e1e2e;
+  color: #cdd6f4;
+}
+
+.thunar .sidebar,
+.thunar .sidebar .view {
+  background-color: #181825;
+  color: #bac2de;
+}
+
+.thunar menubar,
+.thunar toolbar,
+.thunar .toolbar,
+.thunar statusbar {
+  background-color: #181825;
+  background-image: none;
+  color: #cdd6f4;
+}
+
+.thunar button {
+  background-color: transparent;
+  background-image: none;
+  color: #cdd6f4;
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.thunar button:hover {
+  background-color: #313244;
+}
+
+.thunar button:checked,
+.thunar button:active {
+  background-color: #45475a;
+}
+
+.thunar entry {
+  background-color: #1e1e2e;
+  background-image: none;
+  color: #cdd6f4;
+  border-color: #45475a;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.thunar entry:focus {
+  border-color: #89b4fa;
+}
+
+.thunar .view:selected,
+.thunar .view:selected:focus,
+.thunar .sidebar .view:selected,
+.thunar entry selection {
+  background-color: #89b4fa;
+  color: #11111b;
+}
+
+.thunar menu {
+  background-color: #181825;
+  color: #cdd6f4;
+}
+
+.thunar menuitem:hover {
+  background-color: #313244;
+}
+
+.thunar separator {
+  background-color: #313244;
+}
+
+.thunar scrollbar {
+  background-color: #181825;
+}
+
+.thunar scrollbar slider {
+  background-color: #585b70;
+}
+
+.thunar scrollbar slider:hover {
+  background-color: #7f849c;
+}
+
+.thunar button:disabled {
+  color: #6c7086;
+}

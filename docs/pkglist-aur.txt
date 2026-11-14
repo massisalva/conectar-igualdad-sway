@@ -3,4 +3,5 @@ lexend-fonts-git
 localsend
 onedrive-abraunegg
 pyradio
+qogir-icon-theme
 yay

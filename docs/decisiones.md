@@ -31,7 +31,7 @@ comparar `app_id`, por eso las reglas deben estar ancladas con `^...$`.
 - `foot-term` y `foot` van a `1:term`.
 - `firefox` va a `2:web`.
 - `foot-music-*` va a `3:music`.
-- `foot-files` va a `4:files`.
+- `foot-files` y `thunar` van a `4:files`.
 - `foot-system` va a `5:system`.
 
 Los launchers de ncmpcpp, ncspot, PyRadio, Yazi y el gestor de discos abren
@@ -148,7 +148,10 @@ Para asegurar coherencia visual en aplicaciones Qt, la variable
 `kvantum`. Las configuraciones base de `qt6ct.conf` y
 `Kvantum/kvantum.kvconfig` (`theme=KvGnomeDark`) se versionan en `home/.config/`
 para garantizar fuente de interfaz Lexend, fuente monoespaciada JetBrains Mono,
-iconos Papirus-Dark y tema oscuro Kvantum tras la restauración.
+iconos Qogir-Dark (`qogir-icon-theme` en AUR, con `papirus-icon-theme` como
+respaldo) y tema oscuro Kvantum tras la restauración. Para Thunar se aplica una
+hoja de estilos Catppuccin Mocha acotada a `.thunar` en
+`home/.config/gtk-3.0/gtk.css` sobre `Adwaita-dark`.
 
 ## Zram y gestión de memoria
 

@@ -29,6 +29,7 @@ git
 gnome-keyring
 gnome-themes-extra
 grim
+gvfs
 imagemagick
 impala
 imv
@@ -87,11 +88,14 @@ swaybg
 swayidle
 swaylock
 tealdeer
+thunar
+thunar-archive-plugin
 tlp
 trash-cli
 tree
 ttf-dejavu
 ttf-jetbrains-mono-nerd
+tumbler
 udiskie
 udisks2
 unrar

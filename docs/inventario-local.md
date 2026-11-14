@@ -36,7 +36,7 @@ Categorías:
 - 1:term: terminales generales (`foot`, `foot-term`).
 - 2:web: navegador (`firefox`).
 - 3:music: reproductores (`foot-music`, `foot-music-ncmpcpp`, `foot-music-ncspot`, `foot-music-pyradio`).
-- 4:files: archivos (`foot-files` con Yazi).
+- 4:files: archivos (`foot-files` con Yazi y `thunar`).
 - 5:system: monitoreo y sistema (`foot-system` con btop).
 - 6-10: reserva para chat, media, trabajo, laboratorio o uso temporal.
 
@@ -236,8 +236,8 @@ Estado:
 
 - `btop` usa un tema Catppuccin Mocha local (`~/.config/btop/themes/catppuccin_mocha.theme`), coherente con Sway, Waybar y Foot, y cuenta con launcher local (`~/.local/share/applications/btop.desktop`) que lo abre en `5:system`.
 - `starship` (`~/.config/starship.toml`) y `fastfetch` (`~/.config/fastfetch/config.jsonc`) se versionan con formato compacto y paleta Catppuccin Mocha.
-- Los fondos de pantalla se versionan en `home/Imágenes/` (`wallpaper.png`, 1366×768, el original, y desde el 2026-10-25 `wallpaper-1qowj1.png`, `wallpaper-k8jjxd.jpg` y `wallpaper-zpvj1g.png`). El predeterminado es `wallpaper-1qowj1.png` (`20-appearance.conf`); el que se elige con `wallpaper-menu` queda en `~/.config/sway/config.d/25-fondo.conf`, local, y su imagen puede no estar en el repo.
-- GTK 3/4, `xsettingsd` (`~/.config/xsettingsd/xsettingsd.conf`), `qt6ct` y `Kvantum` (`~/.config/Kvantum/kvantum.kvconfig` con `KvGnomeDark`) comparten cursor `Breeze_Light`, iconos `Papirus-Dark` y tipografía `Lexend`.
+- Los fondos de pantalla se versionan en `home/Imágenes/` (`wallpaper.png`, 1366×768, el original; desde el 2026-10-25 `wallpaper-1qowj1.png`, `wallpaper-k8jjxd.jpg` y `wallpaper-zpvj1g.png`; y desde el 2026-11-14 las variantes `wallpaper-arch-mocha*.png`). El predeterminado es `wallpaper-1qowj1.png` (`20-appearance.conf`); el que se elige con `wallpaper-menu` queda en `~/.config/sway/config.d/25-fondo.conf`, local, y su imagen puede no estar en el repo.
+- GTK 3/4, `xsettingsd` (`~/.config/xsettingsd/xsettingsd.conf`), `qt6ct` y `Kvantum` (`~/.config/Kvantum/kvantum.kvconfig` con `KvGnomeDark`) comparten cursor `Breeze_Light`, iconos `Qogir-Dark` (`qogir-icon-theme`, con `Papirus-Dark` como respaldo) y tipografía `Lexend`. Thunar suma reglas Catppuccin Mocha en `~/.config/gtk-3.0/gtk.css` limitadas a `.thunar`.
 
 ## Batería
 
@@ -410,7 +410,7 @@ Estado:
 - Centrado.
 - Fuente Lexend.
 - Bordes redondeados.
-- Iconos habilitados con tema `Papirus-Dark`.
+- Iconos habilitados con tema `Qogir-Dark`.
 - Las entradas locales de MPD (`ncmpcpp` y `Actualizar música`) usan el icono `mpd`.
 - Hay overrides locales `NoDisplay=true` para utilidades, duplicados y helpers que no conviene mostrar en el lanzador.
 - Los overrides locales de `.desktop` se versionan porque definen el resultado visible de fuzzel.
