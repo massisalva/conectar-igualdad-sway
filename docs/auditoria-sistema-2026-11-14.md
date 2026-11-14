@@ -71,3 +71,27 @@ prioridad `100`, `vm.swappiness=100`) y el automount CIFS/SMB3 de
   por `run`, así que con `DRY_RUN=1` solo se muestra y no borra nada. El
   `.gitignore` ya ignoraba `.cache/`, así que `home/.cache` no puede entrar al
   repo. Para deshacer: `git revert` de este commit.
+
+## Integración de Thunar, iconos Qogir-Dark y fondos Arch Mocha
+
+- **Thunar junto a Yazi (`4:files`)**:
+  - Se incorporaron `thunar`, `tumbler`, `thunar-archive-plugin` y `gvfs` a
+    `docs/pkglist-pacman.txt` y la comprobación de `thunar` en `check.sh`.
+  - Se añadió `home/.config/gtk-3.0/gtk.css` con paleta Catppuccin Mocha acotada
+    al selector `.thunar` sobre `Adwaita-dark`.
+  - Se asignó `thunar` al escritorio `4:files` en
+    `home/.config/sway/config.d/50-rules.conf` y se ocultaron las entradas
+    accesorias `thunar-settings.desktop` y `thunar-bulk-rename.desktop` en
+    `home/.local/share/applications/`.
+- **Tema de iconos `Qogir-Dark`**:
+  - Se instaló `qogir-icon-theme` desde AUR y se sumó a `docs/pkglist-aur.txt`,
+    retirando la copia manual en `~/.local/share/icons/`, el tema GTK inactivo
+    `home/.local/share/themes/Qogir-Dark/` y los paquetes `sassc`/`libsass`.
+  - Se unificó `Qogir-Dark` en GTK 3/4, `qt6ct`, `xsettingsd`, Fuzzel y Mako
+    (con `Papirus-Dark` como respaldo), aplicando también `gsettings` desde
+    `restore.sh`.
+- **Fondos de pantalla Arch Mocha en vector puro (`1366×768`)**:
+  - Se regeneraron `wallpaper-arch-mocha.png`, `wallpaper-arch-mocha-minimal.png`
+    y `wallpaper-arch-mocha-sharp.png` directamente desde SVG vectorial con
+    `resvg` (usando `/usr/share/pixmaps/archlinux-logo.svg` y `Lexend` SemiBold)
+    para eliminar manchas de difusión y halos en bordes.

@@ -19,7 +19,7 @@ personas puedan recorrerlo, reutilizar una parte o instalar el entorno completo.
 - **Menús con fuzzel y foot** para redes, Bluetooth, audio, energía, portapapeles y discos.
 - **Sesión mantenible**, con Waybar, Mako, swayidle, polkit, luz nocturna y utilidades bajo
   unidades de `systemd --user`.
-- **Música y archivos**, con MPD/ncmpcpp, PyRadio, mpv y Yazi tematizados.
+- **Música y archivos**, con MPD/ncmpcpp, PyRadio, mpv, Yazi y Thunar tematizados.
 - **Respaldo y restauración**, con vista previa, copia de seguridad automática,
   rollback y verificaciones posteriores.
 - **Piezas opcionales de sistema**, como polkit, iwd, nftables, OpenSSH,
