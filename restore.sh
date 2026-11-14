@@ -249,7 +249,7 @@ restore_user_files() {
   [ -d "$source" ] || { log "No existe $source"; return 1; }
 
   confirm "Esto copiará $source/ sobre $HOME. ¿Continuar?"
-  rm -rf "$source/.cache"
+  run rm -rf "$source/.cache"
   while IFS= read -r source_file; do
     rel="${source_file#"$source/"}"
     target="$HOME/$rel"

@@ -64,3 +64,10 @@ prioridad `100`, `vm.swappiness=100`) y el automount CIFS/SMB3 de
   - Verificación de `paccache -rk2`, coincidencia de reglas `polkit` y entradas
     de `systemd-boot` (`/boot/loader/`), y validación de sintaxis efectiva de
     `sshd` (`sshd -t`).
+
+## Ajuste posterior (revisión desde la ThinkPad)
+
+- `restore.sh`: el `rm -rf "$source/.cache"` agregado en esta auditoría ahora pasa
+  por `run`, así que con `DRY_RUN=1` solo se muestra y no borra nada. El
+  `.gitignore` ya ignoraba `.cache/`, así que `home/.cache` no puede entrar al
+  repo. Para deshacer: `git revert` de este commit.
