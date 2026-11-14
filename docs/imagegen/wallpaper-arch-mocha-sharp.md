@@ -10,3 +10,4 @@ con bordes limpios para mejorar legibilidad en un panel mate. Fondo oscuro
 «conectar igualdad». No añadir elementos ni agrandar el logo.
 
 Aplicación con `center` a resolución nativa para evitar escalado adicional.
+Re-renderizado en vector puro (`resvg` a 1366×768 desde `/usr/share/pixmaps/archlinux-logo.svg` y tipografía `Lexend` SemiBold) para eliminar manchas de difusión y halos en bordes.

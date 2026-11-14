@@ -10,3 +10,4 @@ mate Catppuccin Mocha #181825, oscurecido sutilmente hacia #11111b arriba.
 Logo con gradiente discreto lavanda #b4befe a azul #89b4fa, sin resplandores ni
 sombras. Conservar la pequeña marca «conectar igualdad» abajo a la derecha.
 Amplio espacio vacío, sin adornos, interfaz ni texto adicional.
+Re-renderizado en vector puro (`resvg` a 1366×768 desde `/usr/share/pixmaps/archlinux-logo.svg` y tipografía `Lexend` SemiBold).

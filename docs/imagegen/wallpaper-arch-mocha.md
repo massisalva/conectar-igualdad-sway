@@ -11,4 +11,4 @@ Ondas discretas #313244 y #45475a con contornos #585b70. Mantener espacio
 negativo, bordes limpios, gradientes suaves y la marca inferior con margen.
 Sin elementos nuevos, interfaz, brillo ni marca de agua.
 
-Imagen: `home/Imágenes/wallpaper-arch-mocha.png`.
+Imagen: `home/Imágenes/wallpaper-arch-mocha.png` (re-renderizada en vector puro `resvg` a 1366×768 desde `/usr/share/pixmaps/archlinux-logo.svg` y `Lexend` SemiBold).
