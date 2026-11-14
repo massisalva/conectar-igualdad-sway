@@ -131,4 +131,17 @@ grep -Fq "Operation not permitted|Failed to connect to system scope bus" "$ROOT_
   fail "check.sh no distingue restricciones del entorno al verificar nftables"
 ok "verificación de nftables tolera restricciones del entorno"
 
+if command -v desktop-file-validate >/dev/null 2>&1; then
+  desktop_out="$(desktop-file-validate "$ROOT_DIR"/home/.local/share/applications/*.desktop 2>&1)" || \
+    fail "desktop-file-validate rechazó archivos .desktop: $desktop_out"
+  [ -z "$desktop_out" ] || fail "desktop-file-validate emitió advertencias: $desktop_out"
+  ok "archivos .desktop válidos y sin advertencias"
+fi
+
+grep -Fq 'MESA_GLSL_CACHE_DISABLE=true' "$ROOT_DIR/check.sh" || \
+  fail "check.sh no deshabilita la caché de shaders de Mesa al validar Sway"
+grep -Fq -- '-path "$source/.cache" -prune' "$ROOT_DIR/restore.sh" || \
+  fail "restore.sh no excluye home/.cache durante la restauración"
+ok "protección contra contaminación de home/.cache"
+
 printf 'Pruebas de scripts UI: OK\n'

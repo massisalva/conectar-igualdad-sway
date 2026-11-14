@@ -64,8 +64,9 @@ Waybar prioriza estado útil sin ruido visual:
 - música activa;
 - reloj;
 - Caps Lock solo cuando está activo;
+- modo No molestar (DND) cuando está activo;
 - discos externos;
-- CPU, memoria, Bluetooth, red, audio, brillo, batería y energía.
+- Bluetooth, red, audio, brillo, batería y energía.
 
 Los scripts de Waybar deben ser livianos y tolerar fallos de DBus o servicios
 externos sin cortar la barra.

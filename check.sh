@@ -68,7 +68,7 @@ prepare_sudo() {
     return
   fi
 
-  if sudo -n true 2>/dev/null; then
+  if [ "$STRICT_SYSTEM" -eq 1 ] && sudo -n true 2>/dev/null; then
     SUDO_READY=1
   fi
 }
@@ -790,13 +790,17 @@ check_bash_scripts() {
 }
 
 check_session_config() {
-  local output
+  local output tmp_cache
+  tmp_cache="$(mktemp -d)"
 
-  if output="$(HOME="$ROOT_DIR/home" sway -C -c "$ROOT_DIR/home/.config/sway/config" 2>&1)"; then
+  if output="$(HOME="$ROOT_DIR/home" XDG_CACHE_HOME="$tmp_cache" MESA_GLSL_CACHE_DISABLE=true sway -C -c "$ROOT_DIR/home/.config/sway/config" 2>&1)"; then
+    rm -rf "$tmp_cache"
     ok "configuración de Sway válida"
-  elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Unable to create backend|Could not connect to remote display'; then
+  elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Operación no permitida|Unable to create backend|Could not connect to remote display'; then
+    rm -rf "$tmp_cache"
     warn "no puedo validar Sway por permisos del entorno"
   else
+    rm -rf "$tmp_cache"
     fail "configuración de Sway inválida"
     printf '%s\n' "$output"
   fi

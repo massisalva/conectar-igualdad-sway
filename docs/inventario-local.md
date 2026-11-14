@@ -53,9 +53,8 @@ Módulos activos:
 - música
 - reloj
 - mayúsculas activadas
+- no molestar (DND)
 - discos
-- CPU
-- memoria
 - Bluetooth
 - red
 - audio
@@ -93,7 +92,7 @@ Estado:
 - MPD/ncmpcpp, ncspot, PyRadio y Firefox intentan enfocar la instancia activa antes de abrir otra.
 - ncmpcpp, ncspot y PyRadio abren foot con app_id propio si no hay una sesión activa.
 - Firefox abre/reutiliza el navegador si no hay una ventana enfocable.
-- PyRadio se lanza con `pyradio-music`, que fuerza Catppuccin Macchiato y `mpv`.
+- PyRadio se lanza con `pyradio-music`, que fuerza Catppuccin Mocha y `mpv`.
 - PyRadio usa un perfil de mpv con volumen normalizado.
 - PyRadio usa modo XDG explícito: config en `~/.config/pyradio`, datos en `~/.local/share/pyradio` y estado en `~/.local/state/pyradio`.
 - PyRadio mantiene creado `~/pyradio-recordings` para evitar fallos al preparar logs/grabaciones.
@@ -123,9 +122,12 @@ Procesos lanzados:
 
 - mako.service
 - waybar.service
-- polkit-gnome-authentication-agent-1
-- udiskie --no-automount --no-notify
-- disk-notify
+- sway-polkit-agent.service (polkit-gnome-authentication-agent-1)
+- sway-udiskie.service (udiskie --no-automount --no-notify)
+- disk-notify.service
+- swayidle.service
+- sway-cliphist.service
+- wlsunset.service
 
 ## Power menu
 
@@ -209,7 +211,7 @@ Ayuda y controles:
   `~/.config/sway/config.d/25-fondo.conf`, un archivo local que no se versiona
   (el repo conserva el fondo predeterminado en `20-appearance.conf`).
 - Las teclas multimedia controlan reproducción, pistas y micrófono mediante
-  `playerctl` y `wpctl`.
+  `waybar-music` y `wpctl`.
 - `Mod+N` cierra la última notificación, `Mod+Shift+N` la recupera y
   `Mod+Ctrl+N` alterna el modo No molestar.
 
@@ -221,7 +223,7 @@ Estado:
 
 - Waybar muestra un indicador solo cuando Caps Lock está activo.
 - El script lee `/sys/class/leds/input*::capslock/brightness`, sin depender de X11.
-- El módulo se actualiza cada 1 segundo.
+- El módulo usa `interval: "once"` y se actualiza al instante por señal (`RTMIN+8`) al soltar Caps Lock.
 
 ## Touchpad
 

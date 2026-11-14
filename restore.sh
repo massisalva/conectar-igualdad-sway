@@ -249,11 +249,12 @@ restore_user_files() {
   [ -d "$source" ] || { log "No existe $source"; return 1; }
 
   confirm "Esto copiará $source/ sobre $HOME. ¿Continuar?"
+  rm -rf "$source/.cache"
   while IFS= read -r source_file; do
     rel="${source_file#"$source/"}"
     target="$HOME/$rel"
     backup_target "$target"
-  done < <(find "$source" \( -type f -o -type l \) | sort)
+  done < <(find "$source" -path "$source/.cache" -prune -o \( -type f -o -type l \) -print | sort)
 
   log "Restaurando archivos de usuario"
   run mkdir -p "$HOME"

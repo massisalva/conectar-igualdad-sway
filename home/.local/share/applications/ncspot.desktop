@@ -7,4 +7,4 @@ Exec=foot --app-id foot-music-ncspot -e /usr/bin/ncspot
 Icon=/usr/share/icons/hicolor/scalable/apps/ncspot.svg
 Terminal=false
 Categories=Audio;AudioVideo;Player;
-Keywords=music;spotify;ncspot;musica;
+Keywords=music;spotify;musica;reproductor;

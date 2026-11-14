@@ -7,4 +7,4 @@ Exec=foot --app-id foot-music-ncmpcpp -e ncmpcpp
 Icon=mpd
 Terminal=false
 Categories=Audio;AudioVideo;Player;
-Keywords=music;mpd;ncmpcpp;musica;
+Keywords=music;mpd;musica;reproductor;
