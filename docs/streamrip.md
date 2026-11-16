@@ -35,11 +35,13 @@ chmod 600 "$HOME/.config/streamrip/config.toml"
 
 Agregar la cookie `arl` de la propia cuenta directamente en el archivo local siguiendo la [guía de streamrip](https://github.com/nathom/streamrip/wiki/Finding-Your-Deezer-ARL-Cookie). Es una credencial de sesión y queda fuera de Git.
 
-`quality = 1` solicita MP3 de 320 kbps según el acceso de la cuenta. El cambio solo afecta nuevas descargas. Las pistas ya registradas en la base de streamrip pueden omitirse si se vuelven a solicitar.
+`quality = 1` solicita MP3 de 320 kbps según el acceso de la cuenta. El cambio solo afecta nuevas descargas. Las pistas ya registradas en la base de streamrip pueden omitirse si se vuelven a solicitar; para forzar su re-descarga se puede activar la opción **8** (`--no-db`) en `streamrip-menu` o pasar `rip --no-db ...` por terminal.
+
+`restore.sh` asegura la carpeta `~/Música/streamrip`, endurece `~/.config/streamrip/config.toml` a permisos `600` si existe y preserva `~/.local/bin/rip` durante `--prune` (`docs/local-bin-keep.txt`).
 
 ## Uso
 
-Abrir **Super + D → Streamrip**, o ejecutar `streamrip-menu` desde una terminal. El menú conserva la salida de streamrip para revisar errores y actualiza MPD al terminar las descargas.
+Abrir **Super + D → Streamrip**, o ejecutar `streamrip-menu` desde una terminal. El menú recorta espacios al pegar, acepta enlaces de `deezer.com` y `deezer.page.link`, limpia la vista entre operaciones (conservando el scrollback de la terminal), actualiza MPD al terminar las descargas y envía una notificación de escritorio vía Mako.
 
 La ventana abierta desde el lanzador va a `3:music`. En ncmpcpp, presionar **2** para explorar la carpeta `streamrip`; **u** actualiza la biblioteca manualmente. MPD y ncmpcpp deben apuntar a `~/Música`.
 
@@ -49,6 +51,7 @@ También se puede usar la terminal:
 rip search deezer track 'artista y canción'
 rip search deezer album 'nombre del álbum'
 rip url 'https://www.deezer.com/album/NUMERO'
+rip --no-db url 'https://www.deezer.com/album/NUMERO'
 mpc update
 ```
 

@@ -73,8 +73,9 @@ con click y muestra el calendario del mes al pasar el cursor.
 - Configuración local: `~/.config/streamrip/config.toml`, permisos `600`. La cookie ARL de Deezer no se versiona; el directorio está excluido en `.gitignore`.
 - Deezer usa `quality = 1` (MP3 a 320 kbps) y `use_deezloader = false`, con la cuenta propia. El FLAC descargado antes de este ajuste se conserva.
 - Descargas en `~/Música/streamrip`, con `source_subdirectories = true`. MPD indexa `~/Música` y ncmpcpp usa esa misma ruta.
-- `~/.local/bin/streamrip-menu` ofrece descarga por enlace, búsqueda de canciones, álbumes, artistas y playlists, acceso a ncmpcpp y actualización manual de MPD.
-- Al terminar una operación de descarga, incluso con errores parciales, intenta actualizar MPD con `mpc update --wait`.
+- `~/.local/bin/streamrip-menu` ofrece descarga por enlace (`deezer.com` y `deezer.page.link`), búsqueda de canciones, álbumes, artistas y playlists, opción para forzar re-descarga ignorando el historial (`--no-db`), acceso a ncmpcpp y actualización manual de MPD.
+- Al terminar una operación de descarga, incluso con errores parciales, intenta actualizar MPD con `mpc update --wait` y notifica el resultado por Mako.
+- `rip` figura en `docs/local-bin-keep.txt` para que `restore.sh --prune` y `check.sh` lo preserven como ejecutable externo legítimo; `check.sh` valida que `~/.config/streamrip/config.toml` conserve permisos `600`.
 - El acceso `streamrip.desktop` abre el menú en Foot con `app_id=foot-streamrip`. Sway lo asigna a `3:music` y enfoca la ventana al abrirla.
 - Icono SVG propio en `~/.local/share/icons/hicolor/scalable/apps/streamrip.svg`, con ondas de audio, flecha de descarga y paleta Catppuccin.
 - Para reconstruir la configuración y vincular la cuenta, ver [streamrip.md](streamrip.md). La restauración de dotfiles no instala herramientas de uv ni restaura credenciales.

@@ -55,6 +55,10 @@ ok "rollback de archivos existentes y nuevos"
 
 printf 'script residual\n' > "$TEST_HOME/.local/bin/obsoleto"
 printf 'herramienta externa\n' > "$TEST_HOME/.local/bin/uv"
+printf 'herramienta externa\n' > "$TEST_HOME/.local/bin/rip"
+mkdir -p "$TEST_HOME/.config/streamrip"
+printf 'arl = "secreto"\n' > "$TEST_HOME/.config/streamrip/config.toml"
+chmod 644 "$TEST_HOME/.config/streamrip/config.toml"
 HOME="$TEST_HOME" \
 PATH="$MOCK_BIN:$PATH" \
 RESTORE_BACKUP_ROOT="$BACKUP_ROOT" \
@@ -62,7 +66,11 @@ RESTORE_BACKUP_ROOT="$BACKUP_ROOT" \
 
 prune_backup="$(latest_backup)"
 [ ! -e "$TEST_HOME/.local/bin/obsoleto" ] || fail "prune no quitó el script residual"
-[ -e "$TEST_HOME/.local/bin/uv" ] || fail "prune quitó una herramienta externa preservada"
+[ -e "$TEST_HOME/.local/bin/uv" ] || fail "prune quitó una herramienta externa preservada (uv)"
+[ -e "$TEST_HOME/.local/bin/rip" ] || fail "prune quitó una herramienta externa preservada (rip)"
+[ -d "$TEST_HOME/Música/streamrip" ] || fail "restore no creó ~/Música/streamrip"
+[ "$(stat -c '%a' "$TEST_HOME/.config/streamrip/config.toml")" = 600 ] || \
+  fail "restore no endureció permisos de ~/.config/streamrip/config.toml a 600"
 grep -Fq $'present\t'"$TEST_HOME/.local/bin/obsoleto" "$prune_backup/manifest.tsv" || \
   fail "prune no respaldó el script residual"
 

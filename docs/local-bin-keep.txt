@@ -1,6 +1,7 @@
 # Ejecutables externos legítimos de ~/.local/bin que restore.sh --prune conserva.
 # Un nombre de archivo por línea, sin rutas.
 headroom
+rip
 uv
 uvx
 agy

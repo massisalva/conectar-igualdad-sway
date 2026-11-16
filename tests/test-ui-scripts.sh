@@ -144,4 +144,43 @@ grep -Fq -- '-path "$source/.cache" -prune' "$ROOT_DIR/restore.sh" || \
   fail "restore.sh no excluye home/.cache durante la restauración"
 ok "protección contra contaminación de home/.cache"
 
+RIP_CALL_FILE="$TEST_ROOT/rip-calls"
+MPC_CALL_FILE="$TEST_ROOT/mpc-calls"
+rip() {
+  printf '%s\n' "$*" >> "$RIP_CALL_FILE"
+}
+mpc() {
+  printf '%s\n' "$*" >> "$MPC_CALL_FILE"
+}
+export RIP_CALL_FILE MPC_CALL_FILE
+export -f rip mpc
+
+printf '%s\n' \
+  '1' \
+  'https://example.com/album/123' \
+  '' \
+  '1' \
+  '  https://www.deezer.com/album/456  ' \
+  '' \
+  '1' \
+  'https://deezer.page.link/abc123XYZ' \
+  '' \
+  '8' \
+  '2' \
+  ' Gustavo Cerati ' \
+  '' \
+  '0' | bash "$ROOT_DIR/home/.local/bin/streamrip-menu" >/dev/null
+
+! grep -Fq 'example.com' "$RIP_CALL_FILE" || \
+  fail "streamrip-menu permitió un enlace ajeno a Deezer"
+grep -Fxq 'url https://www.deezer.com/album/456' "$RIP_CALL_FILE" || \
+  fail "streamrip-menu no recortó espacios ni descargó enlace de deezer.com"
+grep -Fxq 'url https://deezer.page.link/abc123XYZ' "$RIP_CALL_FILE" || \
+  fail "streamrip-menu no aceptó enlace corto deezer.page.link"
+grep -Fxq -- '--no-db search deezer track -- Gustavo Cerati' "$RIP_CALL_FILE" || \
+  fail "streamrip-menu no pasó --no-db al activar la opción 8"
+[ "$(grep -Fxc 'update --wait' "$MPC_CALL_FILE")" -eq 3 ] || \
+  fail "streamrip-menu no actualizó MPD tras cada operación de descarga"
+ok "streamrip-menu valida enlaces, recorta espacios, soporta --no-db y actualiza MPD"
+
 printf 'Pruebas de scripts UI: OK\n'

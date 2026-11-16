@@ -286,8 +286,13 @@ restore_user_files() {
   log "Asegurando papelera XDG"
   run mkdir -p "$HOME/.local/share/Trash/files" "$HOME/.local/share/Trash/info"
 
-  log "Asegurando directorios de MPD/ncmpcpp"
-  run mkdir -p "$HOME/.local/share/mpd/playlists" "$HOME/.local/share/ncmpcpp/lyrics"
+  log "Asegurando directorios de MPD/ncmpcpp y Streamrip"
+  run mkdir -p "$HOME/.local/share/mpd/playlists" "$HOME/.local/share/ncmpcpp/lyrics" "$HOME/Música/streamrip"
+
+  if [ -f "$HOME/.config/streamrip/config.toml" ]; then
+    log "Ajustando permisos de ~/.config/streamrip/config.toml"
+    run chmod 600 "$HOME/.config/streamrip/config.toml"
+  fi
 
   if [ -d "$source/.config/systemd/user" ] && command -v systemctl >/dev/null 2>&1; then
     log "Recargando units de systemd de usuario"

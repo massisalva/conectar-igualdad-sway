@@ -777,6 +777,34 @@ check_mpd_ncmpcpp() {
   fi
 }
 
+check_streamrip() {
+  local cfg="$HOME/.config/streamrip/config.toml"
+  local perms
+
+  if has_cmd rip || [ -x "$HOME/.local/bin/rip" ]; then
+    ok "comando disponible: rip"
+  else
+    warn "streamrip (rip) no está instalado (ver docs/streamrip.md)"
+  fi
+
+  if [ -d "$HOME/Música/streamrip" ]; then
+    ok "carpeta de descargas Streamrip existe: $HOME/Música/streamrip"
+  else
+    warn "falta carpeta de descargas Streamrip: $HOME/Música/streamrip"
+  fi
+
+  if [ -f "$cfg" ]; then
+    perms="$(stat -c '%a' "$cfg" 2>/dev/null || true)"
+    if [ "$perms" = "600" ]; then
+      ok "configuración de Streamrip protegida (600)"
+    else
+      fail "configuración de Streamrip con permisos ${perms:-desconocidos} (esperado 600): $cfg"
+    fi
+  else
+    warn "configuración local de Streamrip no inicializada: $cfg"
+  fi
+}
+
 check_bash_scripts() {
   local script
   for script in "$ROOT_DIR"/home/.local/bin/* "$ROOT_DIR"/restore.sh; do
@@ -878,7 +906,7 @@ check_managed_bin_extras() {
   local extras=0
 
   for file in "$HOME"/.local/bin/*; do
-    [ -f "$file" ] || continue
+    [ -f "$file" ] || [ -L "$file" ] || continue
     name="$(basename "$file")"
     if [ ! -f "$ROOT_DIR/home/.local/bin/$name" ]; then
       if [ -f "$LOCAL_BIN_KEEP_FILE" ] && grep -Fqx -- "$name" "$LOCAL_BIN_KEEP_FILE"; then
@@ -985,6 +1013,7 @@ check_xdg_dirs
 check_trash
 check_yazi
 check_mpd_ncmpcpp
+check_streamrip
 check_polkit
 check_bootloader
 check_sshd

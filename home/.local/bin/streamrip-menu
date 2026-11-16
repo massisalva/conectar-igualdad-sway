@@ -7,27 +7,54 @@ pause_menu() {
     read -r -p $'\nEnter para volver al menú… ' _ || true
 }
 
+notify_info() {
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send -a "Streamrip" \
+            -h string:x-canonical-private-synchronous:streamrip \
+            "$1" "$2" 2>/dev/null || true
+    fi
+}
+
+trim() {
+    local s="$1"
+    s="${s#"${s%%[![:space:]]*}"}"
+    s="${s%"${s##*[![:space:]]}"}"
+    printf '%s' "$s"
+}
+
 if ! command -v rip >/dev/null 2>&1; then
     printf 'No se encontró streamrip (rip).\n'
     pause_menu
     exit 1
 fi
 
+no_db=0
+
 while true; do
+    [ -t 1 ] && clear -x
+    if [ "$no_db" -eq 1 ]; then
+        no_db_label="sí (ignora historial)"
+        rip_args=(--no-db)
+    else
+        no_db_label="no"
+        rip_args=()
+    fi
     printf '\n── Streamrip · Deezer ──\n\n'
-    printf '1) Descargar desde un enlace\n2) Buscar canciones\n3) Buscar álbumes\n4) Buscar artistas\n5) Buscar playlists\n6) Escuchar en ncmpcpp\n7) Actualizar biblioteca de música\n0) Salir\n\n'
+    printf '1) Descargar desde un enlace\n2) Buscar canciones\n3) Buscar álbumes\n4) Buscar artistas\n5) Buscar playlists\n6) Escuchar en ncmpcpp\n7) Actualizar biblioteca de música\n8) Re-descargar pistas ya registradas (--no-db): %s\n0) Salir\n\n' "$no_db_label"
     read -r -p 'Elegí una opción: ' option || exit 0
+    option="$(trim "$option")"
     case "$option" in
         0) exit 0 ;;
         1)
             read -r -p 'Pegá el enlace de Deezer: ' query || exit 0
+            query="$(trim "$query")"
             [ -n "$query" ] || continue
-            if [[ ! "$query" =~ ^https://([[:alnum:]-]+\.)*deezer\.com/ ]]; then
-                printf 'Usá un enlace https de Deezer.\n'
+            if [[ ! "$query" =~ ^https://(([[:alnum:]-]+\.)*deezer\.com|deezer\.page\.link)/[[:graph:]]+$ ]]; then
+                printf 'Usá un enlace https de Deezer (deezer.com o deezer.page.link).\n'
                 pause_menu
                 continue
             fi
-            rip url "$query"
+            rip "${rip_args[@]}" url "$query"
             result=$?
             ;;
         2|3|4|5)
@@ -36,19 +63,37 @@ while true; do
                 4) media=artist ;; 5) media=playlist ;;
             esac
             read -r -p 'Nombre o artista a buscar: ' query || exit 0
+            query="$(trim "$query")"
             [ -n "$query" ] || continue
-            rip search deezer "$media" -- "$query"
+            rip "${rip_args[@]}" search deezer "$media" -- "$query"
             result=$?
             ;;
         6) ncmpcpp; continue ;;
-        7) mpc update --wait; pause_menu; continue ;;
-        *) printf 'Elegí una de las opciones del menú.\n'; continue ;;
+        7)
+            if mpc update --wait; then
+                notify_info "󰎆 Streamrip" "Biblioteca MPD actualizada"
+            else
+                printf '\nNo se pudo actualizar MPD.\n'
+            fi
+            pause_menu
+            continue
+            ;;
+        8)
+            no_db=$((1 - no_db))
+            continue
+            ;;
+        *) printf 'Elegí una de las opciones del menú.\n'; pause_menu; continue ;;
     esac
     if [ "$result" -ne 0 ]; then
         printf '\nStreamrip terminó con un error; revisá el mensaje de arriba.\n'
+        notify_info "󰎆 Streamrip" "La operación terminó con errores"
     fi
     # También indexar descargas parciales si alguna pista falló.
-    if ! mpc update --wait; then
+    if mpc update --wait; then
+        if [ "$result" -eq 0 ]; then
+            notify_info "󰎆 Streamrip" "Descarga lista y biblioteca MPD actualizada"
+        fi
+    else
         printf '\nNo se pudo actualizar MPD. Podés reintentar con la opción 7.\n'
     fi
     pause_menu
