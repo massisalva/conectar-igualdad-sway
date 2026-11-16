@@ -4,9 +4,17 @@
   "height": 33,
   "spacing": 0,
 
-  "modules-left": ["sway/workspaces", "custom/music", "sway/mode"],
+  "modules-left": ["custom/launcher", "sway/workspaces", "custom/music", "sway/mode"],
   "modules-center": ["clock"],
   "modules-right": ["custom/capslock", "custom/dnd", "custom/disk", "bluetooth", "network", "pulseaudio", "backlight", "custom/battery", "custom/power"],
+
+  "custom/launcher": {
+    "format": "󰣇",
+    "on-click": "pkill -x fuzzel || fuzzel",
+    "on-click-right": "pkill -x fuzzel || ~/.local/bin/shortcut-help",
+    "tooltip": true,
+    "tooltip-format": "Click: aplicaciones (Super+D) | Click derecho: atajos (Super+F1)"
+  },
 
   "custom/music": {
     "exec": "~/.local/bin/waybar-music --watch",

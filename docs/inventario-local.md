@@ -49,6 +49,7 @@ Archivos:
 
 Módulos activos:
 
+- lanzador (`custom/launcher`: logo Arch; click abre/cierra Fuzzel, click derecho abre atajos)
 - workspaces
 - música
 - reloj
