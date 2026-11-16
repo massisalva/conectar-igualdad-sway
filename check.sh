@@ -837,8 +837,21 @@ check_session_config() {
     rm -rf "$tmp_cache"
     ok "configuración de Sway válida"
   elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Operación no permitida|Unable to create backend|Could not connect to remote display'; then
-    rm -rf "$tmp_cache"
-    warn "no puedo validar Sway por permisos del entorno"
+    # Sin acceso a la pantalla (por ejemplo, por SSH): segundo intento con un backend virtual
+    # (headless + pixman), que no necesita seat ni GPU. Si también falla por el entorno, solo avisa.
+    local tmp_run
+    tmp_run="$(mktemp -d)"
+    if output="$(HOME="$ROOT_DIR/home" XDG_CACHE_HOME="$tmp_cache" XDG_RUNTIME_DIR="$tmp_run" \
+        WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 MESA_GLSL_CACHE_DISABLE=true \
+        sway -C -c "$ROOT_DIR/home/.config/sway/config" 2>&1)"; then
+      ok "configuración de Sway válida (backend virtual)"
+    elif printf '%s\n' "$output" | grep -Eq 'Error on line|Unknown command|Invalid|Expected'; then
+      fail "configuración de Sway inválida"
+      printf '%s\n' "$output"
+    else
+      warn "no puedo validar Sway por permisos del entorno"
+    fi
+    rm -rf "$tmp_cache" "$tmp_run"
   else
     rm -rf "$tmp_cache"
     fail "configuración de Sway inválida"
@@ -901,6 +914,21 @@ check_session_processes() {
       fail "$process no está activo"
     fi
   done
+
+  # Lo que se abre desde Waybar hereda su PATH (servicio de systemd): sin ~/.local/bin, los
+  # lanzadores de comandos propios fallan (pasó con Streamrip, 2026-11-16; ver environment.d/20-path.conf).
+  local wpid wpath
+  wpid="$(pgrep -u "$(id -u)" -x waybar 2>/dev/null | head -n1 || true)"
+  wpath=""
+  [ -n "$wpid" ] && wpath="$(tr '\0' '\n' < "/proc/$wpid/environ" 2>/dev/null | sed -n 's/^PATH=//p' || true)"
+  if [ -z "$wpath" ]; then
+    warn "no puedo verificar el PATH de waybar"
+  else
+    case ":$wpath:" in
+      *":$HOME/.local/bin:"*) ok "waybar tiene ~/.local/bin en el PATH (lanzadores propios)" ;;
+      *) fail "waybar no tiene ~/.local/bin en el PATH: lo que se abre desde la barra no encuentra los comandos propios (environment.d/20-path.conf)" ;;
+    esac
+  fi
 }
 
 check_package_hygiene() {

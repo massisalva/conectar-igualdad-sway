@@ -206,6 +206,8 @@ fi
 
 grep -Fq 'MESA_GLSL_CACHE_DISABLE=true' "$ROOT_DIR/check.sh" || \
   fail "check.sh no deshabilita la caché de shaders de Mesa al validar Sway"
+grep -Fq 'WLR_BACKENDS=headless' "$ROOT_DIR/check.sh" || \
+  fail "check.sh no reintenta validar Sway con backend virtual (SSH sin seat)"
 grep -Fq -- '-path "$source/.cache" -prune' "$ROOT_DIR/restore.sh" || \
   fail "restore.sh no excluye home/.cache durante la restauración"
 ok "protección contra contaminación de home/.cache"
