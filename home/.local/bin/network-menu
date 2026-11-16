@@ -6,6 +6,10 @@ notify_info() {
   fi
 }
 
+if pkill -u "$(id -u)" -f '^foot --app-id impala-floating ' 2>/dev/null; then
+  exit 0
+fi
+
 if ! command -v foot >/dev/null 2>&1; then
   notify_info "No encontré foot"
   exit 1

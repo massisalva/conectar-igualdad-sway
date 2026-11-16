@@ -200,4 +200,87 @@ grep -Fxq -- '--no-db search deezer track -- Gustavo Cerati' "$RIP_CALL_FILE" ||
   fail "streamrip-menu no actualizó MPD tras cada operación de descarga"
 ok "streamrip-menu valida y resuelve enlaces, recorta espacios, soporta --no-db y actualiza MPD"
 
+MUSIC_TEST_HOME="$TEST_ROOT/music-home"
+mkdir -p "$MUSIC_TEST_HOME/.config/pyradio/playlists"
+printf 'Radio Nacional,https://radio.example/vivo?token=1\n' \
+  > "$MUSIC_TEST_HOME/.config/pyradio/playlists/argentina.csv"
+
+(
+  export HOME="$MUSIC_TEST_HOME"
+  ps() {
+    if [ "${MOCK_RADIO:-0}" = "1" ]; then
+      printf '/usr/bin/mpv --profile=pyradio https://radio.example/vivo?utm=2\n'
+    fi
+  }
+  mpc() {
+    case "${MOCK_MPD:-stopped}" in
+      playing) printf 'Spinetta - Bajan\n[playing] #1/5   0:42/3:25 (20%%)\nvolume: 100%%\n' ;;
+      paused)  printf 'Charly - Nos siguen pegando abajo\n[paused]  #2/5   1:10/3:15 (35%%)\nvolume: 100%%\n' ;;
+      *)       printf 'volume: 100%%   repeat: off   random: off\n' ;;
+    esac
+  }
+  playerctl() {
+    case "$*" in
+      -l)
+        [ -n "${MOCK_MPRIS:-}" ] && printf '%s\n' "$MOCK_MPRIS"
+        ;;
+      "-p ncspot status")
+        printf 'Playing\n'
+        ;;
+      "-p ncspot metadata artist")
+        printf 'Soda Stereo\n'
+        ;;
+      "-p ncspot metadata title")
+        printf 'Zoom\n'
+        ;;
+    esac
+  }
+  export -f ps mpc playerctl
+
+  out_radio="$(MOCK_RADIO=1 bash "$ROOT_DIR/home/.local/bin/waybar-music")"
+  [ "$out_radio" = "󰠃  Radio Nacional" ] || fail "waybar-music no detectó radio activa ($out_radio)"
+
+  out_mpd="$(MOCK_MPD=playing bash "$ROOT_DIR/home/.local/bin/waybar-music")"
+  [ "$out_mpd" = "󰎈  Spinetta - Bajan" ] || fail "waybar-music no detectó MPD reproduciendo ($out_mpd)"
+
+  out_mpris="$(MOCK_MPRIS=ncspot bash "$ROOT_DIR/home/.local/bin/waybar-music")"
+  [ "$out_mpris" = "󰓇  Soda Stereo - Zoom" ] || fail "waybar-music no detectó reproductor MPRIS ($out_mpris)"
+
+  out_paused="$(MOCK_MPD=paused bash "$ROOT_DIR/home/.local/bin/waybar-music")"
+  [ "$out_paused" = "󰏤  Charly - Nos siguen pegando abajo" ] || fail "waybar-music no detectó MPD en pausa ($out_paused)"
+)
+ok "waybar-music detecta radio, MPD (playing/paused) y MPRIS sin subprocesos extra"
+
+(
+  FOOT_CALLS="$TEST_ROOT/foot-calls"
+  FLOAT_BIN="$TEST_ROOT/float-bin"
+  mkdir -p "$FLOAT_BIN"
+  cat > "$FLOAT_BIN/foot" <<'EOF'
+#!/usr/bin/env bash
+printf '%s %s\n' "$1" "$2" >> "$FOOT_CALLS"
+EOF
+  for tool in pulsemixer bluetui impala; do
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$FLOAT_BIN/$tool"
+  done
+  chmod +x "$FLOAT_BIN"/*
+
+  pkill() {
+    [ "${MOCK_OPEN:-0}" = "1" ]
+  }
+  export PATH="$FLOAT_BIN:$PATH"
+  export FOOT_CALLS
+  export -f pkill
+
+  for script in audio-menu bluetooth-menu network-menu battery-menu; do
+    MOCK_OPEN=1 bash "$ROOT_DIR/home/.local/bin/$script"
+  done
+  [ ! -e "$FOOT_CALLS" ] || fail "los menús flotantes abrieron otra ventana cuando ya estaban abiertos"
+
+  for script in audio-menu bluetooth-menu network-menu battery-menu; do
+    MOCK_OPEN=0 bash "$ROOT_DIR/home/.local/bin/$script"
+  done
+  [ "$(wc -l < "$FOOT_CALLS")" -eq 4 ] || fail "los menús flotantes no abrieron foot cuando estaban cerrados"
+)
+ok "menús flotantes (audio, bluetooth, red, batería) alternan apertura y cierre"
+
 printf 'Pruebas de scripts UI: OK\n'

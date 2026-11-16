@@ -28,12 +28,19 @@ shorten() {
 }
 
 music_player() {
-  local player paused_player status
+  local allow_mpv="${1:-1}"
+  local player lower paused_player="" status
 
   command -v playerctl >/dev/null 2>&1 || return 1
 
   while IFS= read -r player; do
     [ -n "$player" ] || continue
+    lower="${player,,}"
+    case "$lower" in
+      *ncspot*|*spotify*|*firefox*) ;;
+      *mpv*) [ "$allow_mpv" = "1" ] || continue ;;
+      *) continue ;;
+    esac
 
     status="$(playerctl -p "$player" status 2>/dev/null || true)"
     if [ "$status" = "Playing" ]; then
@@ -44,36 +51,48 @@ music_player() {
     if [ -z "$paused_player" ] && [ "$status" = "Paused" ]; then
       paused_player="$player"
     fi
-  done < <(playerctl -l 2>/dev/null | grep -Ei 'ncspot|spotify|firefox|mpv')
+  done < <(playerctl -l 2>/dev/null)
 
   [ -n "$paused_player" ] || return 1
   printf "%s\n" "$paused_player"
 }
 
-mpd_state() {
-  mpc status 2>/dev/null | sed -n '2p' | awk '{print $1}' | tr -d '[]'
-}
+read_mpd_status() {
+  local raw line1="" line2="" token=""
+  mpd_song=""
+  mpd_state=""
 
-mpd_song() {
-  mpc status 2>/dev/null | sed -n '1p'
+  raw="$(mpc status 2>/dev/null || true)"
+  [ -n "$raw" ] || return 0
+
+  {
+    IFS= read -r line1 || true
+    IFS= read -r line2 || true
+  } <<< "$raw"
+
+  mpd_song="$line1"
+  if [ -n "$line2" ]; then
+    token="${line2%% *}"
+    token="${token#\[}"
+    mpd_state="${token%\]}"
+  fi
 }
 
 active_source() {
-  local player status state song
+  local player status mpd_song mpd_state
 
   if current_radio >/dev/null; then
     printf 'radio\n'
     return
   fi
 
-  state="$(mpd_state)"
-  song="$(mpd_song)"
-  if [ "$state" = "playing" ] && [ -n "$song" ]; then
+  read_mpd_status
+  if [ "$mpd_state" = "playing" ] && [ -n "$mpd_song" ]; then
     printf 'mpd\n'
     return
   fi
 
-  player="$(music_player || true)"
+  player="$(music_player 1 || true)"
   if [ -n "$player" ]; then
     status="$(playerctl -p "$player" status 2>/dev/null || true)"
     if [ "$status" = "Playing" ]; then
@@ -82,7 +101,7 @@ active_source() {
     fi
   fi
 
-  if [ "$state" = "paused" ] && [ -n "$song" ]; then
+  if [ "$mpd_state" = "paused" ] && [ -n "$mpd_song" ]; then
     printf 'mpd\n'
     return
   fi
@@ -390,10 +409,11 @@ control_active() {
 }
 
 normalize_url() {
-  printf '%s\n' "$1" \
-    | sed 's/&amp;/\&/g' \
-    | sed 's/[?].*$//' \
-    | sed 's#/$##'
+  local u="$1"
+  u="${u//&amp;/&}"
+  u="${u%%\?*}"
+  u="${u%/}"
+  printf '%s\n' "$u"
 }
 
 radio_from_url() {
@@ -436,19 +456,22 @@ radio_from_url() {
 }
 
 current_radio() {
-  local line url station
+  local line token url="" station
 
-  line="$(ps -eo args | grep -E '(^| )mpv .*--profile=pyradio' | grep -v grep | head -n1 || true)"
-  [ -n "$line" ] || return 1
-
-  url="$(printf '%s\n' "$line" | awk '{
-    for (i=1; i<=NF; i++) {
-      if ($i ~ /^https?:\/\//) {
-        print $i
-        exit
-      }
-    }
-  }')"
+  while IFS= read -r line; do
+    case " $line" in
+      *" mpv "*--profile=pyradio*|*/mpv\ *--profile=pyradio*)
+        for token in $line; do
+          case "$token" in
+            http://*|https://*)
+              url="$token"
+              break 2
+              ;;
+          esac
+        done
+        ;;
+    esac
+  done < <(ps -eo args= 2>/dev/null)
 
   [ -n "$url" ] || return 1
 
@@ -463,7 +486,7 @@ current_radio() {
 }
 
 current_song() {
-  local mpd_status mpd_song mpd_state
+  local mpd_song mpd_state
   local player status artist title song
 
   # 0) PyRadio / mpv
@@ -471,9 +494,7 @@ current_song() {
     return
   fi
 
-  mpd_status="$(mpc status 2>/dev/null || true)"
-  mpd_song="$(printf '%s\n' "$mpd_status" | sed -n '1p')"
-  mpd_state="$(printf '%s\n' "$mpd_status" | sed -n '2p' | awk '{print $1}' | tr -d '[]')"
+  read_mpd_status
 
   # 1) MPD / ncmpcpp reproduciendo
   if [ "$mpd_state" = "playing" ] && [ -n "$mpd_song" ]; then
@@ -484,7 +505,7 @@ current_song() {
 
   # 2) ncspot / Spotify / Firefox reproduciendo o pausado
   if command -v playerctl >/dev/null 2>&1; then
-    player="$(music_player | grep -Ei 'ncspot|spotify|firefox' | head -n1 || true)"
+    player="$(music_player 0 || true)"
 
     if [ -n "$player" ]; then
       status="$(playerctl -p "$player" status 2>/dev/null || true)"

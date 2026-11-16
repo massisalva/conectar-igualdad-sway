@@ -30,11 +30,11 @@ comparar `app_id`, por eso las reglas deben estar ancladas con `^...$`.
 
 - `foot-term` y `foot` van a `1:term`.
 - `firefox` va a `2:web`.
-- `foot-music-*` va a `3:music`.
+- `foot-music-*` y `foot-streamrip` van a `3:music`.
 - `foot-files` y `thunar` van a `4:files`.
 - `foot-system` va a `5:system`.
 
-Los launchers de ncmpcpp, ncspot, PyRadio, Yazi y el gestor de discos abren
+Los launchers de ncmpcpp, ncspot, PyRadio, Streamrip, Yazi y el gestor de discos abren
 foot con el `app_id` correspondiente para que fuzzel no dependa del escritorio
 actual. Evitar rutas absolutas al usuario en archivos `.desktop`; usar binarios
 de `/usr/bin` cuando sea posible.
@@ -61,6 +61,7 @@ Una reproducción pausada no impide la suspensión.
 
 Waybar prioriza estado útil sin ruido visual:
 
+- lanzador con el icono de Arch (abre/cierra Fuzzel con click y atajos con click derecho);
 - música activa;
 - reloj;
 - Caps Lock solo cuando está activo;
@@ -83,7 +84,8 @@ funciones:
 
 `restore.sh` copia `home/` sobre `$HOME`, ajusta permisos de scripts y prepara
 directorios esperados. Las piezas de sistema se instalan solo con flags
-explícitos: `--polkit`, `--bootloader`, `--sshd` y `--nftables`.
+explícitos: `--polkit`, `--bootloader`, `--sshd`, `--nftables`, `--iwd`,
+`--sysctl`, `--zram` y `--samba`.
 
 `check.sh` valida que lo versionado y lo instalado coincidan. Para archivos de
 sistema protegidos, usar `./check.sh --system --sudo`.

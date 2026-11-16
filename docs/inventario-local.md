@@ -73,8 +73,8 @@ con click y muestra el calendario del mes al pasar el cursor.
 - Instalado con `uv tool install --python 3.12 streamrip`: versión 2.1.0 en un entorno aislado. FFmpeg ya estaba disponible.
 - Configuración local: `~/.config/streamrip/config.toml`, permisos `600`. La cookie ARL de Deezer no se versiona; el directorio está excluido en `.gitignore`.
 - Deezer usa `quality = 1` (MP3 a 320 kbps) y `use_deezloader = false`, con la cuenta propia. El FLAC descargado antes de este ajuste se conserva.
-- Descargas en `~/Música/streamrip`, con `source_subdirectories = true`. MPD indexa `~/Música` y ncmpcpp usa esa misma ruta.
-- `~/.local/bin/streamrip-menu` ofrece descarga por enlace (`deezer.com` y `deezer.page.link`), búsqueda de canciones, álbumes, artistas y playlists, opción para forzar re-descarga ignorando el historial (`--no-db`), acceso a ncmpcpp y actualización manual de MPD.
+- Descargas en `~/Música/streamrip`, con `source_subdirectories = true`, `add_singles_to_folder = true` y `folder_format = "{albumartist} - {title} ({year})"`. MPD indexa `~/Música` y ncmpcpp usa esa misma ruta.
+- `~/.local/bin/streamrip-menu` ofrece descarga por enlace (`deezer.com`, `deezer.page.link` y resolución con `curl` de enlaces cortos `link.deezer.com/s/...`), búsqueda de canciones, álbumes, artistas y playlists, opción para forzar re-descarga ignorando el historial (`--no-db`), acceso a ncmpcpp y actualización manual de MPD.
 - Al terminar una operación de descarga, incluso con errores parciales, intenta actualizar MPD con `mpc update --wait` y notifica el resultado por Mako.
 - `rip` figura en `docs/local-bin-keep.txt` para que `restore.sh --prune` y `check.sh` lo preserven como ejecutable externo legítimo; `check.sh` valida que `~/.config/streamrip/config.toml` conserve permisos `600`.
 - El acceso `streamrip.desktop` abre el menú en Foot con `app_id=foot-streamrip`. Sway lo asigna a `3:music` y enfoca la ventana al abrirla.

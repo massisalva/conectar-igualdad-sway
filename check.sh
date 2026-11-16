@@ -258,6 +258,18 @@ check_user_files() {
       fi
     fi
   done < <(find "$ROOT_DIR/home/.local/share/applications" -type f -name '*.desktop' -printf 'home/.local/share/applications/%P\n' | sort)
+
+  if [ -d "$ROOT_DIR/home/.local/share/icons" ]; then
+    while IFS= read -r rel; do
+      check_same_file "$ROOT_DIR/$rel" "$HOME/${rel#home/}"
+    done < <(find "$ROOT_DIR/home/.local/share/icons" -type f -printf 'home/.local/share/icons/%P\n' | sort)
+  fi
+
+  if [ -d "$ROOT_DIR/home/Imágenes" ]; then
+    while IFS= read -r rel; do
+      check_same_file "$ROOT_DIR/$rel" "$HOME/${rel#home/}"
+    done < <(find "$ROOT_DIR/home/Imágenes" -type f -printf 'home/Imágenes/%P\n' | sort)
+  fi
 }
 
 check_polkit() {
@@ -981,7 +993,7 @@ check_system_health() {
 
 check_core_commands() {
   local cmd
-  for cmd in sway waybar foot fuzzel mako yazi ya thunar wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send python lsblk impala iwctl btop ncspot pyradio; do
+  for cmd in sway waybar foot fuzzel mako yazi ya thunar wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send python lsblk impala iwctl btop ncspot pyradio curl grim slurp cliphist wlsunset swaylock swayidle pulsemixer bluetui; do
     check_cmd "$cmd"
   done
 }

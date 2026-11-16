@@ -41,6 +41,16 @@ run = "cd ~/Proyectos"
 desc = "Go projects"
 
 [[mgr.prepend_keymap]]
+on = [ "g", "m" ]
+run = "cd ~/Música"
+desc = "Go music"
+
+[[mgr.prepend_keymap]]
+on = [ "g", "s" ]
+run = "cd ~/Compartido"
+desc = "Go shared folder"
+
+[[mgr.prepend_keymap]]
 on = [ "g", "t" ]
 run = "cd ~/.local/share/Trash/files"
 desc = "Go trash"
