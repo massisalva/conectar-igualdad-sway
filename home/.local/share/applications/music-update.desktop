@@ -6,5 +6,6 @@ Comment=Actualiza la biblioteca local de MPD
 Exec=music-update
 Icon=mpd
 Terminal=false
+NoDisplay=true
 Categories=Audio;AudioVideo;
 Keywords=music;mpd;update;musica;

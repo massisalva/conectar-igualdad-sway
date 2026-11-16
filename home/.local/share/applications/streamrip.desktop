@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Streamrip
+GenericName=Descargar música de Deezer
+Comment=Buscar y descargar música, y actualizar la biblioteca de MPD
+Exec=foot --app-id foot-streamrip -e streamrip-menu
+Icon=streamrip
+Terminal=false
+Categories=Audio;AudioVideo;
+Keywords=deezer;musica;música;descargar;mp3;

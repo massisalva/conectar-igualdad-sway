@@ -20,3 +20,4 @@ home/.ssh/*
 home/.config/onedrive/refresh_token
 home/.config/onedrive/items.sqlite3*
 home/.config/onedrive/*.log
+home/.config/streamrip/

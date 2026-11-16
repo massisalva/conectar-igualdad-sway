@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+set -u
+export PATH="$HOME/.local/bin:$PATH"
+
+pause_menu() {
+    read -r -p $'\nEnter para volver al menú… ' _ || true
+}
+
+if ! command -v rip >/dev/null 2>&1; then
+    printf 'No se encontró streamrip (rip).\n'
+    pause_menu
+    exit 1
+fi
+
+while true; do
+    printf '\n── Streamrip · Deezer ──\n\n'
+    printf '1) Descargar desde un enlace\n2) Buscar canciones\n3) Buscar álbumes\n4) Buscar artistas\n5) Buscar playlists\n6) Escuchar en ncmpcpp\n7) Actualizar biblioteca de música\n0) Salir\n\n'
+    read -r -p 'Elegí una opción: ' option || exit 0
+    case "$option" in
+        0) exit 0 ;;
+        1)
+            read -r -p 'Pegá el enlace de Deezer: ' query || exit 0
+            [ -n "$query" ] || continue
+            if [[ ! "$query" =~ ^https://([[:alnum:]-]+\.)*deezer\.com/ ]]; then
+                printf 'Usá un enlace https de Deezer.\n'
+                pause_menu
+                continue
+            fi
+            rip url "$query"
+            result=$?
+            ;;
+        2|3|4|5)
+            case "$option" in
+                2) media=track ;; 3) media=album ;;
+                4) media=artist ;; 5) media=playlist ;;
+            esac
+            read -r -p 'Nombre o artista a buscar: ' query || exit 0
+            [ -n "$query" ] || continue
+            rip search deezer "$media" -- "$query"
+            result=$?
+            ;;
+        6) ncmpcpp; continue ;;
+        7) mpc update --wait; pause_menu; continue ;;
+        *) printf 'Elegí una de las opciones del menú.\n'; continue ;;
+    esac
+    if [ "$result" -ne 0 ]; then
+        printf '\nStreamrip terminó con un error; revisá el mensaje de arriba.\n'
+    fi
+    # También indexar descargas parciales si alguna pista falló.
+    if ! mpc update --wait; then
+        printf '\nNo se pudo actualizar MPD. Podés reintentar con la opción 7.\n'
+    fi
+    pause_menu
+done

@@ -197,6 +197,9 @@ puertos TCP en escucha y el estado SMART del disco raíz.
 
 ## Notas de uso
 
+- Streamrip ofrece un menú de descargas de Deezer desde el lanzador y abre en
+  `3:music`. La instalación con uv, MP3 a 320 kbps y recuperación de la
+  configuración se documentan en [docs/streamrip.md](docs/streamrip.md).
 - La configuración de OneDrive limita la sincronización a `02 - Linux`, pero no
   guarda credenciales. La cuenta se vincula ejecutando `onedrive` y el servicio
   se habilita con `systemctl --user enable --now onedrive.service`.

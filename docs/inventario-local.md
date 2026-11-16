@@ -35,7 +35,7 @@ Categorías:
 
 - 1:term: terminales generales (`foot`, `foot-term`).
 - 2:web: navegador (`firefox`).
-- 3:music: reproductores (`foot-music`, `foot-music-ncmpcpp`, `foot-music-ncspot`, `foot-music-pyradio`).
+- 3:music: reproductores y descargas (`foot-music`, `foot-music-ncmpcpp`, `foot-music-ncspot`, `foot-music-pyradio`, `foot-streamrip`).
 - 4:files: archivos (`foot-files` con Yazi y `thunar`).
 - 5:system: monitoreo y sistema (`foot-system` con btop).
 - 6-10: reserva para chat, media, trabajo, laboratorio o uso temporal.
@@ -66,6 +66,20 @@ El reloj nativo usa formato localizado en español, alterna la fecha completa
 con click y muestra el calendario del mes al pasar el cursor.
 
 ## Música
+
+### Streamrip (2026-11-15)
+
+- Instalado con `uv tool install --python 3.12 streamrip`: versión 2.1.0 en un entorno aislado. FFmpeg ya estaba disponible.
+- Configuración local: `~/.config/streamrip/config.toml`, permisos `600`. La cookie ARL de Deezer no se versiona; el directorio está excluido en `.gitignore`.
+- Deezer usa `quality = 1` (MP3 a 320 kbps) y `use_deezloader = false`, con la cuenta propia. El FLAC descargado antes de este ajuste se conserva.
+- Descargas en `~/Música/streamrip`, con `source_subdirectories = true`. MPD indexa `~/Música` y ncmpcpp usa esa misma ruta.
+- `~/.local/bin/streamrip-menu` ofrece descarga por enlace, búsqueda de canciones, álbumes, artistas y playlists, acceso a ncmpcpp y actualización manual de MPD.
+- Al terminar una operación de descarga, incluso con errores parciales, intenta actualizar MPD con `mpc update --wait`.
+- El acceso `streamrip.desktop` abre el menú en Foot con `app_id=foot-streamrip`. Sway lo asigna a `3:music` y enfoca la ventana al abrirla.
+- Icono SVG propio en `~/.local/share/icons/hicolor/scalable/apps/streamrip.svg`, con ondas de audio, flecha de descarga y paleta Catppuccin.
+- Para reconstruir la configuración y vincular la cuenta, ver [streamrip.md](streamrip.md). La restauración de dotfiles no instala herramientas de uv ni restaura credenciales.
+
+### Reproductores
 
 Script:
 
@@ -414,6 +428,7 @@ Estado:
 - Las entradas locales de MPD (`ncmpcpp` y `Actualizar música`) usan el icono `mpd`.
 - Hay overrides locales `NoDisplay=true` para utilidades, duplicados y helpers que no conviene mostrar en el lanzador.
 - Los overrides locales de `.desktop` se versionan porque definen el resultado visible de fuzzel.
+- Desde el 2026-11-15 se ocultan con `NoDisplay=true` los accesos `libreoffice-startcenter.desktop`, `xfce4-about.desktop` y `music-update.desktop`. Los programas siguen instalados; Writer, Calc, Impress y Draw conservan sus accesos. `music-update` sigue disponible por terminal.
 
 ## Bootloader
 
