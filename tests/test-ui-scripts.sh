@@ -152,8 +152,15 @@ rip() {
 mpc() {
   printf '%s\n' "$*" >> "$MPC_CALL_FILE"
 }
+# Simula las redirecciones de los enlaces cortos de Deezer.
+curl() {
+  case "${!#}" in
+    https://link.deezer.com/s/okLINK) printf '%s' 'https://www.deezer.com/es/album/789?host=1&utm_source=x' ;;
+    *) printf '%s' 'https://www.deezer.com/deezer-links-404' ;;
+  esac
+}
 export RIP_CALL_FILE MPC_CALL_FILE
-export -f rip mpc
+export -f rip mpc curl
 
 printf '%s\n' \
   '1' \
@@ -164,6 +171,12 @@ printf '%s\n' \
   '' \
   '1' \
   'https://deezer.page.link/abc123XYZ' \
+  '' \
+  '1' \
+  'https://link.deezer.com/s/okLINK' \
+  '' \
+  '1' \
+  'https://link.deezer.com/s/roto' \
   '' \
   '8' \
   '2' \
@@ -177,10 +190,14 @@ grep -Fxq 'url https://www.deezer.com/album/456' "$RIP_CALL_FILE" || \
   fail "streamrip-menu no recortó espacios ni descargó enlace de deezer.com"
 grep -Fxq 'url https://deezer.page.link/abc123XYZ' "$RIP_CALL_FILE" || \
   fail "streamrip-menu no aceptó enlace corto deezer.page.link"
+grep -Fxq 'url https://www.deezer.com/es/album/789' "$RIP_CALL_FILE" || \
+  fail "streamrip-menu no resolvió el enlace corto link.deezer.com"
+! grep -Fq 'link.deezer.com' "$RIP_CALL_FILE" && ! grep -Fq 'links-404' "$RIP_CALL_FILE" || \
+  fail "streamrip-menu pasó a rip un enlace corto sin resolver o roto"
 grep -Fxq -- '--no-db search deezer track -- Gustavo Cerati' "$RIP_CALL_FILE" || \
   fail "streamrip-menu no pasó --no-db al activar la opción 8"
-[ "$(grep -Fxc 'update --wait' "$MPC_CALL_FILE")" -eq 3 ] || \
+[ "$(grep -Fxc 'update --wait' "$MPC_CALL_FILE")" -eq 4 ] || \
   fail "streamrip-menu no actualizó MPD tras cada operación de descarga"
-ok "streamrip-menu valida enlaces, recorta espacios, soporta --no-db y actualiza MPD"
+ok "streamrip-menu valida y resuelve enlaces, recorta espacios, soporta --no-db y actualiza MPD"
 
 printf 'Pruebas de scripts UI: OK\n'

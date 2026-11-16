@@ -22,6 +22,27 @@ trim() {
     printf '%s' "$s"
 }
 
+# streamrip 2.1 solo reconoce www/open/play/listen.deezer.com y deezer.page.link.
+# Los enlaces de "Compartir" de Deezer (p. ej. link.deezer.com/s/...) son
+# redirecciones HTTP: se siguen con curl y se deja el enlace canónico sin
+# parámetros de seguimiento.
+resolve_deezer_url() {
+    local url="$1" final
+    if [[ "$url" =~ ^https://((www|open|play|listen)\.)?deezer\.com/ ]] || \
+       [[ "$url" =~ ^https://deezer\.page\.link/ ]]; then
+        printf '%s' "$url"
+        return 0
+    fi
+    final="$(curl -sSL --max-time 15 --max-redirs 10 -o /dev/null \
+        -w '%{url_effective}' "$url")" || return 1
+    final="${final%%\?*}"
+    if [[ "$final" =~ ^https://www\.deezer\.com/([a-z]{2}/)?(album|artist|playlist|track)/[0-9]+$ ]]; then
+        printf '%s' "$final"
+        return 0
+    fi
+    return 1
+}
+
 if ! command -v rip >/dev/null 2>&1; then
     printf 'No se encontró streamrip (rip).\n'
     pause_menu
@@ -54,6 +75,12 @@ while true; do
                 pause_menu
                 continue
             fi
+            if ! resolved="$(resolve_deezer_url "$query")"; then
+                printf 'No se pudo abrir el enlace corto, o no lleva a una canción, álbum, artista o playlist.\n'
+                pause_menu
+                continue
+            fi
+            query="$resolved"
             rip "${rip_args[@]}" url "$query"
             result=$?
             ;;

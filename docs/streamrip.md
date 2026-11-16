@@ -24,6 +24,10 @@ source_subdirectories = true
 quality = 1
 use_deezloader = false
 arl = ""
+
+[filepaths]
+add_singles_to_folder = true
+folder_format = "{albumartist} - {title} ({year})"
 ```
 
 Reemplazar `TU_USUARIO` por el usuario local. Crear la carpeta y proteger el archivo:
@@ -41,7 +45,7 @@ Agregar la cookie `arl` de la propia cuenta directamente en el archivo local sig
 
 ## Uso
 
-Abrir **Super + D → Streamrip**, o ejecutar `streamrip-menu` desde una terminal. El menú recorta espacios al pegar, acepta enlaces de `deezer.com` y `deezer.page.link`, limpia la vista entre operaciones (conservando el scrollback de la terminal), actualiza MPD al terminar las descargas y envía una notificación de escritorio vía Mako.
+Abrir **Super + D → Streamrip**, o ejecutar `streamrip-menu` desde una terminal. El menú recorta espacios al pegar, acepta enlaces de `deezer.com` y `deezer.page.link`, resuelve con `curl` los enlaces cortos de "Compartir" (`link.deezer.com/s/...`) que streamrip no reconoce, limpia la vista entre operaciones (conservando el scrollback de la terminal), actualiza MPD al terminar las descargas y envía una notificación de escritorio vía Mako.
 
 La ventana abierta desde el lanzador va a `3:music`. En ncmpcpp, presionar **2** para explorar la carpeta `streamrip`; **u** actualiza la biblioteca manualmente. MPD y ncmpcpp deben apuntar a `~/Música`.
 
@@ -62,3 +66,19 @@ mpc update
 - Configuración de MP3 a 320 kbps guardada y comprobada.
 - Menú probado por el usuario; sintaxis Bash y archivos desktop validados.
 - Configuración de Sway validada y recargada con las reglas de Streamrip.
+
+## Cambios
+
+### 2026-11-16: enlaces cortos y carpetas por álbum
+
+- **Enlaces `link.deezer.com`:** streamrip 2.1.0 solo reconoce `www|open|play|listen.deezer.com` y `deezer.page.link`. El menú aceptaba cualquier `*.deezer.com` y `rip` fallaba con los enlaces de "Compartir". Ahora `streamrip-menu` sigue la redirección con `curl`, quita los parámetros de seguimiento (`?utm_...`) y solo llama a `rip` si el destino es una canción, álbum, artista o playlist. Si el enlace está roto (Deezer redirige a `/deezer-links-404`), avisa y no descarga.
+- **Carpetas:** `add_singles_to_folder = true` y `folder_format = "{albumartist} - {title} ({year})"`. Las canciones sueltas van a la carpeta de su álbum en lugar de quedar mezcladas, y el nombre ya no lleva `[MP3] [16B-44.1kHz]`. Solo afecta a las descargas nuevas; los archivos anteriores quedan donde estaban.
+- **Copia previa:** `backups/manual-20261116-streamrip/` (no se versiona): `streamrip-menu`, `config.toml` (permisos 600, contiene la cookie) y el commit anterior.
+- **Deshacer:**
+
+  ```sh
+  cd ~/Proyectos/conectar-igualdad-sway
+  git revert "$(git log --format=%h -1 --grep='resolver enlaces cortos de Deezer')"
+  install -m 755 home/.local/bin/streamrip-menu ~/.local/bin/streamrip-menu
+  cp -p backups/manual-20261116-streamrip/config.toml ~/.config/streamrip/config.toml
+  ```
