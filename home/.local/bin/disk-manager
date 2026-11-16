@@ -64,6 +64,19 @@ open_yazi() {
   foot --app-id foot-files -e yazi "$dir"
 }
 
+mounted_path() {
+  local mounts
+  mounts="$(findmnt --json -S "$1" -o TARGET 2>/dev/null)" || return 1
+  # La salida raw de findmnt sustituye espacios por \\x20; JSON permite
+  # recuperar el nombre real, incluyendo espacios y barras invertidas.
+  python -c '
+import json, sys
+mounts = json.load(sys.stdin).get("filesystems") or []
+if mounts:
+    sys.stdout.write(mounts[0].get("target") or "")
+' <<< "$mounts"
+}
+
 add_item() {
   local text="$1"
   local action="$2"
@@ -108,7 +121,7 @@ while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM; do
   LABEL_DISPLAY="${LABEL:-Sin etiqueta}"
   LABEL_DISPLAY="${LABEL_DISPLAY//$'\n'/ }"
   LABEL_DISPLAY="${LABEL_DISPLAY//$'\t'/ }"
-  MOUNTED="$(findmnt -rn -S "$NAME" -o TARGET | head -n1)"
+  MOUNTED="$(mounted_path "$NAME" || true)"
 
   if [ -n "$PKNAME" ]; then
     DISK="$PKNAME"
@@ -201,7 +214,7 @@ case "$ACTION" in
 
   mount_ro)
     if udisksctl mount -b "$DEV" --options ro; then
-      MOUNTED="$(findmnt -rn -S "$DEV" -o TARGET | head -n1)"
+      MOUNTED="$(mounted_path "$DEV" || true)"
       notify_info "Montado solo lectura"
       [ -n "$MOUNTED" ] && open_yazi "$MOUNTED"
     else

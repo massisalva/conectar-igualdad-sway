@@ -66,15 +66,22 @@ Para ver los cambios sobre tu `$HOME` sin escribir archivos:
 ### 2. Restaurar solo el entorno de usuario
 
 Este es el punto de partida más seguro. Copia `home/` sobre tu directorio
-personal, ajusta los permisos de los scripts e instala los complementos de Yazi
-si `ya` ya está disponible:
+personal conservando los permisos de los directorios existentes, ajusta los
+permisos de los scripts e instala los complementos de Yazi si `ya` ya está
+disponible:
 
 ```sh
 ./restore.sh
 ```
 
-Cada archivo reemplazado se guarda antes en `backups/restore-*`. Al terminar,
-podés comprobar el resultado con:
+Si MPD está instalado, la restauración también ejecuta
+`systemctl --user enable --now mpd.service` para dejar disponible la biblioteca
+musical en una cuenta nueva. Si instalaste MPD por separado después de restaurar,
+ejecutá ese comando manualmente.
+
+Cada archivo reemplazado se guarda antes en `backups/restore-*`. También se
+respaldan los archivos cuyos permisos se ajustan y el modo previo de `~/.ssh`.
+Al terminar, podés comprobar el resultado con:
 
 ```sh
 ./check.sh
@@ -185,6 +192,14 @@ La comprobación habitual es:
 Además de comparar los archivos activos con el repositorio, valida scripts,
 JSON de Waybar, dependencias, procesos duplicados, paquetes huérfanos y las
 pruebas automatizadas.
+
+Para probar además el selector de fondos con el parser real de Sway, hay una
+prueba opcional que inicia un compositor sin pantalla y usa archivos y sockets
+temporales, sin conectarse a la sesión actual:
+
+```sh
+python tests/test-wallpaper-sway.py
+```
 
 Para incluir archivos protegidos y el estado efectivo de servicios del sistema:
 

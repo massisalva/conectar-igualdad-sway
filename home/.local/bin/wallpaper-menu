@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -u
+set -euo pipefail
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
@@ -59,13 +59,30 @@ if [ "$index" -lt 0 ] || [ "$index" -ge "${#wallpapers[@]}" ]; then
 fi
 
 wallpaper="${wallpapers[$index]}"
-escaped_wallpaper="${wallpaper//\\/\\\\}"
-escaped_wallpaper="${escaped_wallpaper//\"/\\\"}"
-new_line="output * bg \"$escaped_wallpaper\" fill"
+# Sway interpreta comandos y luego expande la ruta del fondo con wordexp.
+# Un enlace con nombre fijo evita pasar nombres de archivo a ambos parsers.
+wallpaper="$(realpath -e -- "$wallpaper")"
+wallpaper_link="$HOME/.local/share/sway/wallpaper"
+new_line='output * bg ~/.local/share/sway/wallpaper fill'
 mkdir -p "$(dirname "$wallpaper_config")"
 # El temporal no puede terminar en .conf: Sway incluye config.d/*.conf.
 temporary_config="$(mktemp "${wallpaper_config%.conf}.XXXXXX")" || exit 1
-trap 'rm -f "$temporary_config"' EXIT
+temporary_links=""
+link_replaced=0
+had_link=0
+cleanup() {
+  if [ "$link_replaced" -eq 1 ]; then
+    if [ "$had_link" -eq 1 ]; then
+      # Conservar el respaldo si no puede recuperarse el enlace anterior.
+      mv -fT -- "$temporary_links/previous" "$wallpaper_link" || return 1
+    else
+      rm -f -- "$wallpaper_link"
+    fi
+  fi
+  rm -f -- "$temporary_config"
+  [ -z "$temporary_links" ] || rm -rf -- "$temporary_links"
+}
+trap cleanup EXIT
 {
   printf '%s\n' '# Fondo elegido con wallpaper-menu (Mod+Ctrl+W). Archivo local: no se versiona.'
   printf '%s\n' '# Borrarlo vuelve al fondo predeterminado de 20-appearance.conf.'
@@ -73,11 +90,22 @@ trap 'rm -f "$temporary_config"' EXIT
 } > "$temporary_config"
 chmod 644 "$temporary_config"
 
-if ! swaymsg output '*' bg "$wallpaper" fill >/dev/null; then
+mkdir -p "$(dirname "$wallpaper_link")"
+temporary_links="$(mktemp -d "$(dirname "$wallpaper_link")/.wallpaper.XXXXXX")"
+if [ -e "$wallpaper_link" ] || [ -L "$wallpaper_link" ]; then
+  cp -a -- "$wallpaper_link" "$temporary_links/previous"
+  had_link=1
+fi
+ln -s -- "$wallpaper" "$temporary_links/next"
+mv -fT -- "$temporary_links/next" "$wallpaper_link"
+link_replaced=1
+if ! swaymsg "$new_line" >/dev/null; then
   notify_info "Sway no pudo aplicar el fondo"
   exit 1
 fi
 
 mv "$temporary_config" "$wallpaper_config"
+link_replaced=0
+cleanup
 trap - EXIT
 notify_info "Aplicado: $(basename "$wallpaper")"

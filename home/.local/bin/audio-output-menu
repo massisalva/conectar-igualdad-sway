@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+export LC_ALL=C
 
 notify() {
   if command -v notify-send >/dev/null 2>&1; then
@@ -8,7 +9,7 @@ notify() {
   fi
 }
 
-for cmd in pactl wpctl fuzzel; do
+for cmd in pactl fuzzel; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     notify "No encontré $cmd"
     exit 1
@@ -66,8 +67,18 @@ case "$selected_id" in
   ''|*[!0-9]*) exit 1 ;;
 esac
 
-wpctl set-default "$selected_id"
+# Los índices de PulseAudio no son los IDs de nodo que espera wpctl.
+# Resolver el nombre desde nuestra lista evita mezclar ambas APIs.
+selected_name=""
+for line in "${sinks[@]}"; do
+  if [ "${line%%$'\t'*}" = "$selected_id" ]; then
+    selected_name="${line#*$'\t'}"
+    break
+  fi
+done
+[ -n "$selected_name" ] || exit 1
+pactl set-default-sink "$selected_name"
 
 clean_choice="${choice#*] }"
-clean_choice="${clean_choice%  [actual]}"
+clean_choice="${clean_choice%"  [actual]"}"
 notify "Salida seleccionada: $clean_choice"

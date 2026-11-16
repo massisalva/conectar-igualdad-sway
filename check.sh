@@ -950,26 +950,36 @@ check_project_tests() {
 check_system_health() {
   [ "$STRICT_SYSTEM" -eq 1 ] || return 0
 
-  local failed journal_errors root_source root_disk smart_output listeners
-  failed="$(systemctl --failed --no-legend --plain 2>/dev/null | sed '/^[[:space:]]*$/d' | wc -l)"
-  if [ "$failed" -eq 0 ]; then
-    ok "sin unidades de sistema fallidas"
+  local failed failed_units journal_errors journal_output root_source root_disk smart_output listeners
+  if failed_units="$(systemctl --failed --no-legend --plain 2>/dev/null)"; then
+    failed="$(printf '%s\n' "$failed_units" | sed '/^[[:space:]]*$/d' | wc -l)"
+    if [ "$failed" -eq 0 ]; then
+      ok "sin unidades de sistema fallidas"
+    else
+      fail "$failed unidades de sistema fallidas"
+      printf '%s\n' "$failed_units"
+    fi
   else
-    fail "$failed unidades de sistema fallidas"
-    systemctl --failed --no-pager || true
+    fail "no pude consultar las unidades de sistema fallidas"
   fi
 
   # JSON emite un registro por línea; la salida humana puede incluir stacks
   # multilínea y exagerar el número real de eventos.
-  journal_errors="$(journalctl -b -p err --no-pager -q -o json 2>/dev/null | wc -l)"
-  if [ "$journal_errors" -eq 0 ]; then
-    ok "journal del arranque sin errores"
+  # Sin privilegios, journalctl puede devolver éxito con una vista parcial.
+  if ! sudo_check true; then
+    fail "no puedo verificar el journal completo $(sudo_check_label)"
+  elif journal_output="$(sudo_check journalctl -b -p err --no-pager -q -o json)"; then
+    journal_errors="$(printf '%s\n' "$journal_output" | sed '/^[[:space:]]*$/d' | wc -l)"
+    if [ "$journal_errors" -eq 0 ]; then
+      ok "journal del arranque sin errores"
+    else
+      warn "$journal_errors entradas de error en el journal del arranque"
+    fi
   else
-    warn "$journal_errors entradas de error en el journal del arranque"
+    fail "no pude consultar el journal del arranque"
   fi
 
-  listeners="$(ss -lntH 2>/dev/null | awk '{print $4}' | sort -u | tr '\n' ' ')"
-  if [ -n "$listeners" ]; then
+  if listeners="$(ss -lntH 2>/dev/null | awk '{print $4}' | sort -u | tr '\n' ' ')" && [ -n "$listeners" ]; then
     ok "puertos TCP en escucha inventariados: $listeners"
   else
     warn "no pude inventariar puertos TCP en escucha"
@@ -993,10 +1003,15 @@ check_system_health() {
 
 check_core_commands() {
   local cmd
-  for cmd in sway waybar foot fuzzel mako yazi ya thunar wl-copy rg fd mpv playerctl udisksctl brightnessctl wpctl notify-send python lsblk impala iwctl btop ncspot pyradio curl grim slurp cliphist wlsunset swaylock swayidle pulsemixer bluetui; do
+  for cmd in sway waybar foot fuzzel mako yazi ya thunar wl-copy rg fd mpv playerctl udisksctl brightnessctl pactl wpctl notify-send python lsblk impala iwctl btop ncspot pyradio curl grim slurp cliphist wlsunset swaylock swayidle pulsemixer bluetui; do
     check_cmd "$cmd"
   done
 }
+
+# Las pruebas pueden cargar las funciones sin ejecutar los checks del equipo.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
 
 while [ "$#" -gt 0 ]; do
   case "$1" in

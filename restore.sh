@@ -32,6 +32,7 @@ Uso: ./restore.sh [opciones]
 Por defecto:
   - Copia home/ sobre $HOME.
   - Ajusta permisos de ~/.local/bin.
+  - Habilita e inicia MPD si está instalado y systemctl está disponible.
   - Instala paquetes/plugins de Yazi si ya está disponible `ya`.
 
 Opciones:
@@ -82,6 +83,7 @@ ensure_backup_dir() {
 
   BACKUP_DIR="$BACKUP_ROOT/restore-$(date +%Y%m%d-%H%M%S-%N)-$$"
   log "Backup previo: $BACKUP_DIR"
+  run install -d -m700 "$BACKUP_DIR"
   run mkdir -p "$BACKUP_DIR/files"
 }
 
@@ -150,6 +152,21 @@ backup_target() {
   fi
 }
 
+backup_directory_mode() {
+  local target="$1" mode
+
+  [ "$BACKUP_ENABLED" -eq 1 ] || return 0
+  [ -z "${BACKED_UP[$target]:-}" ] || return 0
+  BACKED_UP[$target]=1
+  ensure_backup_dir
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '+ backup-directory-mode %q\n' "$target"
+  else
+    mode="$(stat -Lc '%a' -- "$target")"
+    printf 'directory-mode:%s\t%s\n' "$mode" "$target" >> "$BACKUP_DIR/manifest.tsv"
+  fi
+}
+
 rollback_backup() {
   local dir="$1"
   local manifest="$dir/manifest.tsv"
@@ -187,6 +204,19 @@ rollback_backup() {
           run sudo rm -f "$target"
         else
           run rm -f "$target"
+        fi
+        ;;
+      directory-mode:*)
+        local mode="${state#directory-mode:}"
+        if [[ ! "$mode" =~ ^[0-7]{3,4}$ ]] || [ ! -d "$target" ]; then
+          log "Modo o directorio inválido en el manifiesto: $target"
+          return 1
+        fi
+        log "Restaurando permisos de $target"
+        if is_system_path "$target"; then
+          run sudo chmod "$mode" -- "$target"
+        else
+          run chmod "$mode" -- "$target"
         fi
         ;;
       *)
@@ -258,7 +288,14 @@ restore_user_files() {
 
   log "Restaurando archivos de usuario"
   run mkdir -p "$HOME"
-  run cp -a "$source/." "$HOME/"
+  # Copiar el árbol con cp -a también impondría los permisos de sus
+  # directorios sobre HOME/.config/etc. Solo reemplazamos archivos y enlaces.
+  while IFS= read -r -d '' source_file; do
+    rel="${source_file#"$source/"}"
+    target="$HOME/$rel"
+    run mkdir -p "$(dirname "$target")"
+    run cp -aT --remove-destination -- "$source_file" "$target"
+  done < <(find "$source" -path "$source/.cache" -prune -o \( -type f -o -type l \) -print0 | sort -z)
 
   if [ "$DRY_RUN" -eq 1 ] && [ -d "$source/.local/bin" ]; then
     log "Ajustando permisos ejecutables en ~/.local/bin"
@@ -267,13 +304,17 @@ restore_user_files() {
     done < <(find "$source/.local/bin" -maxdepth 1 -type f | sort)
   elif [ -d "$HOME/.local/bin" ]; then
     log "Ajustando permisos ejecutables en ~/.local/bin"
-    find "$HOME/.local/bin" -maxdepth 1 -type f -exec chmod +x {} +
+    while IFS= read -r -d '' source_file; do
+      run chmod +x "$HOME/.local/bin/$(basename "$source_file")"
+    done < <(find "$source/.local/bin" -maxdepth 1 -type f -print0)
   fi
 
   if [ -d "$HOME/.ssh" ]; then
     log "Ajustando permisos de ~/.ssh"
+    backup_directory_mode "$HOME/.ssh"
     run chmod 700 "$HOME/.ssh"
     if [ -f "$HOME/.ssh/authorized_keys" ]; then
+      backup_target "$HOME/.ssh/authorized_keys"
       run chmod 600 "$HOME/.ssh/authorized_keys"
     fi
   fi
@@ -291,12 +332,17 @@ restore_user_files() {
 
   if [ -f "$HOME/.config/streamrip/config.toml" ]; then
     log "Ajustando permisos de ~/.config/streamrip/config.toml"
+    backup_target "$HOME/.config/streamrip/config.toml"
     run chmod 600 "$HOME/.config/streamrip/config.toml"
   fi
 
   if [ -d "$source/.config/systemd/user" ] && command -v systemctl >/dev/null 2>&1; then
     log "Recargando units de systemd de usuario"
     run systemctl --user daemon-reload
+    if command -v mpd >/dev/null 2>&1; then
+      log "Habilitando e iniciando MPD"
+      run systemctl --user enable --now mpd.service
+    fi
   fi
 
   if command -v gsettings >/dev/null 2>&1; then

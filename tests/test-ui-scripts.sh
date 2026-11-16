@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d)"
-CALL_FILE="$TEST_ROOT/wpctl-call"
+CALL_FILE="$TEST_ROOT/audio-call"
 export CALL_FILE
 
 cleanup() {
@@ -30,6 +30,44 @@ disk_json="$(bash "$ROOT_DIR/home/.local/bin/disk-status")"
 python -c 'import json,sys; data=json.loads(sys.argv[1]); assert data["class"] == "mounted"; assert "Etiqueta" in data["tooltip"]' "$disk_json" || \
   fail "disk-status no escapó correctamente la etiqueta simulada"
 ok "disk-status con etiqueta externa adversa"
+
+(
+  export DISK_OPEN_PATH="$TEST_ROOT/disk-open-path"
+  export DISK_MOUNT_CALL="$TEST_ROOT/disk-mount-call"
+  export DISK_FSTAB="$TEST_ROOT/disk-fstab"
+  disk_path="$TEST_ROOT/Mi USB\\respaldo"
+  python - "$DISK_FSTAB" "$disk_path" <<'PY'
+import sys
+target = sys.argv[2].replace("\\", r"\134").replace(" ", r"\040")
+with open(sys.argv[1], "w", encoding="utf-8") as f:
+    f.write(f"/dev/sdz1 {target} vfat defaults 0 0\n")
+PY
+  lsblk() {
+    printf '%s\n' '{"blockdevices":[{"name":"/dev/sdz","type":"disk","tran":"usb","rm":true,"children":[{"name":"/dev/sdz1","type":"part","fstype":"vfat","label":"Mi USB","pkname":"/dev/sdz"}]}]}'
+  }
+  findmnt() {
+    [ "${MOCK_DISK_MOUNTED:-1}" = 1 ] || return 1
+    command findmnt --fstab --tab-file "$DISK_FSTAB" "$@"
+  }
+  fuzzel() { cat >/dev/null; printf '%s\n' "${DISK_CHOICE:-1) Abrir}"; }
+  foot() { printf '%s' "${!#}" > "$DISK_OPEN_PATH"; }
+  yazi() { :; }
+  notify-send() { :; }
+  udisksctl() {
+    [ "$*" = 'mount -b /dev/sdz1 --options ro' ] || return 1
+    printf '%s\n' "$*" > "$DISK_MOUNT_CALL"
+    MOCK_DISK_MOUNTED=1
+  }
+  export -f lsblk findmnt fuzzel foot yazi notify-send udisksctl
+  export WAYLAND_DISPLAY=audit-test SWAYSOCK=/tmp/audit-test-sway.sock
+  MOCK_DISK_MOUNTED=1 bash "$ROOT_DIR/home/.local/bin/disk-manager"
+  [ "$(cat "$DISK_OPEN_PATH")" = "$disk_path" ] || fail "disk-manager alteró la ruta al abrir un disco montado"
+  rm "$DISK_OPEN_PATH"
+  MOCK_DISK_MOUNTED=0 DISK_CHOICE='2) Montar solo lectura' bash "$ROOT_DIR/home/.local/bin/disk-manager"
+  [ "$(cat "$DISK_OPEN_PATH")" = "$disk_path" ] || fail "disk-manager alteró la ruta al montar solo lectura"
+  [ -s "$DISK_MOUNT_CALL" ] || fail "disk-manager no solicitó montaje de solo lectura"
+)
+ok "disk-manager abre rutas reales con espacios y barras invertidas, también tras montar"
 
 python -c '
 import json
@@ -58,6 +96,9 @@ pactl() {
     'list sinks')
       printf 'Sink #10\n\tDescription: Dispositivo repetido\nSink #20\n\tDescription: Dispositivo repetido\n'
       ;;
+    'set-default-sink sink.two')
+      printf '%s\n' "$*" > "$CALL_FILE"
+      ;;
     *) return 1 ;;
   esac
 }
@@ -67,7 +108,8 @@ fuzzel() {
 }
 
 wpctl() {
-  printf '%s\n' "$*" > "$CALL_FILE"
+  # Un índice de pactl no debe usarse como ID de nodo de PipeWire.
+  return 1
 }
 
 notify-send() {
@@ -76,8 +118,8 @@ notify-send() {
 
 export -f pactl fuzzel wpctl notify-send
 bash "$ROOT_DIR/home/.local/bin/audio-output-menu"
-grep -Fxq 'set-default 20' "$CALL_FILE" || fail "audio-output-menu eligió un ID incorrecto"
-ok "audio-output-menu distingue descripciones duplicadas"
+grep -Fxq 'set-default-sink sink.two' "$CALL_FILE" || fail "audio-output-menu eligió una salida incorrecta"
+ok "audio-output-menu distingue descripciones duplicadas sin mezclar APIs"
 
 WALLPAPER_TEST_HOME="$TEST_ROOT/wallpaper-home"
 WALLPAPER_CALL_FILE="$TEST_ROOT/swaymsg-call"
@@ -90,18 +132,19 @@ printf '%s\n' \
   > "$WALLPAPER_TEST_HOME/.config/sway/config.d/20-appearance.conf"
 
 fuzzel() {
-  printf '%s\n' '002  second.png'
+  printf '%s\n' "${WALLPAPER_CHOICE:-002  second.png}"
 }
 
 swaymsg() {
   printf '%s\n' "$*" > "$WALLPAPER_CALL_FILE"
+  [ "${MOCK_SWAY_FAILURE:-0}" = 0 ]
 }
 
 export WALLPAPER_CALL_FILE
 export -f fuzzel swaymsg
 HOME="$WALLPAPER_TEST_HOME" XDG_PICTURES_DIR="$WALLPAPER_TEST_HOME/Imágenes" \
   bash "$ROOT_DIR/home/.local/bin/wallpaper-menu"
-grep -Fq "output * bg \"$WALLPAPER_TEST_HOME/Imágenes/second.png\" fill" \
+grep -Fxq 'output * bg ~/.local/share/sway/wallpaper fill' \
   "$WALLPAPER_TEST_HOME/.config/sway/config.d/25-fondo.conf" || \
   fail "wallpaper-menu no persistió el fondo elegido en 25-fondo.conf"
 grep -Fq 'output * bg ~/Imágenes/wallpaper-1qowj1.png fill' \
@@ -109,9 +152,32 @@ grep -Fq 'output * bg ~/Imágenes/wallpaper-1qowj1.png fill' \
   fail "wallpaper-menu modificó 20-appearance.conf (versionado)"
 [ "$(stat -c '%a' "$WALLPAPER_TEST_HOME/.config/sway/config.d/25-fondo.conf")" = 644 ] || \
   fail "wallpaper-menu dejó 25-fondo.conf sin permisos 644"
-grep -Fq "output * bg $WALLPAPER_TEST_HOME/Imágenes/second.png fill" "$WALLPAPER_CALL_FILE" || \
+grep -Fxq 'output * bg ~/.local/share/sway/wallpaper fill' "$WALLPAPER_CALL_FILE" || \
   fail "wallpaper-menu no aplicó el fondo elegido"
+[ "$(readlink "$WALLPAPER_TEST_HOME/.local/share/sway/wallpaper")" = "$WALLPAPER_TEST_HOME/Imágenes/second.png" ] || \
+  fail "wallpaper-menu no referenció el archivo elegido"
 ok "selector de fondos aplica y persiste la selección"
+
+special_pictures="$TEST_ROOT/fondos especiales"
+special_name='fondo "doble", con\barra; exec touch marca.png'
+mkdir -p "$special_pictures"
+printf 'imagen de prueba' > "$special_pictures/$special_name"
+HOME="$WALLPAPER_TEST_HOME" XDG_PICTURES_DIR="$special_pictures" WALLPAPER_CHOICE='001  fondo' \
+  bash "$ROOT_DIR/home/.local/bin/wallpaper-menu"
+[ "$(readlink "$WALLPAPER_TEST_HOME/.local/share/sway/wallpaper")" = "$special_pictures/$special_name" ] || \
+  fail "wallpaper-menu alteró el nombre del fondo con caracteres especiales"
+grep -Fxq 'output * bg ~/.local/share/sway/wallpaper fill' "$WALLPAPER_CALL_FILE" || \
+  fail "wallpaper-menu incluyó el nombre del archivo en el comando IPC"
+cp "$WALLPAPER_TEST_HOME/.config/sway/config.d/25-fondo.conf" "$TEST_ROOT/previous-wallpaper.conf"
+if HOME="$WALLPAPER_TEST_HOME" XDG_PICTURES_DIR="$WALLPAPER_TEST_HOME/Imágenes" MOCK_SWAY_FAILURE=1 \
+  bash "$ROOT_DIR/home/.local/bin/wallpaper-menu"; then
+  fail "wallpaper-menu ignoró un fallo de Sway"
+fi
+cmp -s "$TEST_ROOT/previous-wallpaper.conf" "$WALLPAPER_TEST_HOME/.config/sway/config.d/25-fondo.conf" || \
+  fail "wallpaper-menu persistió una selección que Sway rechazó"
+[ "$(readlink "$WALLPAPER_TEST_HOME/.local/share/sway/wallpaper")" = "$special_pictures/$special_name" ] || \
+  fail "wallpaper-menu no recuperó el fondo anterior tras un fallo de Sway"
+ok "fondos con separadores y comillas no entran al comando IPC; un fallo conserva el fondo anterior"
 
 if rg --hidden -q -- 'override=colors\.alpha' "$ROOT_DIR/home/.local/bin"; then
   fail "persisten overrides obsoletos de Foot"
@@ -199,6 +265,32 @@ grep -Fxq -- '--no-db search deezer track -- Gustavo Cerati' "$RIP_CALL_FILE" ||
 [ "$(grep -Fxc 'update --wait' "$MPC_CALL_FILE")" -eq 4 ] || \
   fail "streamrip-menu no actualizó MPD tras cada operación de descarga"
 ok "streamrip-menu valida y resuelve enlaces, recorta espacios, soporta --no-db y actualiza MPD"
+
+(
+  export MUSIC_UPDATE_CALLS="$TEST_ROOT/music-update-calls"
+  export MUSIC_UPDATE_NOTIFICATIONS="$TEST_ROOT/music-update-notifications"
+  mpc() {
+    printf '%s\n' "$*" >> "$MUSIC_UPDATE_CALLS"
+    case "$*" in
+      status) return 0 ;;
+      'update --wait') return "${MOCK_UPDATE_RESULT:-0}" ;;
+      *) return 1 ;;
+    esac
+  }
+  notify-send() { printf '%s\n' "$*" >> "$MUSIC_UPDATE_NOTIFICATIONS"; }
+  export -f mpc notify-send
+  bash "$ROOT_DIR/home/.local/bin/music-update"
+  grep -Fxq 'update --wait' "$MUSIC_UPDATE_CALLS" || fail "music-update no esperó la actualización en la misma operación"
+  [ "$(wc -l < "$MUSIC_UPDATE_CALLS")" -eq 2 ] || fail "music-update inició otra espera después de la actualización"
+  grep -Fq 'Biblioteca actualizada' "$MUSIC_UPDATE_NOTIFICATIONS" || fail "music-update no notificó el éxito"
+  : > "$MUSIC_UPDATE_NOTIFICATIONS"
+  if MOCK_UPDATE_RESULT=1 bash "$ROOT_DIR/home/.local/bin/music-update"; then
+    fail "music-update informó éxito ante una actualización fallida"
+  fi
+  ! grep -Fq 'Biblioteca actualizada' "$MUSIC_UPDATE_NOTIFICATIONS" || fail "music-update notificó éxito ante un fallo"
+  grep -Fq 'No pude actualizar' "$MUSIC_UPDATE_NOTIFICATIONS" || fail "music-update no notificó el fallo"
+)
+ok "music-update espera sin carrera y propaga los errores de MPD"
 
 MUSIC_TEST_HOME="$TEST_ROOT/music-home"
 mkdir -p "$MUSIC_TEST_HOME/.config/pyradio/playlists"

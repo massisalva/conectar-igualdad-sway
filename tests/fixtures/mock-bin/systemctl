@@ -1,2 +1,5 @@
 #!/usr/bin/env bash
+if [ -n "${TEST_SYSTEMCTL_LOG:-}" ]; then
+  printf '%s\n' "$*" >> "$TEST_SYSTEMCTL_LOG"
+fi
 exit 0

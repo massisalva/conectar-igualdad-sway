@@ -26,8 +26,18 @@ latest_backup() {
   find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d | sort | tail -n1
 }
 
-mkdir -p "$TEST_HOME/.local/bin"
+mkdir -p "$TEST_HOME/.local/bin" "$TEST_HOME/.config" "$TEST_HOME/.ssh"
+chmod 700 "$TEST_HOME" "$TEST_HOME/.config" "$TEST_HOME/.local"
+chmod 750 "$TEST_HOME/.ssh"
+printf 'clave de prueba\n' > "$TEST_HOME/.ssh/authorized_keys"
+chmod 640 "$TEST_HOME/.ssh/authorized_keys"
+printf 'archivo externo no ejecutable\n' > "$TEST_HOME/.local/bin/documento"
+chmod 644 "$TEST_HOME/.local/bin/documento"
 printf 'contenido anterior\n' > "$TEST_HOME/.local/bin/disk-status"
+printf 'configuración externa\n' > "$TEST_ROOT/external-theme"
+mkdir -p "$TEST_HOME/.config/environment.d"
+ln -s "$TEST_ROOT/external-theme" "$TEST_HOME/.config/environment.d/10-visual-theme.conf"
+export TEST_SYSTEMCTL_LOG="$TEST_ROOT/systemctl.log"
 
 HOME="$TEST_HOME" \
 PATH="$MOCK_BIN:$PATH" \
@@ -43,6 +53,17 @@ grep -Fq $'missing\t'"$TEST_HOME/.local/bin/waybar-battery" "$backup/manifest.ts
 cmp -s "$ROOT_DIR/home/.local/bin/disk-status" "$TEST_HOME/.local/bin/disk-status" || \
   fail "la restauración no instaló el archivo del repo"
 ok "restauración con manifiesto"
+for dir in "$TEST_HOME" "$TEST_HOME/.config" "$TEST_HOME/.local"; do
+  [ "$(stat -c '%a' "$dir")" = 700 ] || fail "restore cambió los permisos privados de $dir"
+done
+[ "$(stat -c '%a' "$backup")" = 700 ] || fail "el backup no es privado"
+[ "$(stat -c '%a' "$TEST_HOME/.local/bin/documento")" = 644 ] || fail "restore cambió permisos de un archivo externo"
+[ "$(stat -c '%a' "$TEST_HOME/.ssh")" = 700 ] || fail "restore no protegió ~/.ssh"
+[ "$(stat -c '%a' "$TEST_HOME/.ssh/authorized_keys")" = 600 ] || fail "restore no protegió authorized_keys"
+grep -Fxq -- '--user enable --now mpd.service' "$TEST_SYSTEMCTL_LOG" || fail "restore no habilitó e inició MPD en la cuenta nueva"
+ok "directorios privados preservados, backup privado y MPD habilitado"
+grep -Fxq 'configuración externa' "$TEST_ROOT/external-theme" || fail "restore sobrescribió el destino de un enlace preexistente"
+[ ! -L "$TEST_HOME/.config/environment.d/10-visual-theme.conf" ] || fail "restore no reemplazó el enlace por la configuración administrada"
 
 HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
   "$ROOT_DIR/restore.sh" --rollback "$backup" -y >/dev/null
@@ -52,6 +73,14 @@ grep -Fxq 'contenido anterior' "$TEST_HOME/.local/bin/disk-status" || \
 [ ! -e "$TEST_HOME/.local/bin/waybar-battery" ] || \
   fail "rollback no quitó el archivo creado por restore"
 ok "rollback de archivos existentes y nuevos"
+for dir in "$TEST_HOME" "$TEST_HOME/.config" "$TEST_HOME/.local"; do
+  [ "$(stat -c '%a' "$dir")" = 700 ] || fail "rollback alteró los permisos privados de $dir"
+done
+[ "$(stat -c '%a' "$TEST_HOME/.ssh")" = 750 ] || fail "rollback no recuperó los permisos de ~/.ssh"
+[ "$(stat -c '%a' "$TEST_HOME/.ssh/authorized_keys")" = 640 ] || fail "rollback no recuperó los permisos de authorized_keys"
+ok "rollback recupera los permisos ajustados explícitamente"
+[ "$(readlink "$TEST_HOME/.config/environment.d/10-visual-theme.conf")" = "$TEST_ROOT/external-theme" ] || \
+  fail "rollback no recuperó un enlace preexistente"
 
 printf 'script residual\n' > "$TEST_HOME/.local/bin/obsoleto"
 printf 'herramienta externa\n' > "$TEST_HOME/.local/bin/uv"
@@ -77,6 +106,7 @@ grep -Fq $'present\t'"$TEST_HOME/.local/bin/obsoleto" "$prune_backup/manifest.ts
 HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
   "$ROOT_DIR/restore.sh" --rollback "$prune_backup" -y >/dev/null
 [ -f "$TEST_HOME/.local/bin/obsoleto" ] || fail "rollback no recuperó el script residual"
+[ "$(stat -c '%a' "$TEST_HOME/.config/streamrip/config.toml")" = 644 ] || fail "rollback no recuperó los permisos previos de Streamrip"
 ok "prune recuperable"
 
 malicious_backup="$TEST_ROOT/malicious-backup"
@@ -91,5 +121,11 @@ ok "rollback rechaza rutas no permitidas"
 grep -Fq 'No ejecutes restore.sh como root' "$ROOT_DIR/restore.sh" || \
   fail "restore no protege la ejecución como root"
 ok "restore protege los pasos de usuario frente a root"
+
+dry_home="$TEST_ROOT/dry-home"
+HOME="$dry_home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$TEST_ROOT/dry-backups" \
+  "$ROOT_DIR/restore.sh" --no-yazi --dry-run -y >/dev/null
+[ ! -e "$dry_home" ] && [ ! -e "$TEST_ROOT/dry-backups" ] || fail "dry-run creó archivos"
+ok "dry-run no modifica HOME ni crea backups"
 
 printf 'Pruebas de restore: OK\n'

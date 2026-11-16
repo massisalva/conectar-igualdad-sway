@@ -83,7 +83,11 @@ funciones:
 ## Restauración
 
 `restore.sh` copia `home/` sobre `$HOME`, ajusta permisos de scripts y prepara
-directorios esperados. Las piezas de sistema se instalan solo con flags
+directorios esperados. Conserva los permisos de los directorios existentes;
+el backup incluye los archivos cuyos permisos endurece y el modo previo de
+`~/.ssh`, que el rollback puede recuperar. Si MPD está instalado, habilita e
+inicia `mpd.service` como servicio de usuario para completar una instalación nueva.
+Las piezas de sistema se instalan solo con flags
 explícitos: `--polkit`, `--bootloader`, `--sshd`, `--nftables`, `--iwd`,
 `--sysctl`, `--zram` y `--samba`.
 
@@ -202,7 +206,10 @@ para pasar archivos.
 `wallpaper-menu` (Mod+Ctrl+W) guarda el fondo elegido en
 `~/.config/sway/config.d/25-fondo.conf`, que no se versiona. El repo conserva el
 fondo predeterminado en `20-appearance.conf`; Sway lee `25-fondo.conf` después y
-ese gana. Antes (desde el 2026-10-25) el selector reescribía `20-appearance.conf`:
+ese gana. La selección apunta al enlace local `~/.local/share/sway/wallpaper`;
+el nombre original de la imagen no se interpreta como un comando ni se expande
+por Sway. Si falla la aplicación, se recupera el enlace anterior.
+Antes (desde el 2026-10-25) el selector reescribía `20-appearance.conf`:
 `check.sh` daba fallo cada vez que se cambiaba el fondo y `restore.sh` volvía al
 fondo del repo. Borrar `25-fondo.conf` vuelve al predeterminado.
 
