@@ -249,7 +249,7 @@ printf 'Radio Nacional,https://radio.example/vivo?token=1\n' \
   out_paused="$(MOCK_MPD=paused bash "$ROOT_DIR/home/.local/bin/waybar-music")"
   [ "$out_paused" = "󰏤  Charly - Nos siguen pegando abajo" ] || fail "waybar-music no detectó MPD en pausa ($out_paused)"
 )
-ok "waybar-music detecta radio, MPD (playing/paused) y MPRIS sin subprocesos extra"
+ok "waybar-music detecta radio, MPD (playing/paused) y MPRIS"
 
 (
   FOOT_CALLS="$TEST_ROOT/foot-calls"
@@ -264,22 +264,56 @@ EOF
   done
   chmod +x "$FLOAT_BIN"/*
 
+  # Aplicar la expresión real a las líneas generadas por foot: un patrón
+  # incorrecto debe fallar aunque la rama de cierre esté implementada.
   pkill() {
-    [ "${MOCK_OPEN:-0}" = "1" ]
+    [ "$#" -eq 4 ] && [ "$1" = "-u" ] &&
+      [ "$2" = "$(id -u)" ] && [ "$3" = "-f" ] || return 2
+    local line matched=1
+    while IFS= read -r line; do
+      if [[ "$line" =~ $4 ]]; then
+        printf '%s\n' "$line" >> "$FLOAT_MATCHES"
+        matched=0
+      fi
+    done < "$FLOAT_PROCESSES"
+    return "$matched"
   }
   export PATH="$FLOAT_BIN:$PATH"
   export FOOT_CALLS
   export -f pkill
 
-  for script in audio-menu bluetooth-menu network-menu battery-menu; do
-    MOCK_OPEN=1 bash "$ROOT_DIR/home/.local/bin/$script"
-  done
-  [ ! -e "$FOOT_CALLS" ] || fail "los menús flotantes abrieron otra ventana cuando ya estaban abiertos"
+  export FLOAT_PROCESSES="$TEST_ROOT/float-processes"
+  export FLOAT_MATCHES="$TEST_ROOT/float-matches"
+  : > "$FLOAT_PROCESSES"
 
+  # Primer clic: registrar el comando real con el que cada menú abre foot.
   for script in audio-menu bluetooth-menu network-menu battery-menu; do
-    MOCK_OPEN=0 bash "$ROOT_DIR/home/.local/bin/$script"
+    bash "$ROOT_DIR/home/.local/bin/$script"
   done
   [ "$(wc -l < "$FOOT_CALLS")" -eq 4 ] || fail "los menús flotantes no abrieron foot cuando estaban cerrados"
+  sed 's/^/foot /; s/$/ --title Test/' "$FOOT_CALLS" > "$FLOAT_PROCESSES"
+  cp "$FLOAT_PROCESSES" "$TEST_ROOT/expected-float-matches"
+
+  # Segundo clic: cada menú debe seleccionar únicamente su propia ventana.
+  while IFS= read -r script && IFS= read -r expected <&3; do
+    : > "$FLOAT_MATCHES"
+    bash "$ROOT_DIR/home/.local/bin/$script"
+    [ "$(cat "$FLOAT_MATCHES")" = "$expected" ] ||
+      fail "$script no seleccionó únicamente su ventana"
+  done < <(printf '%s\n' audio-menu bluetooth-menu network-menu battery-menu) \
+    3< "$TEST_ROOT/expected-float-matches"
+  [ "$(wc -l < "$FOOT_CALLS")" -eq 4 ] || fail "los menús flotantes duplicaron ventanas abiertas"
+
+  # No cerrar otra app ni una ventana cuyo app_id solo comparta el prefijo.
+  sed 's/-floating /-floating-extra /' "$TEST_ROOT/expected-float-matches" > "$FLOAT_PROCESSES"
+  printf '%s\n' 'foot --app-id foot-term --title Terminal' \
+    'bash -c foot --app-id audio-floating --title Audio' >> "$FLOAT_PROCESSES"
+  : > "$FLOAT_MATCHES"
+  for script in audio-menu bluetooth-menu network-menu battery-menu; do
+    bash "$ROOT_DIR/home/.local/bin/$script"
+  done
+  [ ! -s "$FLOAT_MATCHES" ] || fail "los menús flotantes seleccionaron procesos ajenos"
+  [ "$(wc -l < "$FOOT_CALLS")" -eq 8 ] || fail "los menús flotantes no abrieron ante procesos ajenos"
 )
 ok "menús flotantes (audio, bluetooth, red, batería) alternan apertura y cierre"
 
