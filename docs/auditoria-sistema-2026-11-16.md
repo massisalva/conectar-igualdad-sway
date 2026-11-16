@@ -6,9 +6,9 @@ Hecha por Claude desde la ThinkPad por SSH, en solo lectura (lo de root, con `./
 
 ## Hallazgos
 
-**H1 (arreglado, falta commit). Lo que se abre desde Waybar no encontraba los comandos de `~/.local/bin`.** Waybar corre como servicio de systemd (`waybar.service`) con `PATH=/usr/local/bin:/usr/bin`: no lee `.profile` ni fish. El botón nuevo de Arch (`f3af0a4`) abre fuzzel desde Waybar, así que foot no encontraba `streamrip-menu` (registro: `streamrip-menu: failed to execute: No such file or directory`, 14:05). Afectaba a Streamrip y a `music-update`. Con Super+D andaba (fuzzel lo abre Sway). **Arreglo:** `home/.config/environment.d/20-path.conf` (`PATH=$HOME/.local/bin:$PATH`, probado con el generador de systemd), aplicado en caliente (`systemctl --user set-environment` + reinicio de Waybar) y control nuevo en `check.sh` (PATH de Waybar). Verificado: todos los lanzadores (propios y del sistema) resuelven su comando con el PATH de los servicios.
+**H1 (arreglado, `cef495d`). Lo que se abre desde Waybar no encontraba los comandos de `~/.local/bin`.** Waybar corre como servicio de systemd (`waybar.service`) con `PATH=/usr/local/bin:/usr/bin`: no lee `.profile` ni fish. El botón nuevo de Arch (`f3af0a4`) abre fuzzel desde Waybar, así que foot no encontraba `streamrip-menu` (registro: `streamrip-menu: failed to execute: No such file or directory`, 14:05). Afectaba a Streamrip y a `music-update`. Con Super+D andaba (fuzzel lo abre Sway). **Arreglo:** `home/.config/environment.d/20-path.conf` (`PATH=$HOME/.local/bin:$PATH`, probado con el generador de systemd), aplicado en caliente (`systemctl --user set-environment` + reinicio de Waybar) y control nuevo en `check.sh` (PATH de Waybar). Verificado: todos los lanzadores (propios y del sistema) resuelven su comando con el PATH de los servicios, y Maxi confirmó que Streamrip abre desde Waybar.
 
-**H2 (mejora). `check.sh` no puede validar Sway por SSH** (`sway -C` no consigue la pantalla: "No backend was able to open a seat"). Con un backend virtual sí se puede: `WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 sway -C` (y un `XDG_RUNTIME_DIR` temporal) → salida 0, sin errores. **Propuesta:** usarlo en `check.sh` cuando falle el método normal; el aviso pasa a control real.
+**H2 (hecho, `cef495d`). `check.sh` no puede validar Sway por SSH** (`sway -C` no consigue la pantalla: "No backend was able to open a seat"). Con un backend virtual sí se puede: `WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 sway -C` (y un `XDG_RUNTIME_DIR` temporal) → salida 0, sin errores. **Hecho:** `check.sh` lo usa como segundo intento; probado que un error real de configuración da fallo (salida 1, "Error on line"). Test en `test-ui-scripts.sh`.
 
 **H3 (pregunta). `~/Música` (5,5 GB) no tiene backup.** Cuatro carpetas (0,5–2,6 GB) más `streamrip/`. Lo de Streamrip se vuelve a bajar; las otras cuatro, no se sabe. El repo guarda solo la configuración. **Pregunta para Maxi:** ¿son reemplazables? Si no: copiarlas a la mini (una carpeta dentro de `/srv` que entre en el backup; `compartido` NO tiene backup).
 
@@ -18,7 +18,7 @@ Hecha por Claude desde la ThinkPad por SSH, en solo lectura (lo de root, con `./
 
 | Área | Estado |
 |---|---|
-| `check.sh --sudo` | 0 fallos; únicos avisos: Sway (H2) y el repo con cambios (H1) |
+| `check.sh --sudo` | 0 fallos y 0 avisos (después de H1 y H2) |
 | Tests | `test-ui-scripts`, `test-restore`, `test-check`: OK |
 | Sistema | Actualizado el 16/11 14:00, 0 pendientes (oficiales y AUR), 0 huérfanos, 0 `.pacnew`; `paccache.timer` activo (caché 3,3 GB); kernel 7.3.4-zen |
 | Servicios | 0 fallidos (sistema y usuario). Errores del arranque: solo mensajes de hardware (SGX, TDX, certificado X.509, i915) |
