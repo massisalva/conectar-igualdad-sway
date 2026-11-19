@@ -155,6 +155,19 @@ anterior de los archivos:
 El rollback restaura archivos; si alcanzó una configuración del sistema, puede
 ser necesario recargar o reiniciar el servicio correspondiente.
 
+Antes de tocar nada, el rollback valida el manifiesto entero. En `/etc` y
+`/boot` solo acepta los archivos que instala este proyecto (lista en
+`is_managed_system_target`, dentro de `restore.sh`); cualquier otra ruta hace
+rechazar el rollback completo.
+
+La restauración se niega a empezar si `~/.ssh`, `~/.ssh/authorized_keys` o
+`~/.config/streamrip/config.toml` son enlaces simbólicos: les cierra los
+permisos, y `chmod` cambiaría el archivo al que apunta el enlace sin que el
+rollback pueda recuperarlo.
+
+Con `--sshd`, si `sshd -t` rechaza la configuración nueva, vuelven los archivos
+anteriores y sshd no se recarga.
+
 Los scripts antiguos de `~/.local/bin` se conservan por defecto. Se pueden
 detectar y quitar, siempre con respaldo previo, mediante:
 

@@ -105,9 +105,31 @@ is_allowed_target() {
   esac
 
   case "$target" in
-    "$HOME"/*|/etc/*|/boot/*) return 0 ;;
+    "$HOME"/*) return 0 ;;
+    /etc/*|/boot/*) is_managed_system_target "$target" ;;
     *) return 1 ;;
   esac
+}
+
+# Rutas de sistema que instala este proyecto (ver los install_* de abajo). El
+# rollback rechaza cualquier otra, aunque esté bajo /etc o /boot. Si se agrega
+# un destino de sistema nuevo, sumarlo acá: si no, su rollback se rechaza.
+is_managed_system_target() {
+  local target="$1" name=""
+  case "$target" in
+    /boot/loader/loader.conf|/boot/loader/entries/arch.conf|\
+    /etc/nftables.conf|/etc/iwd/main.conf|/etc/conf.d/wireless-regdom|\
+    /etc/resolv.conf|/etc/systemd/zram-generator.conf) ;;
+    /etc/polkit-1/rules.d/*.rules) name="${target#/etc/polkit-1/rules.d/}" ;;
+    /etc/ssh/sshd_config.d/*.conf) name="${target#/etc/ssh/sshd_config.d/}" ;;
+    /etc/sysctl.d/*.conf) name="${target#/etc/sysctl.d/}" ;;
+    /etc/systemd/system/*.mount|/etc/systemd/system/*.automount)
+      name="${target#/etc/systemd/system/}" ;;
+    *) return 1 ;;
+  esac
+  # Un solo nivel dentro de cada carpeta, y sin directorios enlazados en el camino.
+  case "$name" in */*) return 1 ;; esac
+  [ "$(realpath -m -- "$(dirname -- "$target")")" = "$(dirname -- "$target")" ]
 }
 
 # No seguir directorios enlazados fuera de HOME al copiar o recuperar archivos.
@@ -124,6 +146,22 @@ validate_user_parent() {
       esac
       ;;
   esac
+}
+
+# Archivos a los que restore_user_files les cierra los permisos (chmod 700/600).
+# chmod sigue los enlaces y el backup guarda el enlace, no el modo del archivo
+# real: un enlace cambiaría un archivo que el rollback no sabe recuperar.
+validate_hardened_targets() {
+  local target
+  for target in "$HOME/.ssh" "$HOME/.ssh/authorized_keys" \
+      "$HOME/.config/streamrip/config.toml"; do
+    validate_user_parent "$target" || return 1
+    if [ -L "$target" ]; then
+      log "Es un enlace simbólico y no le cambio los permisos: $target"
+      log "Reemplazalo por el archivo o la carpeta real y volvé a correr."
+      return 1
+    fi
+  done
 }
 
 validate_rollback() {
@@ -343,6 +381,7 @@ restore_user_files() {
       return 1
     fi
   done < <(find "$source" -path "$source/.cache" -prune -o \( -type f -o -type l \) -print0)
+  validate_hardened_targets || return 1
   while IFS= read -r -d '' source_file; do
     rel="${source_file#"$source/"}"
     target="$HOME/$rel"
@@ -506,16 +545,43 @@ install_bootloader_files() {
 
 install_sshd_config() {
   local dir="$ROOT_DIR/sshd"
+  local dest="${RESTORE_SSHD_DIR:-/etc/ssh/sshd_config.d}"  # otro valor solo en tests
+  local file target name saved=""
+  local -a targets=()
   [ -d "$dir" ] || { log "No existe $dir"; return 1; }
 
   confirm "Esto copiará hardening de sshd y recargará sshd. ¿Continuar?"
   log "Instalando configuración de sshd"
+  # Copia propia de lo que había, aparte del backup: tiene que funcionar también
+  # con --no-backup. Un archivo inválido que queda instalado no se nota hasta el
+  # próximo reinicio de sshd, y ahí se pierde el acceso por SSH.
+  [ "$DRY_RUN" -eq 1 ] || saved="$(sudo mktemp -d)"
   for file in "$dir"/*.conf; do
     [ -f "$file" ] || continue
-    backup_target "/etc/ssh/sshd_config.d/$(basename "$file")"
-    run sudo install -Dm644 "$file" "/etc/ssh/sshd_config.d/$(basename "$file")"
+    name="$(basename "$file")"
+    target="$dest/$name"
+    backup_target "$target"
+    if [ -n "$saved" ] && { sudo test -e "$target" || sudo test -L "$target"; }; then
+      sudo cp -a -- "$target" "$saved/$name"
+    fi
+    targets+=("$target")
+    run sudo install -Dm644 "$file" "$target"
   done
-  run sudo sshd -t
+  if ! run sudo sshd -t; then
+    log "sshd -t rechazó la configuración nueva; vuelvo a los archivos anteriores"
+    for target in "${targets[@]}"; do
+      name="$(basename "$target")"
+      if sudo test -e "$saved/$name" || sudo test -L "$saved/$name"; then
+        sudo cp -a --remove-destination -- "$saved/$name" "$target"
+      else
+        sudo rm -f -- "$target"
+      fi
+    done
+    sudo rm -rf -- "$saved"
+    log "No se recargó sshd. Revisá $dir antes de volver a intentar."
+    return 1
+  fi
+  [ -z "$saved" ] || sudo rm -rf -- "$saved"
   run sudo systemctl reload sshd.service
 }
 

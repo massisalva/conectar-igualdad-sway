@@ -183,4 +183,79 @@ HOME="$dry_home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$TEST_ROOT/dry-back
 [ ! -e "$dry_home" ] && [ ! -e "$TEST_ROOT/dry-backups" ] || fail "dry-run creó archivos"
 ok "dry-run no modifica HOME ni crea backups"
 
+# H2: el rollback solo acepta las rutas de sistema que instala el proyecto.
+printf 'missing\t/etc/audit-demostracion-no-existe\n' > "$malicious_backup/manifest.tsv"
+if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" --dry-run -y > "$TEST_ROOT/h2-out" 2>&1; then
+  fail "rollback aceptó una ruta de sistema ajena al proyecto"
+fi
+! grep -Fq 'sudo rm' "$TEST_ROOT/h2-out" || fail "rollback llegó a proponer borrar una ruta ajena"
+printf 'missing\t%s/preflight-marker\nmissing\t/etc/sysctl.d/sub/99-zram.conf\n' \
+  "$TEST_HOME" > "$malicious_backup/manifest.tsv"
+if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" -y >/dev/null 2>&1; then
+  fail "rollback aceptó una subcarpeta de una ruta de sistema administrada"
+fi
+[ -f "$TEST_HOME/preflight-marker" ] || fail "rollback modificó archivos antes de rechazar la ruta de sistema"
+printf 'missing\t/etc/ssh/sshd_config.d/10-hardening.conf\n' > "$malicious_backup/manifest.tsv"
+HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" --dry-run -y > "$TEST_ROOT/h2-ok" 2>&1 || \
+  fail "rollback rechazó una ruta de sistema administrada: $(cat "$TEST_ROOT/h2-ok")"
+grep -Fq 'sudo rm -f /etc/ssh/sshd_config.d/10-hardening.conf' "$TEST_ROOT/h2-ok" || \
+  fail "rollback no propuso recuperar la ruta administrada"
+ok "rollback acepta solo las rutas de sistema del proyecto"
+
+# H1: chmod sigue enlaces; restore los rechaza antes de tocar nada.
+for case_name in authorized_keys streamrip ssh_dir; do
+  link_home="$TEST_ROOT/link-home-$case_name"
+  external="$TEST_ROOT/external-$case_name"
+  mkdir -p "$link_home/.ssh" "$link_home/.config/streamrip"
+  case "$case_name" in
+    authorized_keys)
+      printf 'clave\n' > "$external"; chmod 644 "$external"
+      ln -s "$external" "$link_home/.ssh/authorized_keys" ;;
+    streamrip)
+      printf 'config\n' > "$external"; chmod 644 "$external"
+      ln -s "$external" "$link_home/.config/streamrip/config.toml" ;;
+    ssh_dir)
+      rmdir "$link_home/.ssh"; mkdir -p "$external"; chmod 755 "$external"
+      ln -s "$external" "$link_home/.ssh" ;;
+  esac
+  if HOME="$link_home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$TEST_ROOT/link-backups-$case_name" \
+    "$ROOT_DIR/restore.sh" --no-yazi -y >/dev/null 2>&1; then
+    fail "restore aceptó un enlace en un archivo endurecido ($case_name)"
+  fi
+  [ "$(stat -c '%a' "$external")" = 644 ] || [ "$(stat -c '%a' "$external")" = 755 ] || \
+    fail "restore cambió los permisos del destino del enlace ($case_name)"
+  [ ! -e "$TEST_ROOT/link-backups-$case_name" ] || fail "restore empezó antes de rechazar el enlace ($case_name)"
+  [ ! -e "$link_home/.local/bin" ] || fail "restore copió archivos antes de rechazar el enlace ($case_name)"
+done
+ok "restore rechaza enlaces en archivos con permisos endurecidos, sin cambios parciales"
+
+# H4: si sshd -t falla, vuelven los archivos anteriores y no se recarga sshd.
+sshd_bin="$TEST_ROOT/sshd-bin"
+mkdir -p "$sshd_bin"
+printf '#!/usr/bin/env bash\nexec "$@"\n' > "$sshd_bin/sudo"
+printf '#!/usr/bin/env bash\nexit "${SSHD_STATUS:-0}"\n' > "$sshd_bin/sshd"
+chmod +x "$sshd_bin/sudo" "$sshd_bin/sshd"
+sshd_dir="$TEST_ROOT/sshd_config.d"
+run_sshd() {
+  : > "$TEST_SYSTEMCTL_LOG"
+  HOME="$TEST_HOME" PATH="$sshd_bin:$MOCK_BIN:$PATH" RESTORE_SSHD_DIR="$sshd_dir" \
+    RESTORE_BACKUP_ROOT="$TEST_ROOT/sshd-backups" SSHD_STATUS="$1" \
+    "$ROOT_DIR/restore.sh" --no-user --no-yazi --sshd -y >/dev/null 2>&1
+}
+mkdir -p "$sshd_dir"
+printf 'anterior\n' > "$sshd_dir/10-hardening.conf"
+if run_sshd 1; then fail "restore informó éxito con sshd -t fallando"; fi
+[ "$(cat "$sshd_dir/10-hardening.conf")" = anterior ] || fail "sshd -t falló y quedó instalado el archivo nuevo"
+! grep -q 'reload sshd' "$TEST_SYSTEMCTL_LOG" || fail "sshd se recargó con una configuración inválida"
+rm -f "$sshd_dir/10-hardening.conf"
+if run_sshd 1; then fail "restore informó éxito con sshd -t fallando (sin archivo previo)"; fi
+[ ! -e "$sshd_dir/10-hardening.conf" ] || fail "sshd -t falló y quedó un archivo que antes no existía"
+run_sshd 0 || fail "restore falló con una configuración de sshd válida"
+cmp -s "$ROOT_DIR/sshd/10-hardening.conf" "$sshd_dir/10-hardening.conf" || fail "no se instaló la configuración válida"
+grep -q 'reload sshd.service' "$TEST_SYSTEMCTL_LOG" || fail "no se recargó sshd con la configuración válida"
+ok "sshd vuelve a los archivos anteriores si sshd -t falla"
+
 printf 'Pruebas de restore: OK\n'
