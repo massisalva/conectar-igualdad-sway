@@ -168,8 +168,12 @@ rollback pueda recuperarlo.
 Con `--sshd`, si `sshd -t` rechaza la configuración nueva, vuelven los archivos
 anteriores y sshd no se recarga.
 
-Los scripts antiguos de `~/.local/bin` se conservan por defecto. Se pueden
-detectar y quitar, siempre con respaldo previo, mediante:
+Los scripts antiguos de `~/.local/bin` se conservan por defecto. `--prune`
+quita, siempre con respaldo previo, solo los que el proyecto instaló y después
+retiró (`docs/local-bin-retired.txt`). Lo que no está en el repo ni en esa
+lista se conserva y se informa, porque puede ser tuyo; para no ver el aviso,
+sumalo a `docs/local-bin-keep.txt`. Al quitar un script de `home/.local/bin`,
+anotalo en la lista de retirados (los tests lo controlan contra el historial).
 
 ```sh
 ./restore.sh --prune --dry-run

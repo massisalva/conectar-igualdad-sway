@@ -77,4 +77,28 @@ printf '[OK] journal sin privilegios no se certifica como completo\n'
   printf '[OK] diagnóstico de zram tolera que falte swapon\n'
 )
 
+# Luz nocturna: encendida, apagada a mano, fallida y sin instalar se distinguen.
+nightlight_case() (
+  local case_load="$1" case_state="$2"
+  source "$ROOT_DIR/check.sh"
+  systemctl() {
+    case "$*" in
+      *LoadState*) printf '%s\n' "$case_load" ;;
+      *is-active*) printf '%s\n' "$case_state"; [ "$case_state" = active ] ;;
+    esac
+  }
+  check_nightlight
+  printf 'TOTAL_FAILS=%s TOTAL_WARNS=%s\n' "$FAILS" "$WARNS"
+)
+out="$(nightlight_case loaded active)"
+grep -Fq '[OK] luz nocturna encendida' <<< "$out" || fail_test "check no reconoció la luz nocturna encendida"
+out="$(nightlight_case loaded inactive)"
+grep -Fq '[OK] luz nocturna apagada a mano' <<< "$out" || fail_test "check marcó como problema la luz nocturna apagada a propósito"
+grep -Fq 'TOTAL_FAILS=0 TOTAL_WARNS=0' <<< "$out" || fail_test "check contó la luz nocturna apagada como problema"
+out="$(nightlight_case loaded failed)"
+grep -Fq '[FAIL] wlsunset.service falló' <<< "$out" || fail_test "check no detectó wlsunset fallido"
+out="$(nightlight_case not-found inactive)"
+grep -Fq '[FAIL] wlsunset.service no está instalado' <<< "$out" || fail_test "check confundió una unidad ausente con la luz apagada"
+printf '[OK] luz nocturna: encendida, apagada a mano, fallida y ausente se distinguen\n'
+
 printf 'Pruebas de check: OK\n'

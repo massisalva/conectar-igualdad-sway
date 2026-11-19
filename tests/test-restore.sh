@@ -82,7 +82,8 @@ ok "rollback recupera los permisos ajustados explícitamente"
 [ "$(readlink "$TEST_HOME/.config/environment.d/10-visual-theme.conf")" = "$TEST_ROOT/external-theme" ] || \
   fail "rollback no recuperó un enlace preexistente"
 
-printf 'script residual\n' > "$TEST_HOME/.local/bin/obsoleto"
+printf 'script retirado\n' > "$TEST_HOME/.local/bin/radio-menu"
+printf 'herramienta propia desconocida\n' > "$TEST_HOME/.local/bin/obsoleto"
 printf 'herramienta externa\n' > "$TEST_HOME/.local/bin/uv"
 printf 'herramienta externa\n' > "$TEST_HOME/.local/bin/rip"
 mkdir -p "$TEST_HOME/.config/streamrip"
@@ -94,18 +95,19 @@ RESTORE_BACKUP_ROOT="$BACKUP_ROOT" \
   "$ROOT_DIR/restore.sh" --no-yazi --prune -y >/dev/null
 
 prune_backup="$(latest_backup)"
-[ ! -e "$TEST_HOME/.local/bin/obsoleto" ] || fail "prune no quitó el script residual"
+[ ! -e "$TEST_HOME/.local/bin/radio-menu" ] || fail "prune no quitó el script retirado"
+[ -e "$TEST_HOME/.local/bin/obsoleto" ] || fail "prune quitó una herramienta desconocida"
 [ -e "$TEST_HOME/.local/bin/uv" ] || fail "prune quitó una herramienta externa preservada (uv)"
 [ -e "$TEST_HOME/.local/bin/rip" ] || fail "prune quitó una herramienta externa preservada (rip)"
 [ -d "$TEST_HOME/Música/streamrip" ] || fail "restore no creó ~/Música/streamrip"
 [ "$(stat -c '%a' "$TEST_HOME/.config/streamrip/config.toml")" = 600 ] || \
   fail "restore no endureció permisos de ~/.config/streamrip/config.toml a 600"
-grep -Fq $'present\t'"$TEST_HOME/.local/bin/obsoleto" "$prune_backup/manifest.tsv" || \
-  fail "prune no respaldó el script residual"
+grep -Fq $'present\t'"$TEST_HOME/.local/bin/radio-menu" "$prune_backup/manifest.tsv" || \
+  fail "prune no respaldó el script retirado"
 
 HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
   "$ROOT_DIR/restore.sh" --rollback "$prune_backup" -y >/dev/null
-[ -f "$TEST_HOME/.local/bin/obsoleto" ] || fail "rollback no recuperó el script residual"
+[ -f "$TEST_HOME/.local/bin/radio-menu" ] || fail "rollback no recuperó el script retirado"
 [ "$(stat -c '%a' "$TEST_HOME/.config/streamrip/config.toml")" = 644 ] || fail "rollback no recuperó los permisos previos de Streamrip"
 ok "prune recuperable"
 
@@ -257,5 +259,17 @@ run_sshd 0 || fail "restore falló con una configuración de sshd válida"
 cmp -s "$ROOT_DIR/sshd/10-hardening.conf" "$sshd_dir/10-hardening.conf" || fail "no se instaló la configuración válida"
 grep -q 'reload sshd.service' "$TEST_SYSTEMCTL_LOG" || fail "no se recargó sshd con la configuración válida"
 ok "sshd vuelve a los archivos anteriores si sshd -t falla"
+
+# Todo script que el proyecto instaló y ya no está en home/.local/bin tiene que
+# figurar como retirado: si no, --prune lo dejaría como si fuera ajeno.
+if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  while IFS= read -r name; do
+    [ -e "$ROOT_DIR/home/.local/bin/$name" ] && continue
+    grep -Fqx -- "$name" "$ROOT_DIR/docs/local-bin-retired.txt" || \
+      fail "$name salió de home/.local/bin y falta en docs/local-bin-retired.txt"
+  done < <(git -C "$ROOT_DIR" log --all --name-only --format= -- home/.local/bin |
+    sed -n 's|^home/.local/bin/||p' | sort -u)
+  ok "la lista de scripts retirados cubre el historial de git"
+fi
 
 printf 'Pruebas de restore: OK\n'

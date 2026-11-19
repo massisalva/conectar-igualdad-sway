@@ -9,6 +9,7 @@ STRICT_SYSTEM=0
 ALLOW_SUDO_PROMPT=0
 SUDO_READY=0
 LOCAL_BIN_KEEP_FILE="$ROOT_DIR/docs/local-bin-keep.txt"
+LOCAL_BIN_RETIRED_FILE="$ROOT_DIR/docs/local-bin-retired.txt"
 
 usage() {
   cat <<'EOF'
@@ -875,6 +876,33 @@ check_session_config() {
   done
 }
 
+# La luz nocturna se apaga a propósito desde Waybar o Super+Ctrl+S
+# (nightlight-mode): inactiva es una elección, no una falla. is-active responde
+# "inactive" también si la unidad no existe; LoadState los distingue.
+check_nightlight() {
+  local load state
+
+  if ! load="$(systemctl --user show -p LoadState --value wlsunset.service 2>&1)"; then
+    if printf '%s\n' "$load" | grep -Eq 'Operation not permitted|Failed to connect to user scope bus'; then
+      warn "no puedo verificar wlsunset.service por permisos del entorno"
+    else
+      fail "no pude consultar wlsunset.service"
+    fi
+    return
+  fi
+  if [ "$load" != loaded ]; then
+    fail "wlsunset.service no está instalado (LoadState=$load)"
+    return
+  fi
+  state="$(systemctl --user is-active wlsunset.service 2>/dev/null || true)"
+  case "$state" in
+    active) ok "luz nocturna encendida (wlsunset.service activo)" ;;
+    inactive) ok "luz nocturna apagada a mano (wlsunset.service detenido)" ;;
+    failed) fail "wlsunset.service falló: journalctl --user -u wlsunset.service" ;;
+    *) warn "wlsunset.service en estado ${state:-desconocido}" ;;
+  esac
+}
+
 check_session_processes() {
   local process expected count output
 
@@ -904,8 +932,7 @@ check_session_processes() {
     sway-udiskie.service \
     disk-notify.service \
     swayidle.service \
-    sway-cliphist.service \
-    wlsunset.service; do
+    sway-cliphist.service; do
     if output="$(systemctl --user is-active "$process" 2>&1)"; then
       ok "$process activo"
     elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to user scope bus'; then
@@ -914,6 +941,8 @@ check_session_processes() {
       fail "$process no está activo"
     fi
   done
+
+  check_nightlight
 
   # Lo que se abre desde Waybar hereda su PATH (servicio de systemd): sin ~/.local/bin, los
   # lanzadores de comandos propios fallan (pasó con Streamrip, 2026-11-16; ver environment.d/20-path.conf).
@@ -951,6 +980,9 @@ check_managed_bin_extras() {
     if [ ! -f "$ROOT_DIR/home/.local/bin/$name" ]; then
       if [ -f "$LOCAL_BIN_KEEP_FILE" ] && grep -Fqx -- "$name" "$LOCAL_BIN_KEEP_FILE"; then
         ok "herramienta externa preservada: $file"
+      elif [ -f "$LOCAL_BIN_RETIRED_FILE" ] && grep -Fqx -- "$name" "$LOCAL_BIN_RETIRED_FILE"; then
+        warn "script retirado del proyecto: $file (se quita con ./restore.sh --prune)"
+        extras=$((extras + 1))
       else
         warn "script local no administrado por el repo: $file"
         extras=$((extras + 1))

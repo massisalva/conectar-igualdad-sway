@@ -1,0 +1,7 @@
+# Scripts que este proyecto instaló en ~/.local/bin y después retiró del repo.
+# Son los únicos que `restore.sh --prune` borra (con backup previo): lo que no
+# está acá ni en home/.local/bin se conserva, porque puede ser tuyo.
+# Al quitar un script de home/.local/bin, sumar su nombre acá (lo controla
+# tests/test-restore.sh contra el historial de git). Un nombre por línea.
+nmtui-catppuccin
+radio-menu

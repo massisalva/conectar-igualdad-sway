@@ -23,6 +23,7 @@ BACKUP_DIR=""
 BACKUP_ROOT="${RESTORE_BACKUP_ROOT:-$ROOT_DIR/backups}"
 ROLLBACK_DIR=""
 LOCAL_BIN_KEEP_FILE="$ROOT_DIR/docs/local-bin-keep.txt"
+LOCAL_BIN_RETIRED_FILE="$ROOT_DIR/docs/local-bin-retired.txt"
 declare -A BACKED_UP
 
 usage() {
@@ -51,7 +52,8 @@ Opciones:
   --all         Ejecuta packages, aur, user, yazi y todas las piezas de sistema.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
-  --prune       Elimina scripts residuales de ~/.local/bin después de respaldarlos.
+  --prune       Quita de ~/.local/bin, con backup, los scripts que el proyecto
+                retiró (docs/local-bin-retired.txt). Lo desconocido se conserva.
   --no-backup   No crea backup previo de los archivos reemplazados.
   --rollback DIR  Restaura los archivos registrados en un backup anterior.
   --dry-run     Muestra acciones sin ejecutarlas.
@@ -458,25 +460,43 @@ restore_user_files() {
   fi
 }
 
+is_retired_local_bin() {
+  local name="$1"
+
+  [ -f "$LOCAL_BIN_RETIRED_FILE" ] || return 1
+  grep -Fqx -- "$name" "$LOCAL_BIN_RETIRED_FILE"
+}
+
+# Solo borra lo que el proyecto instaló y después retiró. Un archivo que no está
+# en el repo ni en la lista de retirados puede ser una herramienta tuya: se
+# conserva y se avisa.
 prune_user_bin() {
-  local file name found=0
+  local file name found=0 unknown=0
 
   for file in "$HOME"/.local/bin/*; do
     [ -f "$file" ] || [ -L "$file" ] || continue
     name="$(basename "$file")"
     [ -e "$ROOT_DIR/home/.local/bin/$name" ] && continue
     is_kept_local_bin "$name" && continue
+    if ! is_retired_local_bin "$name"; then
+      log "Se conserva (no lo instaló el proyecto): $file"
+      unknown=1
+      continue
+    fi
 
     if [ "$found" -eq 0 ]; then
-      confirm "Se quitarán scripts de ~/.local/bin que no están en el repo, con backup previo. ¿Continuar?"
+      confirm "Se quitarán de ~/.local/bin los scripts que el proyecto retiró, con backup previo. ¿Continuar?"
     fi
     found=1
     backup_target "$file"
-    log "Quitando script residual: $file"
+    log "Quitando script retirado del proyecto: $file"
     run rm -f "$file"
   done
 
-  [ "$found" -eq 1 ] || log "No hay scripts residuales para quitar"
+  [ "$found" -eq 1 ] || log "No hay scripts retirados del proyecto para quitar"
+  if [ "$unknown" -eq 1 ]; then
+    log "Si alguno de los que se conservan es tuyo, sumalo a docs/local-bin-keep.txt para no ver el aviso."
+  fi
 }
 
 install_yazi_packages() {
