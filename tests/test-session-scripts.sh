@@ -25,6 +25,10 @@ EOF
 cat > "$TEST_ROOT/bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$TEST_LOG"
+case "$*" in
+  *is-active*) exit "${SYSTEMCTL_ACTIVE:-0}" ;;
+esac
+exit "${SYSTEMCTL_STATUS:-0}"
 EOF
 cat > "$TEST_ROOT/bin/dbus-update-activation-environment" <<'EOF'
 #!/usr/bin/env bash
@@ -45,7 +49,9 @@ EOF
 cat > "$TEST_ROOT/bin/cliphist" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
-  list) printf '1\ttexto\n' ;;
+  list)
+    [ "${CLIP_CASE:-}" != empty ] || { echo 'opening db: please store something first' >&2; exit 1; }
+    printf '1\ttexto\n' ;;
   decode) exit 1 ;;
 esac
 EOF
@@ -100,8 +106,15 @@ fi
 printf 'OK portapapeles propaga errores al decodificar\n'
 
 : > "$TEST_LOG"
-if bash "$ROOT_DIR/home/.local/bin/nightlight-mode" on >/dev/null 2>&1; then
-  fail "luz nocturna informó éxito al fallar systemd-run"
+if SYSTEMCTL_ACTIVE=3 SYSTEMCTL_STATUS=1 bash "$ROOT_DIR/home/.local/bin/nightlight-mode" --toggle >/dev/null 2>&1; then
+  fail "luz nocturna informó éxito al fallar systemctl start"
 fi
-[ ! -s "$TEST_LOG" ] || fail "luz nocturna notificó éxito después de un error"
+grep -q -- '--user start wlsunset.service' "$TEST_LOG" || fail "luz nocturna no intentó iniciar wlsunset"
+! grep -q '^notify:' "$TEST_LOG" || fail "luz nocturna notificó éxito después de un error"
 printf 'OK luz nocturna propaga errores al iniciar\n'
+
+: > "$TEST_LOG"
+CLIP_CASE=empty bash "$ROOT_DIR/home/.local/bin/clipboard-menu" >/dev/null 2>&1 ||
+  fail "portapapeles falló con el historial recién creado"
+grep -q 'vacío' "$TEST_LOG" || fail "portapapeles no avisó que el historial está vacío"
+printf 'OK portapapeles avisa con el historial recién creado\n'

@@ -23,7 +23,9 @@ if ! command -v fuzzel >/dev/null 2>&1; then
   exit 1
 fi
 
-items="$(cliphist list 2>/dev/null)"
+# Con el historial recién creado, cliphist list termina con error ("please store
+# something first"): para el menú es lo mismo que un historial vacío.
+items="$(cliphist list 2>/dev/null)" || items=""
 if [ -z "$items" ]; then
   notify_info "El portapapeles está vacío"
   exit 0
