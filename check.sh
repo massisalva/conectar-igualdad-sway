@@ -147,7 +147,7 @@ check_same_system_file() {
     return
   fi
 
-  if [ -f "$active_file" ]; then
+  if [ -r "$active_file" ]; then
     check_same_file "$repo_file" "$active_file" "$severity"
     return
   fi
@@ -208,7 +208,7 @@ check_packages() {
 }
 
 check_repo_state() {
-  if ! [ -d "$ROOT_DIR/.git" ]; then
+  if ! git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
     warn "no es un repo git: $ROOT_DIR"
     return
   fi
@@ -548,7 +548,7 @@ check_samba() {
 check_zram() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
-  local swap_info priority comp_algorithm zram_bytes ram_bytes ratio device_present=0
+  local swap_info priority="" comp_algorithm zram_bytes ram_bytes ratio device_present=0
 
   check_same_system_file "$ROOT_DIR/zram/zram-generator.conf" /etc/systemd/zram-generator.conf "$severity"
   if [ -e /dev/zram0 ]; then
@@ -819,7 +819,7 @@ check_streamrip() {
 
 check_bash_scripts() {
   local script
-  for script in "$ROOT_DIR"/home/.local/bin/* "$ROOT_DIR"/restore.sh; do
+  for script in "$ROOT_DIR"/home/.local/bin/* "$ROOT_DIR"/restore.sh "$ROOT_DIR"/check.sh "$ROOT_DIR"/tests/test-*.sh; do
     [ -f "$script" ] || continue
     if bash -n "$script"; then
       ok "bash -n: $script"

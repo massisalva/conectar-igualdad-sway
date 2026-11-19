@@ -69,6 +69,21 @@ PY
 )
 ok "disk-manager abre rutas reales con espacios y barras invertidas, también tras montar"
 
+(
+  lsblk() {
+    printf '%s\n' '{"blockdevices":[{"name":"/dev/sdz","type":"disk","tran":"usb","rm":true,"fstype":"vfat","label":"USB sin particiones","mountpoint":"/media/direct"}]}'
+  }
+  findmnt() { printf '%s\n' '{"filesystems":[{"target":"/media/direct"}]}'; }
+  export -f lsblk findmnt
+  disk_json="$(bash "$ROOT_DIR/home/.local/bin/disk-status")"
+  python -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["class"] == "mounted"; assert "/media/direct" in d["tooltip"]' "$disk_json" ||
+    fail "disk-status omitió un USB sin particiones"
+  menu="$(DISK_MANAGER_DRY_RUN=1 bash "$ROOT_DIR/home/.local/bin/disk-manager")"
+  grep -Fq 'Abrir en yazi | USB sin particiones' <<< "$menu" ||
+    fail "disk-manager omitió un USB sin particiones"
+)
+ok "disk-status y disk-manager admiten discos USB sin particiones"
+
 python -c '
 import json
 import sys

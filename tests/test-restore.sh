@@ -118,6 +118,61 @@ if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
 fi
 ok "rollback rechaza rutas no permitidas"
 
+# Una entrada inválida al final no debe ejecutar las entradas anteriores.
+printf 'conservar\n' > "$TEST_HOME/preflight-marker"
+printf 'missing\t%s/preflight-marker\nmissing\t%s/../fuera\n' \
+  "$TEST_HOME" "$TEST_HOME" > "$malicious_backup/manifest.tsv"
+if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" -y >/dev/null 2>&1; then
+  fail "rollback aceptó un manifiesto parcialmente inválido"
+fi
+[ -f "$TEST_HOME/preflight-marker" ] || fail "rollback modificó archivos antes de validar todo"
+printf 'directory-mode:999\t%s/.ssh\n' "$TEST_HOME" > "$malicious_backup/manifest.tsv"
+if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" -y >/dev/null 2>&1; then
+  fail "rollback aceptó permisos inválidos"
+fi
+ok "rollback valida el manifiesto completo y los permisos antes de modificar archivos"
+
+# Una ruta léxicamente dentro de HOME puede resolver fuera mediante un enlace.
+mkdir -p "$TEST_ROOT/outside"
+printf 'intacto\n' > "$TEST_ROOT/outside/marker"
+ln -s "$TEST_ROOT/outside" "$TEST_HOME/escape"
+printf 'missing\t%s/escape/marker\n' "$TEST_HOME" > "$malicious_backup/manifest.tsv"
+if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" -y >/dev/null 2>&1; then
+  fail "rollback siguió un directorio externo enlazado"
+fi
+[ -f "$TEST_ROOT/outside/marker" ] || fail "rollback borró un archivo externo"
+
+escape_home="$TEST_ROOT/escape-home"
+mkdir -p "$escape_home"
+ln -s "$TEST_ROOT/outside" "$escape_home/.config"
+if HOME="$escape_home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$TEST_ROOT/escape-backups" \
+  "$ROOT_DIR/restore.sh" --no-yazi -y >/dev/null 2>&1; then
+  fail "restore siguió un directorio externo enlazado"
+fi
+[ ! -e "$TEST_ROOT/escape-backups" ] || fail "restore comenzó antes de validar los destinos"
+ok "restore y rollback rechazan directorios enlazados fuera de HOME"
+
+# Simular un repositorio mínimo con caché local: debe ignorarse, no borrarse.
+mini_repo="$TEST_ROOT/mini-repo"
+mkdir -p "$mini_repo/home/.cache" "$mini_repo/home/.config"
+cp "$ROOT_DIR/restore.sh" "$mini_repo/restore.sh"
+printf 'cache\n' > "$mini_repo/home/.cache/marker"
+printf 'config\n' > "$mini_repo/home/.config/test.conf"
+HOME="$TEST_ROOT/mini-home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$TEST_ROOT/mini-backups" \
+  bash "$mini_repo/restore.sh" --no-yazi -y >/dev/null
+[ -f "$mini_repo/home/.cache/marker" ] || fail "restore borró la caché del repositorio"
+[ ! -e "$TEST_ROOT/mini-home/.cache/marker" ] || fail "restore copió la caché del repositorio"
+ok "restore ignora la caché sin borrar archivos del repositorio"
+
+HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --no-user --no-yazi --nftables --dry-run -y > "$TEST_ROOT/nft-dry-run"
+grep -Fq 'sudo systemctl restart nftables.service' "$TEST_ROOT/nft-dry-run" || \
+  fail "reinstalar nftables no aplicaría las reglas nuevas"
+ok "reinstalación de nftables aplica las reglas nuevas"
+
 grep -Fq 'No ejecutes restore.sh como root' "$ROOT_DIR/restore.sh" || \
   fail "restore no protege la ejecución como root"
 ok "restore protege los pasos de usuario frente a root"

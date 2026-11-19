@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -u
+set -euo pipefail
 
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
@@ -10,6 +10,11 @@ notify_info() {
 
 if ! command -v cliphist >/dev/null 2>&1; then
   notify_info "No encontré cliphist"
+  exit 1
+fi
+
+if ! command -v wl-copy >/dev/null 2>&1; then
+  notify_info "No encontré wl-copy"
   exit 1
 fi
 

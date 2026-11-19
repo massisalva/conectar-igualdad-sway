@@ -97,6 +97,9 @@ is_system_path() {
 is_allowed_target() {
   local target="$1"
 
+  case "$target" in
+    *$'\t'*|*$'\n'*|*'//'*) return 1 ;;
+  esac
   case "/$target/" in
     */../*|*/./*) return 1 ;;
   esac
@@ -105,6 +108,57 @@ is_allowed_target() {
     "$HOME"/*|/etc/*|/boot/*) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+# No seguir directorios enlazados fuera de HOME al copiar o recuperar archivos.
+# El enlace final sí puede respaldarse y reemplazarse como archivo.
+validate_user_parent() {
+  local target="$1" parent home_root
+  case "$target" in
+    "$HOME"/*)
+      home_root="$(realpath -m -- "$HOME")"
+      parent="$(realpath -m -- "$(dirname -- "$target")")"
+      case "$parent/" in
+        "$home_root/"*) ;;
+        *) log "Directorio de destino fuera de HOME: $target"; return 1 ;;
+      esac
+      ;;
+  esac
+}
+
+validate_rollback() {
+  local dir="$1" state target backup_file
+  while IFS=$'\t' read -r state target || [ -n "$state$target" ]; do
+    if [ -z "$target" ] || ! is_allowed_target "$target"; then
+      log "Ruta no permitida en el manifiesto: $target"
+      return 1
+    fi
+    validate_user_parent "$target" || return 1
+    backup_file="$dir/files$target"
+    case "$state" in
+      present)
+        if { [ ! -f "$backup_file" ] && [ ! -L "$backup_file" ]; } ||
+            { [ -d "$target" ] && [ ! -L "$target" ]; }; then
+          log "Archivo de rollback ausente o destino incompatible: $target"
+          return 1
+        fi
+        ;;
+      missing)
+        if [ -d "$target" ] && [ ! -L "$target" ]; then
+          log "El destino ahora es un directorio: $target"
+          return 1
+        fi
+        ;;
+      directory-mode:*)
+        if [[ ! "${state#directory-mode:}" =~ ^[0-7]{3,4}$ ]] ||
+            [ ! -d "$target" ] || [ -L "$target" ]; then
+          log "Modo o directorio inválido en el manifiesto: $target"
+          return 1
+        fi
+        ;;
+      *) log "Estado desconocido en manifiesto: $state"; return 1 ;;
+    esac
+  done < "$dir/manifest.tsv"
 }
 
 is_kept_local_bin() {
@@ -173,9 +227,10 @@ rollback_backup() {
   local state target backup_file
 
   [ -f "$manifest" ] || { log "No existe un manifiesto válido en $dir"; return 1; }
+  validate_rollback "$dir" || return 1
   confirm "Esto restaurará los archivos registrados en $dir. ¿Continuar?"
 
-  while IFS=$'\t' read -r state target; do
+  while IFS=$'\t' read -r state target || [ -n "$state$target" ]; do
     [ -n "$target" ] || continue
     if ! is_allowed_target "$target"; then
       log "Ruta no permitida en el manifiesto: $target"
@@ -192,10 +247,10 @@ rollback_backup() {
         log "Restaurando $target"
         if is_system_path "$target"; then
           run sudo mkdir -p "$(dirname "$target")"
-          run sudo cp -a --remove-destination "$backup_file" "$target"
+          run sudo cp -aT --remove-destination -- "$backup_file" "$target"
         else
           run mkdir -p "$(dirname "$target")"
-          run cp -a --remove-destination "$backup_file" "$target"
+          run cp -aT --remove-destination -- "$backup_file" "$target"
         fi
         ;;
       missing)
@@ -279,12 +334,20 @@ restore_user_files() {
   [ -d "$source" ] || { log "No existe $source"; return 1; }
 
   confirm "Esto copiará $source/ sobre $HOME. ¿Continuar?"
-  run rm -rf "$source/.cache"
-  while IFS= read -r source_file; do
+  # Validar todo antes de respaldar o copiar: no dejar una restauración parcial.
+  while IFS= read -r -d '' source_file; do
+    target="$HOME/${source_file#"$source/"}"
+    is_allowed_target "$target" && validate_user_parent "$target" || return 1
+    if [ -d "$target" ] && [ ! -L "$target" ]; then
+      log "El destino es un directorio: $target"
+      return 1
+    fi
+  done < <(find "$source" -path "$source/.cache" -prune -o \( -type f -o -type l \) -print0)
+  while IFS= read -r -d '' source_file; do
     rel="${source_file#"$source/"}"
     target="$HOME/$rel"
     backup_target "$target"
-  done < <(find "$source" -path "$source/.cache" -prune -o \( -type f -o -type l \) -print | sort)
+  done < <(find "$source" -path "$source/.cache" -prune -o \( -type f -o -type l \) -print0 | sort -z)
 
   log "Restaurando archivos de usuario"
   run mkdir -p "$HOME"
@@ -467,7 +530,8 @@ install_nftables_config() {
   log "Instalando configuración de nftables"
   backup_target /etc/nftables.conf
   run sudo install -Dm644 "$file" /etc/nftables.conf
-  run sudo systemctl enable --now nftables.service
+  run sudo systemctl enable nftables.service
+  run sudo systemctl restart nftables.service
 }
 
 install_iwd_config() {

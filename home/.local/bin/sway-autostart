@@ -35,14 +35,13 @@ if ! systemctl --user start sway-session.target; then
   exit 1
 fi
 
-log "sesión Sway lista; esperando evento shutdown"
-swaymsg -m -t subscribe '["shutdown"]' 2>/dev/null |
-  while IFS= read -r event; do
-    case "$event" in
-      *'"change":"exit"'*)
-        log "deteniendo sway-session.target"
-        systemctl --user --no-block stop sway-session.target
-        break
-        ;;
-    esac
-  done
+# El socket también puede cerrarse sin entregar el evento shutdown (caída de Sway).
+# En ambos casos detener los servicios y liberar graphical-session.target.
+cleanup() {
+  log "deteniendo sway-session.target"
+  systemctl --user --no-block stop sway-session.target
+}
+trap cleanup EXIT
+trap 'exit 0' INT TERM
+log "sesión Sway lista; esperando cierre del socket IPC"
+swaymsg -m -t subscribe '["shutdown"]' >/dev/null

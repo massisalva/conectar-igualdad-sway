@@ -37,7 +37,7 @@ def walk(nodes, parent_external=False, parent_model="", parent_tran="", parent_r
             if not label:
                 label = model or os.path.basename(node.get("name") or "Dispositivo externo")
 
-        if external and device_type == "part":
+        if external and device_type in ("part", "disk") and node.get("fstype"):
             part_fstype = node.get("fstype") or ""
             part_mount = node.get("mountpoint") or ""
             part_label = node.get("label") or ""

@@ -69,4 +69,12 @@ grep -Fq '[FAIL] no puedo verificar el journal completo sin sudo' <<< "$out" || 
 ! grep -Fq '[OK] journal' <<< "$out" || fail_test "check certificó el journal sin acceso completo"
 printf '[OK] journal sin privilegios no se certifica como completo\n'
 
+# Sin swapon, set -u debe permitir que el diagnóstico continúe.
+(
+  source "$ROOT_DIR/check.sh"
+  has_cmd() { [ "$1" != swapon ] && command -v "$1" >/dev/null 2>&1; }
+  check_zram >/dev/null
+  printf '[OK] diagnóstico de zram tolera que falte swapon\n'
+)
+
 printf 'Pruebas de check: OK\n'
