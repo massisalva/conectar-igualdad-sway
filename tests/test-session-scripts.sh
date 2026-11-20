@@ -3,7 +3,32 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d)"
-trap 'rm -rf "$TEST_ROOT"' EXIT
+
+# Esperas de suspend-if-no-audio lanzadas por este test (no las de la sesión
+# real, que corren desde ~/.local/bin). Los zombies no cuentan: donde PID 1 no
+# los cosecha (contenedores), un proceso muerto sigue figurando en /proc.
+SUSPEND_REAL="$(realpath -- "$ROOT_DIR/home/.local/bin/suspend-if-no-audio")"
+alive() {
+  [ -r "/proc/$1/status" ] && ! grep -q '^State:[[:space:]]*Z' "/proc/$1/status" 2>/dev/null
+}
+test_waiters() {
+  local dir pid cmd
+  for dir in /proc/[0-9]*; do
+    pid="${dir#/proc/}"
+    cmd="$(tr '\0' ' ' 2>/dev/null < "$dir/cmdline")" || continue
+    case "$cmd" in *"$SUSPEND_REAL --wait"*) ;; *) continue ;; esac
+    alive "$pid" && printf '%s\n' "$pid"
+  done
+  return 0
+}
+# Red de seguridad (H1, 2026-11-20): una espera que sobreviva al test, al
+# borrarse los comandos falsos, usaría pactl y systemctl reales y podría
+# suspender el equipo con el usuario presente.
+kill_test_waiters() {
+  local pid
+  for pid in $(test_waiters); do kill "$pid" 2>/dev/null || true; done
+}
+trap 'kill_test_waiters; rm -rf "$TEST_ROOT"' EXIT
 mkdir -p "$TEST_ROOT/bin"
 export PATH="$TEST_ROOT/bin:$PATH"
 export HOME="$TEST_ROOT/home" XDG_CACHE_HOME="$TEST_ROOT/cache"
@@ -118,13 +143,73 @@ bash "$SUSPEND"
 wait_for '[ -s "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid" ]' || fail "no quedó una espera en segundo plano"
 waiter="$(cat "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid")"
 bash "$SUSPEND" --cancel
-wait_for "! kill -0 $waiter 2>/dev/null" || fail "--cancel no terminó la espera"
+wait_for "! alive $waiter" || fail "--cancel no terminó la espera"
 printf 'inactive\n' > "$AUDIO_CASE_FILE"
 sleep 0.6
 ! grep -qx suspend "$TEST_LOG" || fail "suspendió después de que el usuario volvió"
 grep -Fq 'suspend-if-no-audio --cancel' "$ROOT_DIR/home/.local/bin/start-idle" || fail "start-idle no cancela la espera al volver"
 unset AUDIO_CASE_FILE SUSPEND_AUDIO_INTERVAL
 printf 'OK volver a usar el equipo cancela la suspensión pendiente\n'
+
+# H1 (2026-11-20): --cancel llega antes de que la espera alcance a anotar su
+# PID. En la Conectar pasaba 1 de cada 200 veces; acá un setsid falso demora el
+# arranque de la espera para que pase siempre. La espera no debe suspender.
+export AUDIO_CASE_FILE="$TEST_ROOT/audio" SUSPEND_AUDIO_INTERVAL=0.2
+printf 'active\n' > "$AUDIO_CASE_FILE"
+: > "$TEST_LOG"
+(
+  real_setsid="$(command -v setsid)"
+  mkdir -p "$TEST_ROOT/slow-bin"
+  printf '%s\n' '#!/usr/bin/env bash' '[ "$1" != -f ] || shift' \
+    "( sleep 0.2; exec $real_setsid -f \"\$@\" ) </dev/null >/dev/null 2>&1 &" > "$TEST_ROOT/slow-bin/setsid"
+  chmod +x "$TEST_ROOT/slow-bin/setsid"
+  export PATH="$TEST_ROOT/slow-bin:$PATH"
+  for _ in $(seq 5); do
+    bash "$SUSPEND"
+    bash "$SUSPEND" --cancel
+  done
+)
+printf 'inactive\n' > "$AUDIO_CASE_FILE"
+sleep 0.8
+! grep -qx suspend "$TEST_LOG" || fail "suspendió aunque --cancel llegó antes de que la espera arrancara"
+wait_for '[ -z "$(test_waiters)" ]' || fail "--cancel temprano dejó esperas vivas"
+printf 'OK cancelar antes de que la espera arranque no deja esperas vivas\n'
+
+# --cancel también mata el sleep en curso (no queda huérfano hasta 60 s).
+export SUSPEND_AUDIO_INTERVAL=3600
+printf 'active\n' > "$AUDIO_CASE_FILE"
+bash "$SUSPEND"
+wait_for '[ -s "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid" ]' || fail "no quedó una espera en segundo plano"
+waiter="$(cat "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid")"
+child_of() {  # PID del hijo de $1, si tiene
+  local stat pid ppid
+  for stat in /proc/[0-9]*/stat; do
+    read -r pid _ _ ppid _ 2>/dev/null < "$stat" || continue
+    [ "$ppid" = "$1" ] && alive "$pid" && { printf '%s\n' "$pid"; return 0; }
+  done
+  return 1
+}
+sleeper=""
+wait_for 'sleeper="$(child_of "$waiter")"' || fail "la espera no lanzó su sleep"
+bash "$SUSPEND" --cancel
+wait_for "! alive $sleeper" || fail "--cancel dejó huérfano el sleep de la espera"
+printf 'OK cancelar no deja el sleep huérfano\n'
+
+# Una espera cuyo turno ya no es el vigente no suspende.
+export SUSPEND_AUDIO_INTERVAL=0.2
+printf 'active\n' > "$AUDIO_CASE_FILE"
+: > "$TEST_LOG"
+bash "$SUSPEND"
+wait_for '[ -s "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid" ]' || fail "no quedó una espera en segundo plano"
+printf 'otro\n' > "$XDG_RUNTIME_DIR/suspend-if-no-audio.token"
+printf 'inactive\n' > "$AUDIO_CASE_FILE"
+wait_for '[ -z "$(test_waiters)" ]' || fail "una espera sin turno vigente siguió viva"
+! grep -qx suspend "$TEST_LOG" || fail "una espera sin turno vigente suspendió"
+rm -f "$XDG_RUNTIME_DIR/suspend-if-no-audio.token"
+grep -Eq 'before-sleep .*suspend-if-no-audio --cancel' "$ROOT_DIR/home/.local/bin/start-idle" ||
+  fail "start-idle no cancela la espera antes de suspender"
+unset AUDIO_CASE_FILE SUSPEND_AUDIO_INTERVAL
+printf 'OK la espera solo suspende con su turno vigente\n'
 
 # A1: avisos de batería baja, una vez por nivel y de nuevo tras cargar.
 battery_at() {  # capacidad estado

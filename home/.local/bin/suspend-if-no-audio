@@ -4,14 +4,20 @@
 # swayidle corre el comando una sola vez por período de inactividad y, con -w,
 # espera a que termine. Si hay audio, no se puede esperar acá adentro: se lanza
 # una espera aparte que revisa cada SUSPEND_AUDIO_INTERVAL segundos y suspende
-# cuando el audio termina. El "resume" de swayidle la cancela (--cancel) si el
-# usuario vuelve antes.
+# cuando el audio termina. El "resume" y el "before-sleep" de swayidle la
+# cancelan (--cancel) si el usuario vuelve o el equipo se suspende por otro lado.
+#
+# Turno: antes de lanzar la espera se anota un código único en TOKEN_FILE y
+# --cancel lo borra antes que nada. Una espera solo suspende si su turno sigue
+# vigente, así que --cancel funciona aunque llegue antes de que la espera
+# alcance a anotar su PID (auditoría 2026-11-20, H1).
 
 set -u
 
 INTERVAL="${SUSPEND_AUDIO_INTERVAL:-60}"
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 PID_FILE="$RUNTIME_DIR/suspend-if-no-audio.pid"
+TOKEN_FILE="$RUNTIME_DIR/suspend-if-no-audio.token"
 SELF="$(realpath -- "${BASH_SOURCE[0]}")"
 
 # 0: suena algo; 1: silencio; 2: no se pudo consultar (no demuestra silencio).
@@ -31,8 +37,15 @@ waiter_pid() {
   printf '%s\n' "$pid"
 }
 
+turn_is_current() {  # $1: turno de esta espera
+  local current
+  current="$(cat -- "$TOKEN_FILE" 2>/dev/null)" || return 1
+  [ "$current" = "$1" ]
+}
+
 cancel_waiter() {
   local pid
+  rm -f -- "$TOKEN_FILE"  # Primero: aunque el kill no llegue, la espera ya no suspende.
   if pid="$(waiter_pid)"; then
     kill "$pid" 2>/dev/null || true
   fi
@@ -40,17 +53,29 @@ cancel_waiter() {
 }
 
 wait_for_silence() {
+  local turn="$1" sleep_pid=""
+  # Borrar el PID solo si es el propio: una espera vieja no borra el de una nueva.
+  forget_pid() {
+    [ "$(cat -- "$PID_FILE" 2>/dev/null)" != "$$" ] || rm -f -- "$PID_FILE"
+  }
   printf '%s\n' "$$" > "$PID_FILE"
-  trap 'rm -f -- "$PID_FILE"' EXIT
-  trap 'exit 0' TERM INT
-  while true; do
-    sleep "$INTERVAL" & wait $!
+  trap forget_pid EXIT
+  # Matar también el sleep en curso, para no dejarlo huérfano.
+  trap '[ -z "$sleep_pid" ] || kill "$sleep_pid" 2>/dev/null; exit 0' TERM INT
+  # El turno se revisa después de anotar el PID: si --cancel ya pasó, se sale acá.
+  while turn_is_current "$turn"; do
+    sleep "$INTERVAL" & sleep_pid=$!
+    wait "$sleep_pid"
+    sleep_pid=""
+    turn_is_current "$turn" || break
     audio_state
-    if [ "$?" -eq 1 ]; then
-      rm -f -- "$PID_FILE"
+    if [ "$?" -eq 1 ] && turn_is_current "$turn"; then
+      rm -f -- "$TOKEN_FILE"
+      forget_pid
       exec systemctl suspend
     fi
   done
+  exit 0
 }
 
 case "${1:-}" in
@@ -59,7 +84,8 @@ case "${1:-}" in
     exit 0
     ;;
   --wait)
-    wait_for_silence
+    [ -n "${2:-}" ] || exit 2
+    wait_for_silence "$2"
     ;;
   '')
     cancel_waiter
@@ -69,11 +95,13 @@ case "${1:-}" in
       0) status=0 ;;
       *) status=1 ;;  # La consulta falló: esperar y reintentar, sin suspender ahora.
     esac
-    setsid -f "$SELF" --wait </dev/null >/dev/null 2>&1
+    turn="$$-$(date +%s%N)"
+    printf '%s\n' "$turn" > "$TOKEN_FILE.tmp" && mv -f -- "$TOKEN_FILE.tmp" "$TOKEN_FILE"
+    setsid -f "$SELF" --wait "$turn" </dev/null >/dev/null 2>&1
     exit "$status"
     ;;
   *)
-    printf 'Uso: %s [--wait|--cancel]\n' "$(basename "$0")" >&2
+    printf 'Uso: %s [--wait TURNO|--cancel]\n' "$(basename "$0")" >&2
     exit 2
     ;;
 esac
