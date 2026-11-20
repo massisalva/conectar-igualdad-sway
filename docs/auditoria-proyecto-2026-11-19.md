@@ -327,3 +327,45 @@ TOML, ShellCheck y las cuatro suites (`test-check`, `test-restore`,
 `test-session-scripts` y `test-ui-scripts`). La prueba gráfica de Sway continúa
 siendo opcional y no se ejecutó en esta corrección. La corrección modifica el
 repositorio y no aplica configuraciones al sistema activo.
+
+## Cierre del 2026-11-19 (Claude)
+
+### Cambios posteriores a la tabla de estado
+
+| Commit | Qué | Quién |
+| --- | --- | --- |
+| `2017124` | ShellCheck 0.11.0 instalado por Maxi. 4 advertencias corregidas (variable sin usar en `check.sh`; `export X="$(...)"` en `disk-manager`, `screenshot-menu` y `start-idle`). Política en `run-all.sh`: fallan errores y advertencias; las notas no (57 de 66 son SC2317/SC2329 sobre funciones simuladas en los tests) | Claude |
+| `d73c53d` | H2 con destinos exactos, no patrones de carpeta (ver sección anterior) | Codex |
+| `06b9138` | Inventario único `lib/system-files.sh`: instalación, rollback y `check.sh` leen la misma lista; `check.sh` verifica también permisos; `tests/test-system-files.sh` | Codex, revisado por Claude |
+| `7910739` | `/boot` es vfat (`fmask=0177`, todo queda en 600): sus entradas llevan modo `-` y no se verifican permisos, si no `check.sh --system --sudo` fallaba siempre. Un archivo ilegible sin sudo avisa una sola vez | Claude |
+
+La prueba de Sway sin pantalla (`tests/run-all.sh --sway`) pasa por SSH: la
+falla de la auditoría era del entorno donde corrió Codex, no del código.
+
+### Aplicado al equipo
+
+Con el OK de Maxi, se corrió `./restore.sh --no-yazi -y` (solo archivos de
+usuario, sin sudo) dos veces, para instalar los scripts actualizados:
+
+- `backups/restore-20261119-210249-730045770-117143` (scripts de los bloques 0-3).
+- `backups/restore-20261119-210724-107492606-134608` (scripts de `2017124`).
+
+Para volver atrás: `./restore.sh --rollback backups/<carpeta>`, empezando por
+la más nueva. El rollback no deshace MPD habilitado ni las preferencias de
+gsettings, que la restauración vuelve a aplicar igual que antes. No se tocó
+nada de `/etc` ni `/boot`: las configuraciones de sistema siguen como estaban
+y los cambios en sus instaladores se usan la próxima vez que se pasen
+`--polkit`, `--sshd`, etc.
+
+`sway-autostart` nuevo rige desde el próximo inicio de sesión en Sway.
+
+### Estado final
+
+- `tests/run-all.sh`: todo OK (sintaxis, TOML, ShellCheck y 5 suites).
+- `./check.sh` por SSH, sin sudo: 0 fallos y 6 avisos esperables (polkit,
+  `/boot/loader`, SSH efectiva y ruleset de nftables necesitan sudo).
+- Pendiente opcional: correr `./check.sh --system --sudo` desde una terminal
+  de la Conectar para verificar contenido y permisos de los archivos de
+  sistema; no se hizo porque pide contraseña.
+
+Todos los hallazgos H1-H8 quedan resueltos o decididos.
