@@ -207,6 +207,56 @@ grep -Fq 'sudo rm -f /etc/ssh/sshd_config.d/10-hardening.conf' "$TEST_ROOT/h2-ok
   fail "rollback no propuso recuperar la ruta administrada"
 ok "rollback acepta solo las rutas de sistema del proyecto"
 
+# Coincidir en carpeta y extensión no demuestra que el archivo sea del proyecto.
+# La entrada válida inicial tampoco debe ejecutarse si otra entrada es ajena.
+for target in \
+  /etc/ssh/sshd_config.d/99-ajeno-al-proyecto.conf \
+  /etc/sysctl.d/99-ajeno-al-proyecto.conf \
+  /etc/polkit-1/rules.d/99-ajeno-al-proyecto.rules \
+  /etc/systemd/system/ajeno-al-proyecto.mount \
+  /etc/systemd/system/ajeno-al-proyecto.automount; do
+  printf 'missing\t%s/preflight-marker\nmissing\t%s\n' \
+    "$TEST_HOME" "$target" > "$malicious_backup/manifest.tsv"
+  if HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+    "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" --dry-run -y > "$TEST_ROOT/h2-out" 2>&1; then
+    fail "rollback aceptó un archivo ajeno en una carpeta administrada: $target"
+  fi
+  grep -Fq "Ruta no permitida en el manifiesto: $target" "$TEST_ROOT/h2-out" || \
+    fail "rollback falló por otra causa al validar $target"
+  ! grep -Fq 'Quitando archivo' "$TEST_ROOT/h2-out" || \
+    fail "rollback comenzó antes de rechazar el archivo ajeno: $target"
+done
+ok "rollback rechaza archivos ajenos aun con carpeta y extensión administradas"
+
+# Verificar también todos los destinos actuales para evitar una lista incompleta.
+# Si se agrega un archivo instalable, este recorrido exige admitir su rollback.
+managed_targets=(
+  /boot/loader/loader.conf /boot/loader/entries/arch.conf
+  /etc/nftables.conf /etc/iwd/main.conf /etc/conf.d/wireless-regdom
+  /etc/resolv.conf /etc/systemd/zram-generator.conf
+)
+for file in "$ROOT_DIR"/polkit/*.rules; do
+  managed_targets+=("/etc/polkit-1/rules.d/$(basename "$file")")
+done
+for file in "$ROOT_DIR"/sshd/*.conf; do
+  managed_targets+=("/etc/ssh/sshd_config.d/$(basename "$file")")
+done
+for file in "$ROOT_DIR"/sysctl/*.conf; do
+  managed_targets+=("/etc/sysctl.d/$(basename "$file")")
+done
+for file in "$ROOT_DIR"/samba/*.mount "$ROOT_DIR"/samba/*.automount; do
+  managed_targets+=("/etc/systemd/system/$(basename "$file")")
+done
+for target in "${managed_targets[@]}"; do
+  printf 'missing\t%s\n' "$target" > "$malicious_backup/manifest.tsv"
+  HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+    "$ROOT_DIR/restore.sh" --rollback "$malicious_backup" --dry-run -y > "$TEST_ROOT/h2-ok" 2>&1 || \
+    fail "rollback rechazó un destino administrado: $target: $(cat "$TEST_ROOT/h2-ok")"
+  grep -Fq "sudo rm -f $target" "$TEST_ROOT/h2-ok" || \
+    fail "rollback no propuso recuperar $target"
+done
+ok "rollback admite todos los destinos de sistema instalados por el proyecto"
+
 # H1: chmod sigue enlaces; restore los rechaza antes de tocar nada.
 for case_name in authorized_keys streamrip ssh_dir; do
   link_home="$TEST_ROOT/link-home-$case_name"

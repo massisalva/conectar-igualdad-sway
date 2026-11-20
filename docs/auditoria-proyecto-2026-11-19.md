@@ -288,15 +288,42 @@ persiste; `--system` falla si no puede verificar; sin CI.
 | --- | --- | --- |
 | Cambios locales previos (origen sin confirmar) | Revisados y commiteados tal cual; `clipboard-menu` corregido (historial recién creado) y test de luz nocturna arreglado (probaba una opción inexistente) | `efd45d3`, `894e97e` |
 | H4 sshd inválido instalado | Resuelto. Subido a prioridad alta: sshd no arrancaría en el próximo reinicio | `cd6b115` |
-| H2 rollback con rutas de sistema ajenas | Resuelto (`is_managed_system_target`); cubre las rutas de todos los backups existentes | `cd6b115` |
+| H2 rollback con rutas de sistema ajenas | La primera corrección limitó carpetas y extensiones; la supervisión detectó que todavía admitía archivos ajenos. Se completó con rutas exactas y pruebas negativas por carpeta; ver seguimiento al final | `cd6b115` y corrección posterior de Codex |
 | H1 chmod a través de enlaces | Resuelto: restore se niega a empezar | `cd6b115` |
 | H3 `--prune` por ausencia | Resuelto: `docs/local-bin-retired.txt`, test contra el historial | `579a8fd` |
 | H6 luz nocturna apagada como falla | Resuelto: cuatro estados distintos | `579a8fd` |
 | H5 alcance del rollback | Resuelto en ayuda, cierre y README | `649d1eb` |
 | H7a "sincronizado" | Resuelto | `649d1eb` |
 | H7b modo estricto sin acceso | Resuelto con `report()` | `649d1eb` |
-| H8 validación repetible | `tests/run-all.sh`. CI descartado. ShellCheck pendiente de instalar (pide sudo) | `649d1eb` |
+| H8 validación repetible | `tests/run-all.sh`. CI descartado. ShellCheck instalado y política de errores/advertencias definida | `649d1eb`, `2017124` |
 
 Cada arreglo tiene un test que falla si se desactiva el arreglo. Ninguno se
 aplicó al sistema en vivo: los scripts de `~/.local/bin` se actualizan con la
 próxima restauración.
+
+## Seguimiento de H2 — Supervisión y corrección final (Codex)
+
+La supervisión de `2017124` reprodujo con `--dry-run` la aceptación de archivos
+ajenos con extensiones admitidas: por ejemplo,
+`/etc/ssh/sshd_config.d/99-ajeno-al-proyecto.conf`. Los patrones de carpeta y
+extensión no cumplían la restricción a los archivos concretos del proyecto.
+
+Con autorización de Maxi se reemplazaron esos patrones en
+`is_managed_system_target` por los nombres exactos de las reglas polkit,
+configuración SSH, ajustes sysctl y unidades de Samba. Se conservó el rechazo
+de directorios padre enlazados. La lista incluye todos los destinos de sistema
+encontrados en los manifiestos de los backups locales existentes; esto verifica
+compatibilidad de rutas, no certifica la integridad de esos backups.
+
+Las pruebas nuevas rechazan archivos ajenos en cada una de esas carpetas,
+incluidas unidades `.mount` y `.automount`, y comprueban que una entrada válida
+anterior no empiece a procesarse. También recorren todos los archivos de sistema
+instalables actuales y verifican que su rollback siga permitido. Las operaciones
+de sistema se simulan con `--dry-run`: no se ejecuta sudo ni se borran archivos
+de `/etc` o `/boot`.
+
+Validación de cierre: `bash tests/run-all.sh` terminó con éxito en sintaxis Bash,
+TOML, ShellCheck y las cuatro suites (`test-check`, `test-restore`,
+`test-session-scripts` y `test-ui-scripts`). La prueba gráfica de Sway continúa
+siendo opcional y no se ejecutó en esta corrección. La corrección modifica el
+repositorio y no aplica configuraciones al sistema activo.

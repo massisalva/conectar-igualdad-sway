@@ -119,20 +119,20 @@ is_allowed_target() {
 # rollback rechaza cualquier otra, aunque esté bajo /etc o /boot. Si se agrega
 # un destino de sistema nuevo, sumarlo acá: si no, su rollback se rechaza.
 is_managed_system_target() {
-  local target="$1" name=""
+  local target="$1"
   case "$target" in
     /boot/loader/loader.conf|/boot/loader/entries/arch.conf|\
     /etc/nftables.conf|/etc/iwd/main.conf|/etc/conf.d/wireless-regdom|\
-    /etc/resolv.conf|/etc/systemd/zram-generator.conf) ;;
-    /etc/polkit-1/rules.d/*.rules) name="${target#/etc/polkit-1/rules.d/}" ;;
-    /etc/ssh/sshd_config.d/*.conf) name="${target#/etc/ssh/sshd_config.d/}" ;;
-    /etc/sysctl.d/*.conf) name="${target#/etc/sysctl.d/}" ;;
-    /etc/systemd/system/*.mount|/etc/systemd/system/*.automount)
-      name="${target#/etc/systemd/system/}" ;;
+    /etc/resolv.conf|/etc/systemd/zram-generator.conf|\
+    /etc/polkit-1/rules.d/49-udisks2-storage.rules|\
+    /etc/polkit-1/rules.d/50-local-power.rules|\
+    /etc/ssh/sshd_config.d/10-hardening.conf|\
+    /etc/sysctl.d/99-local-hardening.conf|/etc/sysctl.d/99-zram.conf|\
+    /etc/systemd/system/home-massisalva-Compartido.mount|\
+    /etc/systemd/system/home-massisalva-Compartido.automount) ;;
     *) return 1 ;;
   esac
-  # Un solo nivel dentro de cada carpeta, y sin directorios enlazados en el camino.
-  case "$name" in */*) return 1 ;; esac
+  # No admitir directorios enlazados en el camino, incluso para un nombre permitido.
   [ "$(realpath -m -- "$(dirname -- "$target")")" = "$(dirname -- "$target")" ]
 }
 
