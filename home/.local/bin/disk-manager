@@ -99,8 +99,9 @@ add_item() {
 
 check_dependencies
 
-while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM; do
-  case "$TYPE" in part|disk) ;; *) continue ;; esac
+while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM ROOT HAS_CHILDREN; do
+  # crypt: el contenido ya desbloqueado de un disco cifrado (/dev/mapper/...).
+  case "$TYPE" in part|disk|crypt) ;; *) continue ;; esac
   [ -n "$FSTYPE" ] || continue
 
   case "$MOUNTPOINT" in
@@ -124,7 +125,9 @@ while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM; do
   LABEL_DISPLAY="${LABEL_DISPLAY//$'\t'/ }"
   MOUNTED="$(mounted_path "$NAME" || true)"
 
-  if [ "$TYPE" = "disk" ]; then
+  if [ -n "$ROOT" ]; then
+    DISK="$ROOT"
+  elif [ "$TYPE" = "disk" ]; then
     DISK="$NAME"
   elif [ -n "$PKNAME" ]; then
     DISK="$PKNAME"
@@ -136,7 +139,16 @@ while IFS=$'\x1f' read -r NAME TYPE FSTYPE LABEL MOUNTPOINT PKNAME TRAN RM; do
     DISK="$NAME"
   fi
 
-  if [ -n "$MOUNTED" ]; then
+  if [ "$FSTYPE" = "crypto_LUKS" ]; then
+    # Un contenedor cifrado no se monta: se desbloquea, y su contenido aparece
+    # como otra entrada (tipo crypt) que sí se monta.
+    if [ "$HAS_CHILDREN" = 1 ]; then
+      add_item "󰌾  Bloquear | $LABEL_DISPLAY" "lock" "$NAME" "" "$DISK" "$FSTYPE"
+    else
+      add_item "󰌿  Desbloquear y montar | $LABEL_DISPLAY" "unlock" "$NAME" "" "$DISK" "$FSTYPE"
+    fi
+    add_item "󰓆  Expulsar | $LABEL_DISPLAY" "poweroff" "$NAME" "" "$DISK" "$FSTYPE"
+  elif [ -n "$MOUNTED" ]; then
     add_item "󰉋  Abrir en yazi | $LABEL_DISPLAY" "open" "$NAME" "$MOUNTED" "$DISK" "$FSTYPE"
     add_item "󰍛  Desmontar | $LABEL_DISPLAY" "unmount" "$NAME" "$MOUNTED" "$DISK" "$FSTYPE"
     add_item "󰓆  Expulsar | $LABEL_DISPLAY" "poweroff" "$NAME" "$MOUNTED" "$DISK" "$FSTYPE"
@@ -152,12 +164,13 @@ import json, sys
 
 data = json.load(sys.stdin)
 
-def walk(nodes, parent_tran="", parent_rm=""):
+def walk(nodes, parent_tran="", parent_rm="", root=""):
     for n in nodes:
         tran = n.get("tran") or parent_tran
         rm = n.get("rm")
         if rm is None:
             rm = parent_rm
+        root_disk = root or n.get("name") or ""
 
         print(
             n.get("name") or "",
@@ -168,9 +181,11 @@ def walk(nodes, parent_tran="", parent_rm=""):
             n.get("pkname") or "",
             tran or "",
             "1" if rm is True or rm == "1" else "0",
+            root_disk,
+            "1" if n.get("children") else "0",
             sep="\x1f"
         )
-        walk(n.get("children") or [], tran, rm)
+        walk(n.get("children") or [], tran, rm, root_disk)
 
 walk(data.get("blockdevices") or [])
 '
@@ -225,6 +240,45 @@ case "$ACTION" in
     fi
     ;;
 
+  unlock)
+    # La frase de paso se pide en una terminal: fuzzel no sirve para eso.
+    if ! command -v foot >/dev/null 2>&1; then
+      notify_info "No encontré foot"
+      exit 1
+    fi
+    foot --app-id disk-unlock --title "Desbloquear disco" -e udisksctl unlock -b "$DEV"
+    CLEAR="$(lsblk -nrpo NAME,TYPE "$DEV" 2>/dev/null | awk '$2 == "crypt" {print $1; exit}')"
+    if [ -z "$CLEAR" ]; then
+      notify_info "El disco sigue bloqueado"
+      exit 1
+    fi
+    if udisksctl mount -b "$CLEAR"; then
+      MOUNTED="$(mounted_path "$CLEAR" || true)"
+      notify_info "Disco desbloqueado y montado"
+      [ -n "$MOUNTED" ] && open_yazi "$MOUNTED"
+    else
+      notify_info "Desbloqueado, pero no pude montarlo"
+      exit 1
+    fi
+    ;;
+
+  lock)
+    while IFS= read -r part; do
+      [ -n "$part" ] || continue
+      findmnt -rn -S "$part" >/dev/null 2>&1 || continue
+      if ! err="$(udisksctl unmount -b "$part" 2>&1)"; then
+        notify_info "No pude desmontar $part (¿hay algo abierto ahí?): ${err:-sin detalle}"
+        exit 1
+      fi
+    done < <(lsblk -nrpo NAME "$DEV" 2>/dev/null)
+    if err="$(udisksctl lock -b "$DEV" 2>&1)"; then
+      notify_info "Disco bloqueado"
+    else
+      notify_info "No pude bloquear el disco: ${err:-sin detalle}"
+      exit 1
+    fi
+    ;;
+
   unmount)
     if udisksctl unmount -b "$DEV"; then
       notify_info "Disco desmontado"
@@ -243,6 +297,16 @@ case "$ACTION" in
         exit 1
       fi
     done < <(lsblk -nrpo NAME "$DISK" 2>/dev/null)
+
+    # Un contenedor cifrado abierto también impide apagar el disco.
+    while read -r part fstype; do
+      [ "$fstype" = crypto_LUKS ] || continue
+      [ "$(lsblk -nrpo NAME "$part" 2>/dev/null | wc -l)" -gt 1 ] || continue
+      if ! err="$(udisksctl lock -b "$part" 2>&1)"; then
+        notify_info "No pude bloquear $part antes de expulsar: ${err:-sin detalle}"
+        exit 1
+      fi
+    done < <(lsblk -nrpo NAME,FSTYPE "$DISK" 2>/dev/null)
 
     if err="$(udisksctl power-off -b "$DISK" 2>&1)"; then
       notify_info "Disco expulsado. Ya podés desconectarlo."

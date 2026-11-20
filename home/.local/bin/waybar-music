@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 trap 'exit 0' PIPE
-exec 2>/dev/null
+# Los errores esperables ya se silencian comando por comando; lo inesperado va
+# al journal de waybar.service (journalctl --user -u waybar) para poder
+# diagnosticarlo. Antes, exec 2>/dev/null descartaba todo.
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"

@@ -6,6 +6,13 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 STATE_DIR="$XDG_RUNTIME_DIR/disk-notify"
 mkdir -p "$STATE_DIR"
 
+# Si el servicio estuvo caído, pudo perderse la desconexión de un disco y quedar
+# marcado como "ya avisado": olvidar las marcas de discos que ya no están.
+for mark in "$STATE_DIR"/*.added; do
+  [ -e "$mark" ] || continue
+  [ -b "/dev/$(basename "$mark" .added)" ] || rm -f -- "$mark"
+done
+
 MONITOR_PID=""
 EVENT_FIFO="$STATE_DIR/events.$$"
 CLEANED_UP=0

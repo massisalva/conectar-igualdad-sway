@@ -199,3 +199,9 @@ grep -qx 'ExecStartPre=/usr/bin/cliphist wipe' "$unit" || fail "el portapapeles 
 grep -Eq '^ExecStart=.*cliphist -max-items [0-9]+ store$' "$unit" || fail "el historial del portapapeles no tiene límite"
 printf 'OK portapapeles: se vacía al iniciar sesión y tiene límite\n'
 
+# B4: al arrancar, disk-notify olvida las marcas de discos que ya no están.
+mkdir -p "$XDG_RUNTIME_DIR/disk-notify"
+touch "$XDG_RUNTIME_DIR/disk-notify/no-existe-sdq.added"
+timeout 10 bash "$ROOT_DIR/home/.local/bin/disk-notify" 2>/dev/null || true
+[ ! -e "$XDG_RUNTIME_DIR/disk-notify/no-existe-sdq.added" ] || fail "disk-notify conservó la marca de un disco que ya no está"
+printf 'OK disk-notify olvida avisos de discos desconectados mientras estaba caído\n'

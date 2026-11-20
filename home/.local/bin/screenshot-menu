@@ -60,6 +60,12 @@ notify_cancel() {
   notify_info "Cancelada" 1200
 }
 
+# Con set -e, un grim fallido cerraba el script sin avisar.
+capture_failed() {
+  notify_info "No pude capturar la pantalla" 3000
+  exit 1
+}
+
 focused_geometry() {
   swaymsg -t get_tree | python -c '
 import json, sys
@@ -119,7 +125,7 @@ fi
 
 case "$mode" in
   full)
-    grim "$file"
+    grim "$file" || capture_failed
     notify_ok "$file"
     ;;
 
@@ -130,14 +136,14 @@ case "$mode" in
     fi
     geometry="$(slurp || true)"
     [ -n "$geometry" ] || { notify_cancel; exit 0; }
-    grim -g "$geometry" "$file"
+    grim -g "$geometry" "$file" || capture_failed
     notify_ok "$file"
     ;;
 
   window)
     geometry="$(focused_geometry || true)"
     [ -n "$geometry" ] || { notify_info "No pude detectar la ventana enfocada" 2000; exit 1; }
-    grim -g "$geometry" "$file"
+    grim -g "$geometry" "$file" || capture_failed
     notify_ok "$file"
     ;;
 
@@ -146,7 +152,7 @@ case "$mode" in
       notify_info "No encontré wl-copy"
       exit 1
     fi
-    grim - | wl-copy
+    grim - | wl-copy || capture_failed
     notify_clip "Pantalla completa"
     ;;
 
@@ -159,7 +165,7 @@ case "$mode" in
     done
     geometry="$(slurp || true)"
     [ -n "$geometry" ] || { notify_cancel; exit 0; }
-    grim -g "$geometry" - | wl-copy
+    grim -g "$geometry" - | wl-copy || capture_failed
     notify_clip "Región seleccionada"
     ;;
 

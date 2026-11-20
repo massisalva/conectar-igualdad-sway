@@ -477,4 +477,88 @@ ok "menús flotantes (audio, bluetooth, red, batería) alternan apertura y cierr
 )
 ok "expulsar desmonta todas las particiones y dice cuál lo impide"
 
+# B1: un pendrive cifrado se desbloquea (no "Montar") y se bloquea antes de expulsar.
+(
+  export LUKS_STATE="$TEST_ROOT/luks-state" MOUNTED_FILE="$TEST_ROOT/luks-mounted" UDISKS_LOG="$TEST_ROOT/luks-udisks.log"
+  export NOTIFY_LOG="$TEST_ROOT/luks-notify.log"
+  lsblk() {
+    local child=''
+    if [ "$(cat "$LUKS_STATE")" = open ]; then
+      child=',"children":[{"name":"/dev/mapper/luks-1","type":"crypt","fstype":"ext4","label":"Datos"}]'
+    fi
+    case "$*" in
+      *-J*) printf '{"blockdevices":[{"name":"/dev/sdx","type":"disk","tran":"usb","rm":true,"children":[{"name":"/dev/sdx1","type":"part","fstype":"crypto_LUKS","label":"Cifrado","pkname":"/dev/sdx"%s}]}]}\n' "$child" ;;
+      *NAME,TYPE*) [ "$(cat "$LUKS_STATE")" = open ] && printf '/dev/sdx1 part\n/dev/mapper/luks-1 crypt\n' || printf '/dev/sdx1 part\n' ;;
+      *NAME,FSTYPE*/dev/sdx)
+        printf '/dev/sdx \n/dev/sdx1 crypto_LUKS\n'
+        [ "$(cat "$LUKS_STATE")" = closed ] || printf '/dev/mapper/luks-1 ext4\n' ;;
+      *-nrpo\ NAME\ /dev/sdx1)
+        printf '/dev/sdx1\n'; [ "$(cat "$LUKS_STATE")" = closed ] || printf '/dev/mapper/luks-1\n' ;;
+      *-nrpo\ NAME\ /dev/sdx)
+        printf '/dev/sdx\n/dev/sdx1\n'; [ "$(cat "$LUKS_STATE")" = closed ] || printf '/dev/mapper/luks-1\n' ;;
+    esac
+  }
+  findmnt() {
+    local dev="${*: -1}"
+    case "$*" in *--json*) dev="$3" ;; esac
+    grep -qx -- "$dev" "$MOUNTED_FILE" || return 1
+    case "$*" in *--json*) printf '{"filesystems":[{"target":"/run/media/datos"}]}\n' ;; *) printf '/run/media/datos\n' ;; esac
+  }
+  udisksctl() {
+    printf '%s\n' "$*" >> "$UDISKS_LOG"
+    case "$1" in
+      mount) printf '%s\n' "$3" >> "$MOUNTED_FILE" ;;
+      unmount) grep -vx -- "$3" "$MOUNTED_FILE" > "$MOUNTED_FILE.new" || true; mv "$MOUNTED_FILE.new" "$MOUNTED_FILE" ;;
+      lock) [ ! -s "$MOUNTED_FILE" ] || return 1; printf 'closed\n' > "$LUKS_STATE" ;;
+      power-off) [ "$(cat "$LUKS_STATE")" = closed ] || { printf 'Device is in use\n' >&2; return 1; } ;;
+    esac
+  }
+  # La terminal de desbloqueo: simula que el usuario escribió bien la frase.
+  foot() {
+    case "$*" in *"udisksctl unlock -b /dev/sdx1"*) printf 'open\n' > "$LUKS_STATE" ;; esac
+  }
+  yazi() { :; }
+  fuzzel() { cat >/dev/null; printf '%s\n' "$DISK_CHOICE"; }
+  notify-send() { printf '%s\n' "$*" >> "$NOTIFY_LOG"; }
+  export -f lsblk findmnt udisksctl foot yazi fuzzel notify-send
+  export WAYLAND_DISPLAY=audit-test SWAYSOCK=/tmp/audit-test-sway.sock
+
+  printf 'closed\n' > "$LUKS_STATE"; : > "$MOUNTED_FILE"; : > "$UDISKS_LOG"; : > "$NOTIFY_LOG"
+  menu="$(DISK_MANAGER_DRY_RUN=1 bash "$ROOT_DIR/home/.local/bin/disk-manager")"
+  grep -Fq 'Desbloquear y montar | Cifrado' <<< "$menu" || fail "un disco cifrado no ofrece desbloquear"
+  ! grep -Fq 'Montar | Cifrado' <<< "$menu" || fail "un disco cifrado ofrece Montar, que siempre falla"
+
+  DISK_CHOICE='1) Desbloquear' bash "$ROOT_DIR/home/.local/bin/disk-manager" || fail "no pudo desbloquear y montar"
+  grep -qx 'mount -b /dev/mapper/luks-1' "$UDISKS_LOG" || fail "no montó el contenido desbloqueado"
+
+  menu="$(DISK_MANAGER_DRY_RUN=1 bash "$ROOT_DIR/home/.local/bin/disk-manager")"
+  grep -Fq 'Bloquear | Cifrado' <<< "$menu" || fail "un disco desbloqueado no ofrece bloquear"
+  grep -Fq 'Abrir en yazi | Datos' <<< "$menu" || fail "el contenido desbloqueado no aparece montado"
+
+  : > "$UDISKS_LOG"
+  DISK_CHOICE='2) Expulsar' bash "$ROOT_DIR/home/.local/bin/disk-manager" || fail "no pudo expulsar un disco cifrado abierto"
+  [ "$(cat "$UDISKS_LOG")" = "$(printf 'unmount -b /dev/mapper/luks-1\nlock -b /dev/sdx1\npower-off -b /dev/sdx')" ] ||
+    fail "expulsar no desmontó, bloqueó y apagó en ese orden: $(tr '\n' ';' < "$UDISKS_LOG")"
+)
+ok "discos cifrados: desbloquear y montar, bloquear, y expulsar bloqueando antes"
+
+# B2: si grim falla, la captura avisa en vez de cerrarse en silencio.
+(
+  export NOTIFY_LOG="$TEST_ROOT/shot-notify.log"
+  grim() { return 1; }
+  wl-copy() { cat >/dev/null; }
+  notify-send() { printf '%s\n' "$*" >> "$NOTIFY_LOG"; }
+  export -f grim wl-copy notify-send
+  export WAYLAND_DISPLAY=audit-test SWAYSOCK=/tmp/audit-test-sway.sock HOME="$TEST_ROOT/shot-home"
+  for mode in full full-copy; do
+    : > "$NOTIFY_LOG"
+    if bash "$ROOT_DIR/home/.local/bin/screenshot-menu" "$mode"; then
+      fail "la captura $mode informó éxito con grim fallando"
+    fi
+    grep -q 'No pude capturar' "$NOTIFY_LOG" || fail "la captura $mode falló sin avisar"
+    ! grep -q 'Guardada\|Copiada' "$NOTIFY_LOG" || fail "la captura $mode avisó éxito después de fallar"
+  done
+)
+ok "capturas: si grim falla, avisan"
+
 printf 'Pruebas de scripts UI: OK\n'
