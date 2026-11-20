@@ -19,6 +19,10 @@ personas puedan recorrerlo, reutilizar una parte o instalar el entorno completo.
 - **Menús con fuzzel y foot** para redes, Bluetooth, audio, energía, portapapeles y discos.
 - **Sesión mantenible**, con Waybar, Mako, swayidle, polkit, luz nocturna y utilidades bajo
   unidades de `systemd --user`.
+- **Energía cuidada**: avisos de batería al 10 % y al 5 %, UPower actúa al 2 % y la
+  suspensión por inactividad espera a que termine la música en vez de no llegar nunca.
+- **Portapapeles con historial acotado**: se vacía al iniciar sesión, guarda hasta 100
+  entradas y no guarda lo que un gestor de contraseñas marca como sensible.
 - **Música y archivos**, con MPD/ncmpcpp, PyRadio, mpv, Yazi y Thunar tematizados.
 - **Respaldo y restauración**, con vista previa, copia de seguridad automática,
   rollback y verificaciones posteriores.
@@ -118,11 +122,17 @@ normal. Cada una tiene su propia opción:
 ./restore.sh --zram
 ./restore.sh --samba
 ./restore.sh --bootloader
+./restore.sh --power
 ```
 
 `--zram` instala la configuración, pero el generador de systemd la aplica de
 forma más segura en el próximo reinicio. No reinicia automáticamente la unidad
 en caliente, porque eso puede desplazar temporalmente páginas de la swap.
+
+`--power` habilita `upower.service`. UPower solo arranca cuando un programa lo
+pide, y en esta sesión ninguno lo hace (Waybar lee la batería de `/sys`): sin
+habilitarlo, su acción con batería crítica (`/etc/UPower/UPower.conf`, al 2 %)
+nunca se ejecuta y el equipo se apaga de golpe. `check.sh` lo controla.
 
 `--samba` instala `cifs-utils` y el montaje automático de la carpeta compartida de
 la Mac mini de casa (`//192.168.1.10/compartido`) en `~/Compartido`: se monta al
