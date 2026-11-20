@@ -139,3 +139,8 @@ while IFS= read -r line <&3; do
       ;;
   esac
 done
+
+# Si el monitor se corta, salir con error: con código 0, Restart=on-failure no
+# relanzaba el servicio y los avisos de discos morían en silencio.
+printf 'udevadm monitor terminó; salgo con error para que systemd me reinicie\n' >&2
+exit 1

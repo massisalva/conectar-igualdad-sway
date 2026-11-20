@@ -7,3 +7,4 @@ ConditionEnvironment=WAYLAND_DISPLAY
 [Service]
 ExecStart=%h/.local/bin/disk-notify
 Restart=on-failure
+RestartSec=5

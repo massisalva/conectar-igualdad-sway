@@ -180,3 +180,15 @@ CLIP_CASE=empty bash "$ROOT_DIR/home/.local/bin/clipboard-menu" >/dev/null 2>&1 
   fail "portapapeles falló con el historial recién creado"
 grep -q 'vacío' "$TEST_LOG" || fail "portapapeles no avisó que el historial está vacío"
 printf 'OK portapapeles avisa con el historial recién creado\n'
+
+# M1: si el monitor de udev se corta, disk-notify termina con error para que
+# systemd lo relance (Restart=on-failure).
+printf '%s\n' '#!/usr/bin/env bash' "printf 'ACTION=add\\nDEVNAME=/dev/no-existe\\n\\n'" > "$TEST_ROOT/bin/udevadm"
+chmod +x "$TEST_ROOT/bin/udevadm"
+status=0
+timeout 10 bash "$ROOT_DIR/home/.local/bin/disk-notify" 2>/dev/null || status=$?
+[ "$status" -ne 124 ] || fail "disk-notify no terminó cuando se cortó el monitor"
+[ "$status" -ne 0 ] || fail "disk-notify terminó sin error: systemd no lo relanzaría"
+grep -qx 'Restart=on-failure' "$ROOT_DIR/home/.config/systemd/user/disk-notify.service" ||
+  fail "disk-notify.service no se relanza ante fallas"
+printf 'OK disk-notify termina con error si se corta el monitor, y systemd lo relanza\n'

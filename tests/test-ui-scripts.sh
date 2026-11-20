@@ -426,4 +426,55 @@ EOF
 )
 ok "menús flotantes (audio, bluetooth, red, batería) alternan apertura y cierre"
 
+# M2: expulsar un disco con varias particiones montadas desmonta todas.
+(
+  export MOUNTED_FILE="$TEST_ROOT/mounted" UDISKS_LOG="$TEST_ROOT/udisks.log" NOTIFY_LOG="$TEST_ROOT/notify.log"
+  lsblk() {
+    case "$*" in
+      *-J*) printf '%s\n' '{"blockdevices":[{"name":"/dev/sdy","type":"disk","tran":"usb","rm":true,"children":[{"name":"/dev/sdy1","type":"part","fstype":"vfat","label":"Uno","pkname":"/dev/sdy"},{"name":"/dev/sdy2","type":"part","fstype":"ext4","label":"Dos","pkname":"/dev/sdy"}]}]}' ;;
+      *-nrpo*) printf '/dev/sdy\n/dev/sdy1\n/dev/sdy2\n' ;;
+    esac
+  }
+  findmnt() {
+    local dev="${*: -1}"
+    case "$*" in *--json*) dev="$3" ;; esac
+    grep -qx -- "$dev" "$MOUNTED_FILE" || return 1
+    case "$*" in
+      *--json*) printf '{"filesystems":[{"target":"/run/media/%s"}]}\n' "${dev##*/}" ;;
+      *) printf '%s\n' "/run/media/${dev##*/}" ;;
+    esac
+  }
+  udisksctl() {
+    printf '%s\n' "$*" >> "$UDISKS_LOG"
+    case "$1" in
+      unmount)
+        [ "$3" != "${BUSY_DEV:-}" ] || { printf 'target is busy\n' >&2; return 1; }
+        grep -vx -- "$3" "$MOUNTED_FILE" > "$MOUNTED_FILE.new" || true
+        mv "$MOUNTED_FILE.new" "$MOUNTED_FILE" ;;
+      power-off)
+        # Como udisks: no apaga un disco con particiones montadas.
+        [ ! -s "$MOUNTED_FILE" ] || { printf 'Device is in use\n' >&2; return 1; } ;;
+    esac
+  }
+  fuzzel() { cat >/dev/null; printf '%s\n' "$DISK_CHOICE"; }
+  notify-send() { printf '%s\n' "$*" >> "$NOTIFY_LOG"; }
+  export -f lsblk findmnt udisksctl fuzzel notify-send
+  export WAYLAND_DISPLAY=audit-test SWAYSOCK=/tmp/audit-test-sway.sock
+
+  printf '/dev/sdy1\n/dev/sdy2\n' > "$MOUNTED_FILE"; : > "$UDISKS_LOG"; : > "$NOTIFY_LOG"
+  DISK_CHOICE='3) Expulsar' bash "$ROOT_DIR/home/.local/bin/disk-manager" ||
+    fail "disk-manager no pudo expulsar un disco con dos particiones montadas"
+  grep -qx 'unmount -b /dev/sdy2' "$UDISKS_LOG" || fail "expulsar no desmontó la otra partición"
+  grep -qx 'power-off -b /dev/sdy' "$UDISKS_LOG" || fail "expulsar no apagó el disco"
+  grep -q 'Disco expulsado' "$NOTIFY_LOG" || fail "expulsar no avisó el éxito"
+
+  printf '/dev/sdy1\n/dev/sdy2\n' > "$MOUNTED_FILE"; : > "$UDISKS_LOG"; : > "$NOTIFY_LOG"
+  if BUSY_DEV=/dev/sdy2 DISK_CHOICE='3) Expulsar' bash "$ROOT_DIR/home/.local/bin/disk-manager"; then
+    fail "disk-manager informó éxito con una partición ocupada"
+  fi
+  ! grep -q '^power-off' "$UDISKS_LOG" || fail "intentó apagar el disco con una partición ocupada"
+  grep -q '/dev/sdy2.*target is busy' "$NOTIFY_LOG" || fail "no dijo qué partición impidió expulsar ni por qué"
+)
+ok "expulsar desmonta todas las particiones y dice cuál lo impide"
+
 printf 'Pruebas de scripts UI: OK\n'

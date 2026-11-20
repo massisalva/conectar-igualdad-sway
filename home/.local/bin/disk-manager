@@ -234,17 +234,21 @@ case "$ACTION" in
     ;;
 
   poweroff)
-    if findmnt -rn -S "$DEV" >/dev/null; then
-      if ! udisksctl unmount -b "$DEV"; then
-        notify_info "No pude desmontar antes de expulsar"
+    # Apagar el disco exige desmontar todas sus particiones, no solo la elegida.
+    while IFS= read -r part; do
+      [ -n "$part" ] || continue
+      findmnt -rn -S "$part" >/dev/null 2>&1 || continue
+      if ! err="$(udisksctl unmount -b "$part" 2>&1)"; then
+        notify_info "No pude desmontar $part antes de expulsar (¿hay algo abierto ahí?): ${err:-sin detalle}"
         exit 1
       fi
-    fi
+    done < <(lsblk -nrpo NAME "$DISK" 2>/dev/null)
 
-    if udisksctl power-off -b "$DISK"; then
+    if err="$(udisksctl power-off -b "$DISK" 2>&1)"; then
       notify_info "Disco expulsado. Ya podés desconectarlo."
     else
-      notify_info "No pude expulsar el disco"
+      notify_info "No pude expulsar el disco: ${err:-sin detalle}"
+      exit 1
     fi
     ;;
 esac
