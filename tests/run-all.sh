@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Valida el repositorio sin tocar el equipo: sintaxis, TOML, ShellCheck (si está
-# instalado) y todas las pruebas, en carpetas temporales, sin sudo ni sesión
+# instalado; fallan errores y advertencias, las notas no) y todas las pruebas, en carpetas temporales, sin sudo ni sesión
 # gráfica. Con --sway suma la prueba de integración con Sway sin pantalla.
 # Sale con 1 si algo falla.
 
@@ -59,7 +59,11 @@ for path in sys.argv[1:]:
 shellcheck_all() {
   local -a files
   mapfile -t files < <(bash_scripts)
-  shellcheck -x "${files[@]}"
+  # Política: errores y advertencias se corrigen. Las notas no cortan: casi todas
+  # son SC2317/SC2329 sobre funciones simuladas en los tests, que se llaman de
+  # forma indirecta. Una excepción puntual va con "# shellcheck disable=SCxxxx"
+  # y un comentario que explique el porqué.
+  shellcheck -x -S warning "${files[@]}"
 }
 
 step "sintaxis de bash" syntax

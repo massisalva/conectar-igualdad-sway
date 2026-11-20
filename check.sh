@@ -325,7 +325,7 @@ EOF
 check_nftables() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
-  local output enabled_output active_state sub_state result unit_file_state
+  local output enabled_output active_state result unit_file_state
 
   check_same_system_file "$ROOT_DIR/nftables/nftables.conf" /etc/nftables.conf "$severity"
 
@@ -353,7 +353,6 @@ check_nftables() {
   fi
 
   active_state="$(printf '%s\n' "$output" | awk -F= '/^ActiveState=/{print $2}')"
-  sub_state="$(printf '%s\n' "$output" | awk -F= '/^SubState=/{print $2}')"
   result="$(printf '%s\n' "$output" | awk -F= '/^Result=/{print $2}')"
   unit_file_state="$(printf '%s\n' "$output" | awk -F= '/^UnitFileState=/{print $2}')"
 

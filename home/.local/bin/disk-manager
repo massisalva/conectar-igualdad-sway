@@ -10,7 +10,8 @@ export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUN
 if [ -z "${WAYLAND_DISPLAY:-}" ]; then
   WAYLAND_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' | head -n1)"
   if [ -n "$WAYLAND_SOCKET" ]; then
-    export WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+    WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+    export WAYLAND_DISPLAY
   fi
 fi
 

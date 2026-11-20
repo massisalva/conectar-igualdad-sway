@@ -17,7 +17,10 @@ if [ -z "${WAYLAND_DISPLAY:-}" ]; then
     export WAYLAND_DISPLAY="wayland-1"
   else
     WAYLAND_SOCKET="$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' 2>/dev/null | head -n1)"
-    [ -n "$WAYLAND_SOCKET" ] && export WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+    if [ -n "$WAYLAND_SOCKET" ]; then
+      WAYLAND_DISPLAY="$(basename "$WAYLAND_SOCKET")"
+      export WAYLAND_DISPLAY
+    fi
   fi
 fi
 
