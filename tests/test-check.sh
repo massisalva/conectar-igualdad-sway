@@ -142,4 +142,22 @@ printf '[OK] --system no certifica lo que no pudo verificar\n'
 )
 printf '[OK] el estado del repo aclara que compara con la copia local\n'
 
+# A1: UPower tiene que estar habilitado y activo.
+power_case() (
+  local case_enabled="$1" case_active="$2" strict="$3"
+  source "$ROOT_DIR/check.sh"
+  STRICT_SYSTEM="$strict"
+  systemctl() {
+    case "$1" in
+      is-enabled) printf '%s\n' "$case_enabled"; [ "$case_enabled" = enabled ] ;;
+      is-active) printf '%s\n' "$case_active"; [ "$case_active" = active ] ;;
+    esac
+  }
+  check_power
+)
+grep -Fq '[OK] UPower habilitado y activo' <<< "$(power_case enabled active 0)" || fail_test "check no reconoció UPower activo"
+grep -Fq '[WARN] UPower disabled/inactive' <<< "$(power_case disabled inactive 0)" || fail_test "check no avisó UPower deshabilitado"
+grep -Fq '[FAIL] UPower disabled/inactive' <<< "$(power_case disabled inactive 1)" || fail_test "--system aceptó UPower deshabilitado"
+printf '[OK] check controla que UPower actúe con batería crítica\n'
+
 printf 'Pruebas de check: OK\n'

@@ -461,6 +461,19 @@ check_sysctl() {
   fi
 }
 
+# Sin UPower corriendo, la batería crítica no dispara ninguna acción.
+check_power() {
+  local severity="warn" enabled active
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+  enabled="$(systemctl is-enabled upower.service 2>/dev/null || true)"
+  active="$(systemctl is-active upower.service 2>/dev/null || true)"
+  if [ "$enabled" = enabled ] && [ "$active" = active ]; then
+    ok "UPower habilitado y activo (actúa con batería crítica)"
+  else
+    report "$severity" "UPower ${enabled:-ausente}/${active:-desconocido}: con batería crítica la Conectar se apaga de golpe (./restore.sh --power)"
+  fi
+}
+
 check_samba() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
@@ -1026,6 +1039,7 @@ check_iwd
 check_sysctl
 check_zram
 check_samba
+check_power
 check_repo_state
 
 printf '\nResumen: %d fallos, %d advertencias\n' "$FAILS" "$WARNS"

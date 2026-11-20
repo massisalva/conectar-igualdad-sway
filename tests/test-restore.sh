@@ -309,4 +309,9 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
   ok "la lista de scripts retirados cubre el historial de git"
 fi
 
+HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
+  "$ROOT_DIR/restore.sh" --no-user --no-yazi --power --dry-run -y > "$TEST_ROOT/power-dry-run"
+grep -Fq 'sudo systemctl enable --now upower.service' "$TEST_ROOT/power-dry-run" || fail "--power no habilita UPower"
+ok "--power habilita UPower"
+
 printf 'Pruebas de restore: OK\n'

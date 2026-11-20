@@ -11,11 +11,14 @@ export TEST_LOG="$TEST_ROOT/log"
 export XDG_STATE_HOME="$TEST_ROOT/state"
 export WAYLAND_DISPLAY=wayland-test SWAYSOCK="$TEST_ROOT/sway.sock"
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/test
+export XDG_RUNTIME_DIR="$TEST_ROOT/run"
+mkdir -p "$XDG_RUNTIME_DIR"
 
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
 cat > "$TEST_ROOT/bin/pactl" <<'EOF'
 #!/usr/bin/env bash
+[ -z "${AUDIO_CASE_FILE:-}" ] || AUDIO_CASE="$(cat "$AUDIO_CASE_FILE")"
 case "$AUDIO_CASE" in
   active) printf '    Corked: no\n' ;;
   inactive) printf '    Corked: yes\n' ;;
@@ -76,7 +79,8 @@ chmod +x "$TEST_ROOT/bin/"*
 for audio_case in active inactive failed; do
   : > "$TEST_LOG"
   status=0
-  AUDIO_CASE="$audio_case" bash "$ROOT_DIR/home/.local/bin/suspend-if-no-audio" || status=$?
+  AUDIO_CASE="$audio_case" SUSPEND_AUDIO_INTERVAL=3600 bash "$ROOT_DIR/home/.local/bin/suspend-if-no-audio" || status=$?
+  bash "$ROOT_DIR/home/.local/bin/suspend-if-no-audio" --cancel
   case "$audio_case" in
     active) [ ! -s "$TEST_LOG" ] || fail "suspendió con audio activo" ;;
     inactive) grep -qx 'suspend' "$TEST_LOG" || fail "no suspendió sin audio" ;;
@@ -87,6 +91,64 @@ for audio_case in active inactive failed; do
   esac
 done
 printf 'OK suspensión distingue audio activo, inactivo y consulta fallida\n'
+
+# A2: con audio, la espera queda aparte (swayidle -w no se bloquea) y suspende
+# cuando termina el audio; el resume de swayidle la cancela.
+wait_for() {  # condición, hasta 5 s
+  for _ in $(seq 50); do eval "$1" && return 0; sleep 0.1; done
+  return 1
+}
+SUSPEND="$ROOT_DIR/home/.local/bin/suspend-if-no-audio"
+export AUDIO_CASE_FILE="$TEST_ROOT/audio" SUSPEND_AUDIO_INTERVAL=0.2
+printf 'active\n' > "$AUDIO_CASE_FILE"
+: > "$TEST_LOG"
+started=$SECONDS
+timeout 5 bash "$SUSPEND" || fail "la espera de audio bloqueó a swayidle o falló"
+[ $((SECONDS - started)) -lt 3 ] || fail "suspend-if-no-audio no volvió enseguida con audio activo"
+wait_for '[ -s "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid" ]' || fail "no quedó una espera en segundo plano"
+! grep -qx suspend "$TEST_LOG" || fail "suspendió con audio activo"
+printf 'inactive\n' > "$AUDIO_CASE_FILE"
+wait_for 'grep -qx suspend "$TEST_LOG"' || fail "no suspendió cuando terminó el audio"
+wait_for '[ ! -e "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid" ]' || fail "la espera no se limpió al suspender"
+printf 'OK suspensión espera a que termine el audio sin bloquear a swayidle\n'
+
+printf 'active\n' > "$AUDIO_CASE_FILE"
+: > "$TEST_LOG"
+bash "$SUSPEND"
+wait_for '[ -s "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid" ]' || fail "no quedó una espera en segundo plano"
+waiter="$(cat "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid")"
+bash "$SUSPEND" --cancel
+wait_for "! kill -0 $waiter 2>/dev/null" || fail "--cancel no terminó la espera"
+printf 'inactive\n' > "$AUDIO_CASE_FILE"
+sleep 0.6
+! grep -qx suspend "$TEST_LOG" || fail "suspendió después de que el usuario volvió"
+grep -Fq 'suspend-if-no-audio --cancel' "$ROOT_DIR/home/.local/bin/start-idle" || fail "start-idle no cancela la espera al volver"
+unset AUDIO_CASE_FILE SUSPEND_AUDIO_INTERVAL
+printf 'OK volver a usar el equipo cancela la suspensión pendiente\n'
+
+# A1: avisos de batería baja, una vez por nivel y de nuevo tras cargar.
+battery_at() {  # capacidad estado
+  mkdir -p "$TEST_ROOT/power/BAT0"
+  printf '%s\n' "$1" > "$TEST_ROOT/power/BAT0/capacity"
+  printf '%s\n' "$2" > "$TEST_ROOT/power/BAT0/status"
+  BATTERY_SYSFS_DIR="$TEST_ROOT/power" bash "$ROOT_DIR/home/.local/bin/waybar-battery" >/dev/null
+}
+: > "$TEST_LOG"
+battery_at 50 Discharging
+! grep -q '^notify:' "$TEST_LOG" || fail "avisó con batería suficiente"
+battery_at 9 Discharging
+battery_at 8 Discharging
+[ "$(grep -c 'Batería baja' "$TEST_LOG")" = 1 ] || fail "el aviso del 10 % no salió una sola vez"
+battery_at 4 Discharging
+battery_at 3 Discharging
+[ "$(grep -c 'Batería crítica' "$TEST_LOG")" = 1 ] || fail "el aviso del 5 % no salió una sola vez"
+grep 'Batería crítica' "$TEST_LOG" | grep -q -- '-u critical' || fail "el aviso del 5 % no es crítico"
+battery_at 9 Discharging
+[ "$(grep -c 'Batería baja' "$TEST_LOG")" = 1 ] || fail "volvió a avisar el 10 % después del 5 %"
+battery_at 20 Charging
+battery_at 9 Discharging
+[ "$(grep -c 'Batería baja' "$TEST_LOG")" = 2 ] || fail "no volvió a avisar después de cargar"
+printf 'OK batería: un aviso al 10 %%, uno crítico al 5 %% y de nuevo tras cargar\n'
 
 for sway_status in 0 1; do
   : > "$TEST_LOG"

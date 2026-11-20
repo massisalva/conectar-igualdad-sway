@@ -1,14 +1,79 @@
 #!/usr/bin/env bash
+# Suspende tras la inactividad de swayidle (start-idle), salvo que suene algo.
+#
+# swayidle corre el comando una sola vez por período de inactividad y, con -w,
+# espera a que termine. Si hay audio, no se puede esperar acá adentro: se lanza
+# una espera aparte que revisa cada SUSPEND_AUDIO_INTERVAL segundos y suspende
+# cuando el audio termina. El "resume" de swayidle la cancela (--cancel) si el
+# usuario vuelve antes.
 
 set -u
 
-# Una entrada de audio no pausada significa que radio, música o video siguen
-# reproduciéndose. En ese caso dejamos que la pantalla permanezca apagada, pero
-# no suspendemos el equipo para no cortar el sonido.
-# Una consulta fallida no demuestra que no haya reproducción.
-inputs="$(LC_ALL=C pactl list sink-inputs)" || exit 1
-if grep -qE '^[[:space:]]*Corked: no$' <<< "$inputs"; then
-  exit 0
-fi
+INTERVAL="${SUSPEND_AUDIO_INTERVAL:-60}"
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+PID_FILE="$RUNTIME_DIR/suspend-if-no-audio.pid"
+SELF="$(realpath -- "${BASH_SOURCE[0]}")"
 
-systemctl suspend
+# 0: suena algo; 1: silencio; 2: no se pudo consultar (no demuestra silencio).
+audio_state() {
+  local inputs
+  inputs="$(LC_ALL=C pactl list sink-inputs)" || return 2
+  grep -qE '^[[:space:]]*Corked: no$' <<< "$inputs"
+}
+
+waiter_pid() {
+  local pid
+  [ -r "$PID_FILE" ] || return 1
+  pid="$(<"$PID_FILE")"
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+  # Comprobar que el proceso sigue siendo una espera nuestra (no un PID reciclado).
+  tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -Fq -- "suspend-if-no-audio --wait" || return 1
+  printf '%s\n' "$pid"
+}
+
+cancel_waiter() {
+  local pid
+  if pid="$(waiter_pid)"; then
+    kill "$pid" 2>/dev/null || true
+  fi
+  rm -f -- "$PID_FILE"
+}
+
+wait_for_silence() {
+  printf '%s\n' "$$" > "$PID_FILE"
+  trap 'rm -f -- "$PID_FILE"' EXIT
+  trap 'exit 0' TERM INT
+  while true; do
+    sleep "$INTERVAL" & wait $!
+    audio_state
+    if [ "$?" -eq 1 ]; then
+      rm -f -- "$PID_FILE"
+      exec systemctl suspend
+    fi
+  done
+}
+
+case "${1:-}" in
+  --cancel)
+    cancel_waiter
+    exit 0
+    ;;
+  --wait)
+    wait_for_silence
+    ;;
+  '')
+    cancel_waiter
+    audio_state
+    case "$?" in
+      1) exec systemctl suspend ;;
+      0) status=0 ;;
+      *) status=1 ;;  # La consulta falló: esperar y reintentar, sin suspender ahora.
+    esac
+    setsid -f "$SELF" --wait </dev/null >/dev/null 2>&1
+    exit "$status"
+    ;;
+  *)
+    printf 'Uso: %s [--wait|--cancel]\n' "$(basename "$0")" >&2
+    exit 2
+    ;;
+esac

@@ -45,8 +45,35 @@ icon_for_capacity() {
   fi
 }
 
+# Avisa una vez al 10 % y otra (crítica) al 5 % mientras se descarga. Al 2 %
+# actúa UPower (./restore.sh --power): sin este aviso, el corte llega sin más.
+alert_low_battery() {
+  local state_file="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/waybar-battery.alert"
+  local level last=""
+
+  if [ "$status" != Discharging ] || [ "$capacity" -gt 10 ]; then
+    rm -f -- "$state_file"
+    return 0
+  fi
+  if [ "$capacity" -le 5 ]; then level=5; else level=10; fi
+  [ -r "$state_file" ] && last="$(<"$state_file")"
+  # Ya se avisó este nivel, o uno más grave.
+  if [ "$last" = "$level" ] || [ "$last" = 5 ]; then
+    return 0
+  fi
+  printf '%s\n' "$level" > "$state_file"
+  command -v notify-send >/dev/null 2>&1 || return 0
+  if [ "$level" -eq 5 ]; then
+    notify-send -a "Batería" -u critical -h string:x-canonical-private-synchronous:battery-alert \
+      "󰂃 Batería crítica: ${capacity}%" "Conectá el cargador y guardá lo abierto: al 2 % la Conectar se apaga." 2>/dev/null || true
+  else
+    notify-send -a "Batería" -u normal -h string:x-canonical-private-synchronous:battery-alert \
+      "󰁻 Batería baja: ${capacity}%" "Conectá el cargador." 2>/dev/null || true
+  fi
+}
+
 bat=""
-for candidate in /sys/class/power_supply/BAT*; do
+for candidate in "${BATTERY_SYSFS_DIR:-/sys/class/power_supply}"/BAT*; do
   [ -d "$candidate" ] || continue
   bat="$candidate"
   break
@@ -97,6 +124,8 @@ case "$status" in
     status_label="Desconocido"
     ;;
 esac
+
+alert_low_battery
 
 tooltip="$(json_escape "Batería: ${capacity}% (${status_label})"$'\n'"Click para ver detalles")"
 printf '{"text":"%s  %s%%","tooltip":"%s","class":"%s"}\n' "$icon" "$capacity" "$tooltip" "$class"

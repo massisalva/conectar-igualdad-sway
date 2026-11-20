@@ -18,6 +18,7 @@ INSTALL_IWD=0
 INSTALL_SYSCTL=0
 INSTALL_ZRAM=0
 INSTALL_SAMBA=0
+INSTALL_POWER=0
 INSTALL_YAZI=1
 PRUNE=0
 BACKUP_ENABLED=1
@@ -51,6 +52,8 @@ Opciones:
   --samba       Monta sola la carpeta compartida de la Mac mini en ~/Compartido
                 (automount de systemd). La contraseña no está en el repo: si falta
                 /etc/samba/credenciales-mini, la pide.
+  --power       Habilita UPower: con batería crítica (2 %) actúa en vez de
+                dejar que la Conectar se apague de golpe.
   --all         Ejecuta packages, aur, user, yazi y todas las piezas de sistema.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
@@ -661,6 +664,15 @@ install_zram_config() {
   install_system_group zram
 }
 
+# UPower solo arranca si alguien lo pide por D-Bus, y en esta sesión nadie lo
+# hace (Waybar lee /sys). Sin el servicio corriendo, su acción con batería
+# crítica (/etc/UPower/UPower.conf) nunca se ejecuta.
+install_power_management() {
+  confirm "Esto habilitará e iniciará upower.service. ¿Continuar?"
+  log "Habilitando UPower"
+  run sudo systemctl enable --now upower.service
+}
+
 install_samba_mount() {
   local dir="$ROOT_DIR/samba"
   local cred=/etc/samba/credenciales-mini
@@ -707,6 +719,7 @@ while [ "$#" -gt 0 ]; do
     --sysctl) INSTALL_SYSCTL=1 ;;
     --zram) INSTALL_ZRAM=1 ;;
     --samba) INSTALL_SAMBA=1 ;;
+    --power) INSTALL_POWER=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -720,6 +733,7 @@ while [ "$#" -gt 0 ]; do
       INSTALL_SYSCTL=1
       INSTALL_ZRAM=1
       INSTALL_SAMBA=1
+      INSTALL_POWER=1
       ;;
     --no-user) RESTORE_USER=0 ;;
     --no-yazi) INSTALL_YAZI=0 ;;
@@ -766,6 +780,7 @@ fi
 [ "$INSTALL_SYSCTL" -eq 1 ] && install_sysctl_config
 [ "$INSTALL_ZRAM" -eq 1 ] && install_zram_config
 [ "$INSTALL_SAMBA" -eq 1 ] && install_samba_mount
+[ "$INSTALL_POWER" -eq 1 ] && install_power_management
 
 if [ -n "$BACKUP_DIR" ]; then
   if [ "$DRY_RUN" -eq 1 ]; then

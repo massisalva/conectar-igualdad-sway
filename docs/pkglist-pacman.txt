@@ -100,6 +100,7 @@ udiskie
 udisks2
 unrar
 unzip
+upower
 vulkan-intel
 waybar
 wireless-regdb
