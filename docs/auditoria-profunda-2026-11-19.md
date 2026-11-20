@@ -135,3 +135,14 @@ Nada de esto está aplicado.
 | B1-B4 | Resueltos en `da912a0`, con tests. |
 | B5 SSH en redes ajenas | **Aceptado**: SSH solo admite clave; restringirlo según la red complica el firewall a cambio de poco. |
 | B6 `.git` | `git gc`: de 18M a 11M; `git fsck` sin errores. |
+
+### Aplicado en la Conectar (2026-11-19)
+
+M3 y B1-B4 instalados con `./restore.sh --no-yazi -y` (backup
+`restore-20261119-220530-300444286-280158`) y reiniciados
+`sway-cliphist`, `disk-notify` y `waybar`. Verificado: los tres activos,
+historial del portapapeles vacío y con `-max-items 100`, una sola instancia
+de `waybar-music --watch`, sin avisos de Waybar en el journal y
+`check.sh` con 0 fallos y 6 avisos (los esperables sin sudo).
+
+Todos los hallazgos de esta auditoría quedan resueltos o aceptados.
