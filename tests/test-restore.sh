@@ -161,6 +161,7 @@ ok "restore y rollback rechazan directorios enlazados fuera de HOME"
 mini_repo="$TEST_ROOT/mini-repo"
 mkdir -p "$mini_repo/home/.cache" "$mini_repo/home/.config"
 cp "$ROOT_DIR/restore.sh" "$mini_repo/restore.sh"
+cp -a "$ROOT_DIR/lib" "$mini_repo/lib"
 printf 'cache\n' > "$mini_repo/home/.cache/marker"
 printf 'config\n' > "$mini_repo/home/.config/test.conf"
 HOME="$TEST_ROOT/mini-home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$TEST_ROOT/mini-backups" \
@@ -230,23 +231,9 @@ ok "rollback rechaza archivos ajenos aun con carpeta y extensión administradas"
 
 # Verificar también todos los destinos actuales para evitar una lista incompleta.
 # Si se agrega un archivo instalable, este recorrido exige admitir su rollback.
-managed_targets=(
-  /boot/loader/loader.conf /boot/loader/entries/arch.conf
-  /etc/nftables.conf /etc/iwd/main.conf /etc/conf.d/wireless-regdom
-  /etc/resolv.conf /etc/systemd/zram-generator.conf
-)
-for file in "$ROOT_DIR"/polkit/*.rules; do
-  managed_targets+=("/etc/polkit-1/rules.d/$(basename "$file")")
-done
-for file in "$ROOT_DIR"/sshd/*.conf; do
-  managed_targets+=("/etc/ssh/sshd_config.d/$(basename "$file")")
-done
-for file in "$ROOT_DIR"/sysctl/*.conf; do
-  managed_targets+=("/etc/sysctl.d/$(basename "$file")")
-done
-for file in "$ROOT_DIR"/samba/*.mount "$ROOT_DIR"/samba/*.automount; do
-  managed_targets+=("/etc/systemd/system/$(basename "$file")")
-done
+# shellcheck source=lib/system-files.sh
+source "$ROOT_DIR/lib/system-files.sh"
+mapfile -t managed_targets < <(system_files | cut -d'|' -f4)
 for target in "${managed_targets[@]}"; do
   printf 'missing\t%s\n' "$target" > "$malicious_backup/manifest.tsv"
   HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \

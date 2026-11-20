@@ -159,9 +159,12 @@ instalados, servicios habilitados o iniciados (MPD, nftables, sshd…),
 preferencias de gsettings ni carpetas creadas. Eso se revierte a mano.
 
 Antes de tocar nada, el rollback valida el manifiesto entero. En `/etc` y
-`/boot` solo acepta los archivos que instala este proyecto (lista en
-`is_managed_system_target`, dentro de `restore.sh`); cualquier otra ruta hace
-rechazar el rollback completo.
+`/boot` solo acepta los destinos exactos del inventario
+[`lib/system-files.sh`](lib/system-files.sh); cualquier otra ruta hace rechazar
+el rollback completo. Ese mismo inventario define el origen, el destino y los
+permisos usados por la instalación y la verificación. También registra el enlace
+DNS de `/etc/resolv.conf`; las credenciales de Samba se crean localmente y no
+se incluyen como archivos restaurables.
 
 La restauración se niega a empezar si `~/.ssh`, `~/.ssh/authorized_keys` o
 `~/.config/streamrip/config.toml` son enlaces simbólicos: les cierra los
@@ -199,7 +202,8 @@ anotalo en la lista de retirados (los tests lo controlan contra el historial).
 | `samba/` | Unidades de systemd para montar la carpeta compartida de la Mac mini en `~/Compartido` |
 | `bootloader/` | Ejemplos de systemd-boot para revisión manual |
 | `docs/` | Inventario, decisiones, auditorías, paquetes y notas de recuperación |
-| `tests/` | Pruebas de restauración y scripts de interfaz |
+| `lib/system-files.sh` | Inventario compartido de archivos de sistema y enlace DNS |
+| `tests/` | Pruebas de restauración, inventario y scripts de interfaz |
 
 ## Verificación y mantenimiento
 
@@ -258,6 +262,14 @@ puertos TCP en escucha y el estado SMART del disco raíz.
   `iwd/README.md`.
 - Las decisiones de alcance y los datos que deliberadamente no se versionan se
   explican en `docs/decisiones.md`.
+
+Para agregar un archivo de sistema, registrá una entrada en
+`lib/system-files.sh` con `grupo|tipo|origen|destino|modo`. El origen de un archivo
+es relativo al repositorio; el de un enlace es su ruta absoluta y el modo es `-`.
+Usá destinos exactos, sin comodines. Las pruebas detectan archivos de configuración
+sin registrar y comprueban que una entrada nueva llegue al instalador, al rollback
+y al verificador. Los comandos para validar o recargar cada servicio permanecen
+en sus funciones específicas.
 
 ## Adaptarlo y compartir mejoras
 

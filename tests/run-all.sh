@@ -34,7 +34,7 @@ step() {
 
 bash_scripts() {
   local file
-  for file in restore.sh check.sh tests/*.sh home/.local/bin/*; do
+  for file in restore.sh check.sh lib/*.sh tests/*.sh home/.local/bin/*; do
     [ -f "$file" ] && head -n1 "$file" | grep -q bash && printf '%s\n' "$file"
   done
 }

@@ -94,6 +94,19 @@ explícitos: `--polkit`, `--bootloader`, `--sshd`, `--nftables`, `--iwd`,
 `check.sh` valida que lo versionado y lo instalado coincidan. Para archivos de
 sistema protegidos, usar `./check.sh --system --sudo`.
 
+Los archivos de sistema se declaran una sola vez en `lib/system-files.sh`, con
+grupo, tipo, origen, destino exacto y permisos. La instalación, la autorización
+del rollback y las comparaciones de `check.sh` consultan ese inventario. El
+verificador también comprueba los modos de los archivos. El enlace DNS se
+registra como enlace; las credenciales locales de Samba quedan fuera del
+inventario restaurable.
+
+Las acciones específicas de cada servicio (validar SSH, comprobar el UUID,
+recargar servicios) permanecen en sus funciones para conservar su orden. Las
+pruebas del inventario detectan configuraciones sin registrar y ejercitan una
+entrada adicional en instalación, rollback y verificación. Se mantienen las
+pruebas independientes que rechazan archivos ajenos en las carpetas de sistema.
+
 ## Firewall
 
 El firewall local se versiona como `/etc/nftables.conf` y se instala de forma

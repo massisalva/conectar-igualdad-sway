@@ -3,6 +3,8 @@
 set -uo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/system-files.sh
+source "$ROOT_DIR/lib/system-files.sh" || exit 1
 FAILS=0
 WARNS=0
 STRICT_SYSTEM=0
@@ -254,34 +256,43 @@ check_user_files() {
   fi
 }
 
-check_polkit() {
-  local file
-  local severity="warn"
-  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
+# Comparación común desde el mismo inventario que usa restore.sh.
+check_system_group() {
+  local selected="$1" severity=warn group kind source target mode actual
+  [ "$STRICT_SYSTEM" -eq 1 ] && severity=fail
+  while IFS='|' read -r group kind source target mode; do
+    if [ "$kind" = link ]; then
+      actual="$(readlink -f -- "$target" 2>/dev/null || true)"
+      if [ "$actual" = "$source" ]; then
+        ok "$target usa $source"
+      else
+        report "$severity" "$target no usa $source"
+      fi
+      continue
+    fi
+    check_same_system_file "$ROOT_DIR/$source" "$target" "$severity"
+    actual="$(stat -Lc '%a' -- "$target" 2>/dev/null || sudo_check stat -Lc '%a' -- "$target" || true)"
+    if [ "$actual" = "$mode" ]; then
+      ok "permisos de $target: $mode"
+    else
+      report "$severity" "permisos de $target: ${actual:-no verificables} (esperado $mode)"
+    fi
+  done < <(system_files "$selected")
+}
 
-  for file in "$ROOT_DIR"/polkit/*.rules; do
-    [ -f "$file" ] || continue
-    check_same_system_file "$file" "/etc/polkit-1/rules.d/$(basename "$file")" "$severity"
-  done
+check_polkit() {
+  check_system_group polkit
 }
 
 check_bootloader() {
-  local severity="warn"
-  [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
-
-  check_same_system_file "$ROOT_DIR/bootloader/loader.conf" /boot/loader/loader.conf "$severity"
-  check_same_system_file "$ROOT_DIR/bootloader/arch.conf" /boot/loader/entries/arch.conf "$severity"
+  check_system_group bootloader
 }
 
 check_sshd() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
 
-  local file
-  for file in "$ROOT_DIR"/sshd/*.conf; do
-    [ -f "$file" ] || continue
-    check_same_system_file "$file" "/etc/ssh/sshd_config.d/$(basename "$file")" "$severity"
-  done
+  check_system_group sshd
 
   if ! sudo_check true; then
     report "$severity" "no puedo verificar la configuración efectiva de SSH $(sudo_check_label)"
@@ -327,7 +338,7 @@ check_nftables() {
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
   local output enabled_output active_state result unit_file_state
 
-  check_same_system_file "$ROOT_DIR/nftables/nftables.conf" /etc/nftables.conf "$severity"
+  check_system_group nftables
 
   if has_cmd nft; then
     ok "comando disponible: nft"
@@ -396,10 +407,11 @@ EOF
 check_iwd() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
-  local service output resolv_target
+  local service output
 
-  check_same_system_file "$ROOT_DIR/iwd/main.conf" /etc/iwd/main.conf "$severity"
-  check_same_system_file "$ROOT_DIR/iwd/wireless-regdom.conf" /etc/conf.d/wireless-regdom "$severity"
+  check_system_group iwd
+  check_system_group regdom
+  check_system_group resolved
 
   for service in iwd.service systemd-resolved.service; do
     output="$(systemctl is-enabled "$service" 2>&1)"
@@ -423,13 +435,6 @@ check_iwd() {
   else
     ok "tlp-rdw no está instalado"
   fi
-
-  resolv_target="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
-  if [ "$resolv_target" = /run/systemd/resolve/stub-resolv.conf ]; then
-    ok "/etc/resolv.conf usa systemd-resolved"
-  else
-    report "$severity" "/etc/resolv.conf no usa el stub de systemd-resolved"
-  fi
 }
 
 check_sysctl() {
@@ -437,7 +442,7 @@ check_sysctl() {
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
   local actual
 
-  check_same_system_file "$ROOT_DIR/sysctl/99-local-hardening.conf" /etc/sysctl.d/99-local-hardening.conf "$severity"
+  check_system_group sysctl
   actual="$(sysctl -n kernel.kptr_restrict 2>/dev/null || true)"
   if [ "$actual" = "1" ]; then
     ok "kernel.kptr_restrict = 1"
@@ -445,7 +450,6 @@ check_sysctl() {
     report "$severity" "kernel.kptr_restrict esperado 1, actual ${actual:-desconocido}"
   fi
 
-  check_same_system_file "$ROOT_DIR/sysctl/99-zram.conf" /etc/sysctl.d/99-zram.conf "$severity"
   actual="$(sysctl -n vm.swappiness 2>/dev/null || true)"
   if [ "$actual" = "100" ]; then
     ok "vm.swappiness = 100"
@@ -457,11 +461,9 @@ check_sysctl() {
 check_samba() {
   local severity="warn"
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
-  local unit cred=/etc/samba/credenciales-mini perms
+  local cred=/etc/samba/credenciales-mini perms
 
-  for unit in home-massisalva-Compartido.mount home-massisalva-Compartido.automount; do
-    check_same_system_file "$ROOT_DIR/samba/$unit" "/etc/systemd/system/$unit" "$severity"
-  done
+  check_system_group samba
 
   perms="$(stat -c '%U %a' "$cred" 2>/dev/null || true)"
   if [ "$perms" = "root 600" ]; then
@@ -485,7 +487,7 @@ check_zram() {
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
   local swap_info priority="" comp_algorithm zram_bytes ram_bytes ratio device_present=0
 
-  check_same_system_file "$ROOT_DIR/zram/zram-generator.conf" /etc/systemd/zram-generator.conf "$severity"
+  check_system_group zram
   if [ -e /dev/zram0 ]; then
     device_present=1
     ok "/dev/zram0 presente"

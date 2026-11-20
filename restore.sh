@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/system-files.sh
+source "$ROOT_DIR/lib/system-files.sh" || exit 1
 DRY_RUN=0
 YES=0
 INSTALL_PACKAGES=0
@@ -115,25 +117,25 @@ is_allowed_target() {
   esac
 }
 
-# Rutas de sistema que instala este proyecto (ver los install_* de abajo). El
-# rollback rechaza cualquier otra, aunque esté bajo /etc o /boot. Si se agrega
-# un destino de sistema nuevo, sumarlo acá: si no, su rollback se rechaza.
+# La autorización usa igualdad exacta contra el inventario compartido.
 is_managed_system_target() {
   local target="$1"
-  case "$target" in
-    /boot/loader/loader.conf|/boot/loader/entries/arch.conf|\
-    /etc/nftables.conf|/etc/iwd/main.conf|/etc/conf.d/wireless-regdom|\
-    /etc/resolv.conf|/etc/systemd/zram-generator.conf|\
-    /etc/polkit-1/rules.d/49-udisks2-storage.rules|\
-    /etc/polkit-1/rules.d/50-local-power.rules|\
-    /etc/ssh/sshd_config.d/10-hardening.conf|\
-    /etc/sysctl.d/99-local-hardening.conf|/etc/sysctl.d/99-zram.conf|\
-    /etc/systemd/system/home-massisalva-Compartido.mount|\
-    /etc/systemd/system/home-massisalva-Compartido.automount) ;;
-    *) return 1 ;;
-  esac
-  # No admitir directorios enlazados en el camino, incluso para un nombre permitido.
+  system_target_registered "$target" || return 1
   [ "$(realpath -m -- "$(dirname -- "$target")")" = "$(dirname -- "$target")" ]
+}
+
+# Solo instala registros del inventario; los efectos de servicios quedan en cada
+# install_* para conservar su orden y sus validaciones particulares.
+install_system_group() {
+  local selected="$1" group kind source target mode
+  while IFS='|' read -r group kind source target mode; do
+    backup_target "$target"
+    case "$kind" in
+      file) run sudo install -Dm"$mode" "$ROOT_DIR/$source" "$target" ;;
+      link) run sudo ln -sfn "$source" "$target" ;;
+      *) log "Tipo de archivo de sistema desconocido: $kind"; return 1 ;;
+    esac
+  done < <(system_files "$selected")
 }
 
 # No seguir directorios enlazados fuera de HOME al copiar o recuperar archivos.
@@ -524,15 +526,12 @@ install_polkit_rules() {
 
   confirm "Esto copiará reglas polkit a /etc/polkit-1/rules.d/. ¿Continuar?"
   log "Instalando reglas polkit"
-  for file in "$dir"/*.rules; do
-    [ -f "$file" ] || continue
-    backup_target "/etc/polkit-1/rules.d/$(basename "$file")"
-    run sudo install -Dm644 "$file" "/etc/polkit-1/rules.d/$(basename "$file")"
-  done
+  install_system_group polkit
 }
 
 install_bootloader_files() {
-  local entry="$ROOT_DIR/bootloader/arch.conf"
+  local entry
+  entry="$ROOT_DIR/$(system_source_for /boot/loader/entries/arch.conf)" || return 1
   local configured_uuid actual_uuid
 
   [ -f "$entry" ] || { log "No existe $entry"; return 1; }
@@ -559,16 +558,13 @@ install_bootloader_files() {
   log "UUID del bootloader verificado: $actual_uuid"
   confirm "Esto copiará archivos a /boot/loader/. Revisá antes si el disco/entrada coincide. ¿Continuar?"
   log "Instalando configuración de systemd-boot"
-  backup_target /boot/loader/loader.conf
-  backup_target /boot/loader/entries/arch.conf
-  run sudo install -Dm644 "$ROOT_DIR/bootloader/loader.conf" /boot/loader/loader.conf
-  run sudo install -Dm644 "$ROOT_DIR/bootloader/arch.conf" /boot/loader/entries/arch.conf
+  install_system_group bootloader
 }
 
 install_sshd_config() {
   local dir="$ROOT_DIR/sshd"
   local dest="${RESTORE_SSHD_DIR:-/etc/ssh/sshd_config.d}"  # otro valor solo en tests
-  local file target name saved=""
+  local file target name group kind source mode saved=""
   local -a targets=()
   [ -d "$dir" ] || { log "No existe $dir"; return 1; }
 
@@ -578,17 +574,17 @@ install_sshd_config() {
   # con --no-backup. Un archivo inválido que queda instalado no se nota hasta el
   # próximo reinicio de sshd, y ahí se pierde el acceso por SSH.
   [ "$DRY_RUN" -eq 1 ] || saved="$(sudo mktemp -d)"
-  for file in "$dir"/*.conf; do
-    [ -f "$file" ] || continue
-    name="$(basename "$file")"
-    target="$dest/$name"
+  while IFS='|' read -r group kind source target mode; do
+    file="$ROOT_DIR/$source"
+    name="$(basename "$target")"
+    [ -z "${RESTORE_SSHD_DIR:-}" ] || target="$dest/$name"
     backup_target "$target"
     if [ -n "$saved" ] && { sudo test -e "$target" || sudo test -L "$target"; }; then
       sudo cp -a -- "$target" "$saved/$name"
     fi
     targets+=("$target")
-    run sudo install -Dm644 "$file" "$target"
-  done
+    run sudo install -Dm"$mode" "$file" "$target"
+  done < <(system_files sshd)
   if ! run sudo sshd -t; then
     log "sshd -t rechazó la configuración nueva; vuelvo a los archivos anteriores"
     for target in "${targets[@]}"; do
@@ -608,7 +604,8 @@ install_sshd_config() {
 }
 
 install_nftables_config() {
-  local file="$ROOT_DIR/nftables/nftables.conf"
+  local file
+  file="$ROOT_DIR/$(system_source_for /etc/nftables.conf)" || return 1
   [ -f "$file" ] || { log "No existe $file"; return 1; }
 
   confirm "Esto instalará nftables.conf, reemplazará reglas activas y habilitará nftables.service. ¿Continuar?"
@@ -616,32 +613,29 @@ install_nftables_config() {
   run sudo nft -c -f "$file"
 
   log "Instalando configuración de nftables"
-  backup_target /etc/nftables.conf
-  run sudo install -Dm644 "$file" /etc/nftables.conf
+  install_system_group nftables
   run sudo systemctl enable nftables.service
   run sudo systemctl restart nftables.service
 }
 
 install_iwd_config() {
-  local file="$ROOT_DIR/iwd/main.conf"
-  local regdom_file="$ROOT_DIR/iwd/wireless-regdom.conf"
+  local file regdom_file
+  file="$ROOT_DIR/$(system_source_for /etc/iwd/main.conf)" || return 1
+  regdom_file="$ROOT_DIR/$(system_source_for /etc/conf.d/wireless-regdom)" || return 1
   [ -f "$file" ] || { log "No existe $file"; return 1; }
   [ -f "$regdom_file" ] || { log "No existe $regdom_file"; return 1; }
 
   confirm "Esto instalará la configuración de iwd y systemd-resolved. ¿Continuar?"
   log "Instalando configuración de iwd"
-  backup_target /etc/iwd/main.conf
-  run sudo install -Dm644 "$file" /etc/iwd/main.conf
+  install_system_group iwd
 
   log "Configurando dominio regulatorio Wi-Fi de Argentina"
-  backup_target /etc/conf.d/wireless-regdom
-  run sudo install -Dm644 "$regdom_file" /etc/conf.d/wireless-regdom
+  install_system_group regdom
   run sudo /usr/bin/set-wireless-regdom
 
   log "Configurando resolución DNS con systemd-resolved"
   run sudo systemctl enable --now systemd-resolved.service
-  backup_target /etc/resolv.conf
-  run sudo ln -sfn /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+  install_system_group resolved
 
   log "Habilitando el gestor Wi-Fi iwd"
   run sudo systemctl enable --now iwd.service
@@ -653,29 +647,24 @@ install_sysctl_config() {
 
   confirm "Esto instalará ajustes locales de sysctl en /etc/sysctl.d/. ¿Continuar?"
   log "Instalando ajustes sysctl locales"
-  local file
-  for file in "$dir"/*.conf; do
-    [ -f "$file" ] || continue
-    backup_target "/etc/sysctl.d/$(basename "$file")"
-    run sudo install -Dm644 "$file" "/etc/sysctl.d/$(basename "$file")"
-  done
+  install_system_group sysctl
   run sudo sysctl --system
 }
 
 install_zram_config() {
-  local file="$ROOT_DIR/zram/zram-generator.conf"
+  local file
+  file="$ROOT_DIR/$(system_source_for /etc/systemd/zram-generator.conf)" || return 1
   [ -f "$file" ] || { log "No existe $file"; return 1; }
 
   confirm "Esto instalará la configuración de zram-generator en /etc/systemd/. ¿Continuar?"
   log "Instalando configuración de zram-generator"
-  backup_target /etc/systemd/zram-generator.conf
-  run sudo install -Dm644 "$file" /etc/systemd/zram-generator.conf
+  install_system_group zram
 }
 
 install_samba_mount() {
   local dir="$ROOT_DIR/samba"
   local cred=/etc/samba/credenciales-mini
-  local unit file clave
+  local clave
   [ -d "$dir" ] || { log "No existe $dir"; return 1; }
 
   confirm "Esto instalará el montaje de la carpeta compartida de la mini en ~/Compartido. ¿Continuar?"
@@ -683,12 +672,7 @@ install_samba_mount() {
   if ! pacman -Q cifs-utils >/dev/null 2>&1; then
     run sudo pacman -S --needed --noconfirm cifs-utils
   fi
-  for file in "$dir"/*.mount "$dir"/*.automount; do
-    [ -f "$file" ] || continue
-    unit="$(basename "$file")"
-    backup_target "/etc/systemd/system/$unit"
-    run sudo install -Dm644 "$file" "/etc/systemd/system/$unit"
-  done
+  install_system_group samba
 
   if [ -e "$cred" ]; then   # /etc/samba es 755: se ve sin sudo
     log "Credenciales de Samba ya presentes en $cred (no se tocan)"
