@@ -27,7 +27,9 @@ for row in rows:
     if kind == 'file':
         assert not source.startswith('/') and '..' not in PurePosixPath(source).parts, row
         assert (root / source).is_file(), f'origen ausente: {source}'
-        assert re.fullmatch(r'[0-7]{3,4}', mode), row
+        assert re.fullmatch(r'[0-7]{3,4}|-', mode), row
+        if target.startswith('/boot/'):
+            assert mode == '-', f'/boot es vfat: sus permisos los fija el montaje: {row}'
         sources.add(source)
     else:
         assert kind == 'link' and source.startswith('/') and mode == '-', row
@@ -112,7 +114,7 @@ expected = set()
 for line in Path(sys.argv[2]).read_text().splitlines():
     group, kind, source, target, mode = line.split('|')
     if kind == 'file':
-        expected.add(('install', '-Dm' + mode, str(root / source), target))
+        expected.add(('install', '-Dm' + (mode if mode != '-' else '644'), str(root / source), target))
     else:
         expected.add(('ln', '-sfn', source, target))
 actual = []
@@ -122,5 +124,22 @@ for line in Path(sys.argv[3]).read_text().splitlines():
 assert len(actual) == len(expected) and set(actual) == expected, (expected ^ set(actual), actual)
 print('[OK] todos los instaladores respetan origen, destino, tipo y modo del inventario')
 PYTEST
+
+# Permisos: los fijados por el montaje no se miran, y lo ilegible avisa una sola vez.
+(
+  # shellcheck source=check.sh
+  source "$ROOT_DIR/check.sh"
+  check_same_system_file() { warn "no puedo verificar sin sudo: $2"; }
+  stat() { return 1; }
+  sudo_check() { return 1; }
+  check_bootloader
+  check_polkit
+  printf 'WARNS=%s\n' "$WARNS"
+) > "$TEST_ROOT/perms"
+! grep -Fq 'permisos de /boot' "$TEST_ROOT/perms" || fail "check verificó permisos que fija el montaje de /boot"
+! grep -Fq 'permisos de /etc/polkit' "$TEST_ROOT/perms" || fail "check avisó dos veces por un archivo ilegible"
+grep -Fq "WARNS=$(system_files bootloader | wc -l | awk -v p="$(system_files polkit | wc -l)" '{print $1+p}')" "$TEST_ROOT/perms" ||
+  fail "check no dio exactamente un aviso por archivo ilegible"
+printf '[OK] permisos: sin chequear los de vfat y un solo aviso por archivo ilegible\n'
 
 printf 'Pruebas del inventario: OK\n'

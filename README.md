@@ -266,6 +266,7 @@ puertos TCP en escucha y el estado SMART del disco raíz.
 Para agregar un archivo de sistema, registrá una entrada en
 `lib/system-files.sh` con `grupo|tipo|origen|destino|modo`. El origen de un archivo
 es relativo al repositorio; el de un enlace es su ruta absoluta y el modo es `-`.
+En `/boot` (vfat) el modo también es `-`: los permisos los fija el montaje.
 Usá destinos exactos, sin comodines. Las pruebas detectan archivos de configuración
 sin registrar y comprueban que una entrada nueva llegue al instalador, al rollback
 y al verificador. Los comandos para validar o recargar cada servicio permanecen

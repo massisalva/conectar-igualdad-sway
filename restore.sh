@@ -131,7 +131,7 @@ install_system_group() {
   while IFS='|' read -r group kind source target mode; do
     backup_target "$target"
     case "$kind" in
-      file) run sudo install -Dm"$mode" "$ROOT_DIR/$source" "$target" ;;
+      file) run sudo install -Dm"${mode/#-/644}" "$ROOT_DIR/$source" "$target" ;;
       link) run sudo ln -sfn "$source" "$target" ;;
       *) log "Tipo de archivo de sistema desconocido: $kind"; return 1 ;;
     esac

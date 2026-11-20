@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Inventario único: grupo|tipo|origen|destino|modo.
 # Los orígenes de archivos son relativos al repositorio; los de enlaces, absolutos.
+# Modo "-": los permisos los fija el montaje (vfat de /boot, fmask=0177 da 600
+# a todo) y no se verifican; se instala con 644, que vfat ignora.
 # Mantener destinos exactos: nunca usar patrones para autorizar un rollback.
 system_files() {
   local selected="${1:-}" group kind source target mode
@@ -10,8 +12,8 @@ system_files() {
   done <<'INVENTORY'
 polkit|file|polkit/49-udisks2-storage.rules|/etc/polkit-1/rules.d/49-udisks2-storage.rules|644
 polkit|file|polkit/50-local-power.rules|/etc/polkit-1/rules.d/50-local-power.rules|644
-bootloader|file|bootloader/loader.conf|/boot/loader/loader.conf|644
-bootloader|file|bootloader/arch.conf|/boot/loader/entries/arch.conf|644
+bootloader|file|bootloader/loader.conf|/boot/loader/loader.conf|-
+bootloader|file|bootloader/arch.conf|/boot/loader/entries/arch.conf|-
 sshd|file|sshd/10-hardening.conf|/etc/ssh/sshd_config.d/10-hardening.conf|644
 nftables|file|nftables/nftables.conf|/etc/nftables.conf|644
 iwd|file|iwd/main.conf|/etc/iwd/main.conf|644

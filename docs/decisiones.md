@@ -101,6 +101,11 @@ verificador también comprueba los modos de los archivos. El enlace DNS se
 registra como enlace; las credenciales locales de Samba quedan fuera del
 inventario restaurable.
 
+`/boot` es vfat (`fmask=0177`): todos sus archivos quedan en 600 y `chmod` no
+cambia nada. Sus entradas llevan modo `-` en el inventario: se instalan con 644
+y no se verifican sus permisos. Si un archivo no se puede leer sin sudo,
+`check.sh` avisa una sola vez (por el contenido), no también por los permisos.
+
 Las acciones específicas de cada servicio (validar SSH, comprobar el UUID,
 recargar servicios) permanecen en sus funciones para conservar su orden. Las
 pruebas del inventario detectan configuraciones sin registrar y ejercitan una

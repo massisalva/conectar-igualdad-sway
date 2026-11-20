@@ -271,11 +271,14 @@ check_system_group() {
       continue
     fi
     check_same_system_file "$ROOT_DIR/$source" "$target" "$severity"
+    [ "$mode" != - ] || continue  # permisos fijados por el montaje (vfat)
     actual="$(stat -Lc '%a' -- "$target" 2>/dev/null || sudo_check stat -Lc '%a' -- "$target" || true)"
+    # Sin acceso o sin archivo, check_same_system_file ya avisó: no repetir.
+    [ -n "$actual" ] || continue
     if [ "$actual" = "$mode" ]; then
       ok "permisos de $target: $mode"
     else
-      report "$severity" "permisos de $target: ${actual:-no verificables} (esperado $mode)"
+      report "$severity" "permisos de $target: $actual (esperado $mode)"
     fi
   done < <(system_files "$selected")
 }
