@@ -127,6 +127,7 @@ Nada de esto está aplicado.
 | --- | --- |
 | A1 batería crítica | Resuelto en `9b40e49`. Maxi corrió `./restore.sh --power`: UPower habilitado y activo (`check.sh` lo confirma). Avisos al 10 % y 5 % en `waybar-battery`. |
 | A2 suspensión | Resuelto en `9b40e49`. Instalado con `./restore.sh --no-yazi -y` (backup `restore-20261119-215351-424547933-233652`); `swayidle.service` reiniciado para que tome el `resume` que cancela la espera (sin él, la espera podía suspender con el usuario presente). |
-| M1, M2 | Pendientes. |
+| M1 avisos de discos | Resuelto en `b45516e`: disk-notify sale con error si se corta el monitor (`RestartSec=5`). |
+| M2 expulsar | Resuelto en el mismo commit: desmonta todas las particiones y nombra la que lo impide. |
 | M3, M4 | Pendientes de decisión de Maxi. |
 | B1-B6 | Pendientes. |
