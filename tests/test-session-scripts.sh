@@ -76,6 +76,7 @@ printf 'notify: %s\n' "$*" >> "$TEST_LOG"
 EOF
 cat > "$TEST_ROOT/bin/cliphist" <<'EOF'
 #!/usr/bin/env bash
+printf 'cliphist-db: %s\n' "${CLIPHIST_DB_PATH:-}" >> "$TEST_LOG"
 case "$1" in
   list)
     [ "${CLIP_CASE:-}" != empty ] || { echo 'opening db: please store something first' >&2; exit 1; }
@@ -249,7 +250,7 @@ printf 'OK sesión limpia sus servicios tanto al cerrar como al fallar el IPC\n'
 if bash "$ROOT_DIR/home/.local/bin/clipboard-menu" >/dev/null 2>&1; then
   fail "portapapeles informó éxito al fallar decode"
 fi
-[ ! -s "$TEST_LOG" ] || fail "portapapeles notificó éxito después de un error"
+! grep -q '^notify:' "$TEST_LOG" || fail "portapapeles notificó éxito después de un error"
 printf 'OK portapapeles propaga errores al decodificar\n'
 
 : > "$TEST_LOG"
@@ -264,6 +265,8 @@ printf 'OK luz nocturna propaga errores al iniciar\n'
 CLIP_CASE=empty bash "$ROOT_DIR/home/.local/bin/clipboard-menu" >/dev/null 2>&1 ||
   fail "portapapeles falló con el historial recién creado"
 grep -q 'vacío' "$TEST_LOG" || fail "portapapeles no avisó que el historial está vacío"
+grep -qx "cliphist-db: $XDG_RUNTIME_DIR/cliphist/db" "$TEST_LOG" ||
+  fail "portapapeles: el menú no usa el historial en RAM"
 printf 'OK portapapeles avisa con el historial recién creado\n'
 
 # M1: si el monitor de udev se corta, disk-notify termina con error para que
@@ -282,7 +285,11 @@ printf 'OK disk-notify termina con error si se corta el monitor, y systemd lo re
 unit="$ROOT_DIR/home/.config/systemd/user/sway-cliphist.service"
 grep -qx 'ExecStartPre=/usr/bin/cliphist wipe' "$unit" || fail "el portapapeles no se vacía al iniciar la sesión"
 grep -Eq '^ExecStart=.*cliphist -max-items [0-9]+ store$' "$unit" || fail "el historial del portapapeles no tiene límite"
-printf 'OK portapapeles: se vacía al iniciar sesión y tiene límite\n'
+grep -qx 'Environment=CLIPHIST_DB_PATH=%t/cliphist/db' "$unit" ||
+  fail "portapapeles: el historial no vive en RAM (H3)"
+grep -Fq 'set -gx CLIPHIST_DB_PATH "$XDG_RUNTIME_DIR/cliphist/db"' "$ROOT_DIR/home/.config/fish/config.fish" ||
+  fail "portapapeles: fish no apunta al historial en RAM"
+printf 'OK portapapeles: en RAM, se vacía al iniciar sesión y tiene límite\n'
 
 # B4: al arrancar, disk-notify olvida las marcas de discos que ya no están.
 mkdir -p "$XDG_RUNTIME_DIR/disk-notify"

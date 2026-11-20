@@ -872,6 +872,14 @@ check_session_processes() {
     fi
   done
 
+  # H3 (2026-11-20): el historial del portapapeles vive en RAM. Una base en
+  # ~/.cache es de antes del cambio y deja lo copiado en el disco sin cifrar.
+  if [ -e "$HOME/.cache/cliphist/db" ]; then
+    warn "queda historial del portapapeles en el disco: borrá ~/.cache/cliphist"
+  else
+    ok "historial del portapapeles fuera del disco"
+  fi
+
   check_nightlight
 
   # Lo que se abre desde Waybar hereda su PATH (servicio de systemd): sin ~/.local/bin, los

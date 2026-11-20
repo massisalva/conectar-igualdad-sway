@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+# El historial vive en RAM, igual que en sway-cliphist.service (auditoría
+# 2026-11-20, H3).
+export CLIPHIST_DB_PATH="${CLIPHIST_DB_PATH:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/cliphist/db}"
+
 notify_info() {
   if command -v notify-send >/dev/null 2>&1; then
     notify-send -a "Portapapeles" -h string:x-canonical-private-synchronous:clipboard "󰅌 Portapapeles" "$1" 2>/dev/null || true

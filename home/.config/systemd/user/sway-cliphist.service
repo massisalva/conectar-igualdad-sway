@@ -6,10 +6,13 @@ ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=simple
-# El historial vive en ~/.cache/cliphist/db, en un disco sin cifrar: se vacía al
-# iniciar la sesión y se limita a 100 entradas. Lo que un gestor de contraseñas
-# marca como sensible (CLIPBOARD_STATE=sensitive) cliphist no lo guarda.
-# Un reinicio del servicio por falla también vacía el historial.
+# El historial vive en RAM (%t es /run/user/<uid>): se pierde al apagar y
+# nunca toca el disco, que no está cifrado (auditoría 2026-11-20, H3). Además
+# se vacía al iniciar la sesión y se limita a 100 entradas. Lo que un gestor
+# de contraseñas marca como sensible (CLIPBOARD_STATE=sensitive) cliphist no
+# lo guarda. Un reinicio del servicio por falla también vacía el historial.
+# clipboard-menu y fish usan la misma ruta.
+Environment=CLIPHIST_DB_PATH=%t/cliphist/db
 ExecStartPre=/usr/bin/cliphist wipe
 ExecStart=/usr/bin/wl-paste --watch /usr/bin/cliphist -max-items 100 store
 Restart=on-failure

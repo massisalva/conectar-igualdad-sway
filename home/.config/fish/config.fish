@@ -7,6 +7,12 @@ if test -d "$HOME/.local/bin"
     fish_add_path "$HOME/.local/bin"
 end
 
+# Historial del portapapeles en RAM, como sway-cliphist.service: lo heredan Sway
+# y lo que se corre a mano (auditoría 2026-11-20, H3).
+if set -q XDG_RUNTIME_DIR
+    set -gx CLIPHIST_DB_PATH "$XDG_RUNTIME_DIR/cliphist/db"
+end
+
 # Arranca Sway si estamos en TTY1
 if status is-interactive
     if test -z "$WAYLAND_DISPLAY" -a "$XDG_VTNR" = "1"
