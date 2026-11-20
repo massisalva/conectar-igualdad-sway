@@ -130,5 +130,8 @@ Nada de esto está aplicado.
 | M1 avisos de discos | Resuelto en `b45516e`: disk-notify sale con error si se corta el monitor (`RestartSec=5`). |
 | M2 expulsar | Resuelto en el mismo commit: desmonta todas las particiones y nombra la que lo impide. |
 | M1 y M2 aplicados | `./restore.sh --no-yazi -y` (backup `restore-20261119-215858-224039899-253456`) y `disk-notify.service` reiniciado: activo, una instancia, `RestartSec=5`. |
-| M3, M4 | Pendientes de decisión de Maxi. |
-| B1-B6 | Pendientes. |
+| M3 portapapeles | Resuelto en `b925ac0`: se vacía al iniciar sesión y guarda hasta 100 entradas. Lo marcado como sensible ya no se guardaba (cliphist 0.7, verificado en una base temporal). |
+| M4 email en el historial público | **Aceptado** por Maxi: reescribir no lo borra de verdad (GitHub conserva los commits por su hash y puede haber clones), cambia todos los hashes que citan las auditorías y obliga a forzar el push en Forgejo y GitHub. Es una clave pública con el email como comentario; los commits nuevos usan el email noreply. |
+| B1-B4 | Resueltos en `da912a0`, con tests. |
+| B5 SSH en redes ajenas | **Aceptado**: SSH solo admite clave; restringirlo según la red complica el firewall a cambio de poco. |
+| B6 `.git` | `git gc`: de 18M a 11M; `git fsck` sin errores. |
