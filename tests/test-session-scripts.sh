@@ -192,3 +192,10 @@ timeout 10 bash "$ROOT_DIR/home/.local/bin/disk-notify" 2>/dev/null || status=$?
 grep -qx 'Restart=on-failure' "$ROOT_DIR/home/.config/systemd/user/disk-notify.service" ||
   fail "disk-notify.service no se relanza ante fallas"
 printf 'OK disk-notify termina con error si se corta el monitor, y systemd lo relanza\n'
+
+# M3: el historial del portapapeles no se acumula en el disco entre sesiones.
+unit="$ROOT_DIR/home/.config/systemd/user/sway-cliphist.service"
+grep -qx 'ExecStartPre=/usr/bin/cliphist wipe' "$unit" || fail "el portapapeles no se vacía al iniciar la sesión"
+grep -Eq '^ExecStart=.*cliphist -max-items [0-9]+ store$' "$unit" || fail "el historial del portapapeles no tiene límite"
+printf 'OK portapapeles: se vacía al iniciar sesión y tiene límite\n'
+

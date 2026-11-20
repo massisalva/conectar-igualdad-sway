@@ -6,7 +6,12 @@ ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/wl-paste --watch /usr/bin/cliphist store
+# El historial vive en ~/.cache/cliphist/db, en un disco sin cifrar: se vacía al
+# iniciar la sesión y se limita a 100 entradas. Lo que un gestor de contraseñas
+# marca como sensible (CLIPBOARD_STATE=sensitive) cliphist no lo guarda.
+# Un reinicio del servicio por falla también vacía el historial.
+ExecStartPre=/usr/bin/cliphist wipe
+ExecStart=/usr/bin/wl-paste --watch /usr/bin/cliphist -max-items 100 store
 Restart=on-failure
 
 [Install]
