@@ -101,4 +101,45 @@ out="$(nightlight_case not-found inactive)"
 grep -Fq '[FAIL] wlsunset.service no está instalado' <<< "$out" || fail_test "check confundió una unidad ausente con la luz apagada"
 printf '[OK] luz nocturna: encendida, apagada a mano, fallida y ausente se distinguen\n'
 
+# H7b: sin acceso a systemd, --system no certifica nftables.
+nft_case() (
+  local strict="$1"
+  source "$ROOT_DIR/check.sh"
+  STRICT_SYSTEM="$strict"
+  check_same_system_file() { :; }
+  has_cmd() { return 0; }
+  systemctl() {
+    case "$1" in
+      show) return 0 ;;
+      is-enabled) printf 'Failed to connect to system scope bus\n'; return 1 ;;
+    esac
+  }
+  check_nftables
+)
+out="$(nft_case 1)"
+grep -Fq '[FAIL] no puedo verificar nftables por permisos del entorno' <<< "$out" || \
+  fail_test "--system certificó nftables sin poder verificarlo"
+out="$(nft_case 0)"
+grep -Fq '[WARN] no puedo verificar nftables por permisos del entorno' <<< "$out" || \
+  fail_test "en modo normal, nftables sin verificar no quedó como aviso"
+printf '[OK] --system no certifica lo que no pudo verificar\n'
+
+# H7a: la comparación con upstream dice que es contra la copia local.
+(
+  source "$ROOT_DIR/check.sh"
+  repo_tmp="$(mktemp -d)"
+  trap 'rm -rf "$repo_tmp"' EXIT
+  git init -q --bare "$repo_tmp/remoto.git"
+  git clone -q "$repo_tmp/remoto.git" "$repo_tmp/clon" 2>/dev/null
+  git -C "$repo_tmp/clon" -c user.name=t -c user.email=t@t commit -q --allow-empty -m inicial
+  git -C "$repo_tmp/clon" push -q origin HEAD 2>/dev/null
+  git -C "$repo_tmp/clon" branch -q --set-upstream-to=origin/HEAD 2>/dev/null ||
+    git -C "$repo_tmp/clon" branch -q --set-upstream-to="origin/$(git -C "$repo_tmp/clon" branch --show-current)"
+  ROOT_DIR="$repo_tmp/clon"
+  out="$(check_repo_state)"
+  grep -Fq 'copia local de la referencia' <<< "$out" || fail_test "check afirmó sincronización sin aclarar que no consultó el servidor"
+  ! grep -Fq 'sincronizado' <<< "$out" || fail_test "check sigue diciendo sincronizado"
+)
+printf '[OK] el estado del repo aclara que compara con la copia local\n'
+
 printf 'Pruebas de check: OK\n'

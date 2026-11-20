@@ -152,8 +152,11 @@ anterior de los archivos:
 ./restore.sh --rollback backups/restore-AAAAMMDD-HHMMSS-PID
 ```
 
-El rollback restaura archivos; si alcanzó una configuración del sistema, puede
-ser necesario recargar o reiniciar el servicio correspondiente.
+El rollback restaura archivos y los permisos que la restauración cambió; si
+alcanzó una configuración del sistema, puede ser necesario recargar o reiniciar
+el servicio correspondiente. **No deshace** lo que no es un archivo: paquetes
+instalados, servicios habilitados o iniciados (MPD, nftables, sshd…),
+preferencias de gsettings ni carpetas creadas. Eso se revierte a mano.
 
 Antes de tocar nada, el rollback valida el manifiesto entero. En `/etc` y
 `/boot` solo acepta los archivos que instala este proyecto (lista en
@@ -200,11 +203,23 @@ anotalo en la lista de retirados (los tests lo controlan contra el historial).
 
 ## Verificación y mantenimiento
 
-La comprobación habitual es:
+Para validar el repositorio (sintaxis, TOML, ShellCheck si está instalado y
+todas las pruebas, en carpetas temporales, sin sudo ni sesión gráfica):
+
+```sh
+tests/run-all.sh          # agregar --sway para la prueba con Sway sin pantalla
+```
+
+La comprobación del equipo es:
 
 ```sh
 ./check.sh
 ```
+
+`check.sh` compara HEAD con la copia local de la referencia remota: para saber
+si hay commits nuevos en el servidor, correr antes `git fetch`. Con `--system`,
+lo que no se puede verificar (por ejemplo, por falta de permisos) cuenta como
+falla: el resultado solo se certifica si todo se pudo comprobar.
 
 Además de comparar los archivos activos con el repositorio, valida scripts,
 JSON de Waybar, dependencias, procesos duplicados, paquetes huérfanos y las

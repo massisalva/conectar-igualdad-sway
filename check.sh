@@ -40,6 +40,13 @@ fail() {
   printf '[FAIL] %s\n' "$*"
 }
 
+# Informa con la severidad del chequeo: warn en modo normal, fail con --system.
+report() {
+  local severity="$1"
+  shift
+  if [ "$severity" = fail ]; then fail "$@"; else warn "$@"; fi
+}
+
 has_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
@@ -112,25 +119,13 @@ check_same_file() {
   local severity="${3:-fail}"
 
   if [ ! -f "$repo_file" ]; then
-    if [ "$severity" = "warn" ]; then
-      warn "falta en repo: $repo_file"
-    else
-      fail "falta en repo: $repo_file"
-    fi
+    report "$severity" "falta en repo: $repo_file"
   elif [ ! -f "$active_file" ]; then
-    if [ "$severity" = "warn" ]; then
-      warn "falta activo: $active_file"
-    else
-      fail "falta activo: $active_file"
-    fi
+    report "$severity" "falta activo: $active_file"
   elif cmp -s "$repo_file" "$active_file"; then
     ok "coincide: $active_file"
   else
-    if [ "$severity" = "warn" ]; then
-      warn "difiere de repo: $active_file"
-    else
-      fail "difiere de repo: $active_file"
-    fi
+    report "$severity" "difiere de repo: $active_file"
   fi
 }
 
@@ -140,11 +135,7 @@ check_same_system_file() {
   local severity="${3:-warn}"
 
   if [ ! -f "$repo_file" ]; then
-    if [ "$severity" = "warn" ]; then
-      warn "falta en repo: $repo_file"
-    else
-      fail "falta en repo: $repo_file"
-    fi
+    report "$severity" "falta en repo: $repo_file"
     return
   fi
 
@@ -154,29 +145,19 @@ check_same_system_file() {
   fi
 
   if ! sudo_check true; then
-    if [ "$severity" = "warn" ]; then
-      warn "no puedo verificar $(sudo_check_label): $active_file"
-    else
-      fail "no puedo verificar $(sudo_check_label): $active_file"
-    fi
+    report "$severity" "no puedo verificar $(sudo_check_label): $active_file"
     return
   fi
 
   if ! sudo_check test -f "$active_file"; then
-    if [ "$severity" = "warn" ]; then
-      warn "falta activo: $active_file"
-    else
-      fail "falta activo: $active_file"
-    fi
+    report "$severity" "falta activo: $active_file"
     return
   fi
 
   if sudo_check cmp -s "$repo_file" "$active_file"; then
     ok "coincide: $active_file"
-  elif [ "$severity" = "warn" ]; then
-    warn "difiere de repo: $active_file"
   else
-    fail "difiere de repo: $active_file"
+    report "$severity" "difiere de repo: $active_file"
   fi
 }
 
@@ -232,9 +213,9 @@ check_repo_state() {
   local_rev="$(git -C "$ROOT_DIR" rev-parse HEAD)"
   upstream_rev="$(git -C "$ROOT_DIR" rev-parse "$upstream" 2>/dev/null || true)"
   if [ "$local_rev" = "$upstream_rev" ]; then
-    ok "repo sincronizado con $upstream"
+    ok "HEAD coincide con $upstream (copia local de la referencia; git fetch para traer la del servidor)"
   else
-    warn "HEAD local difiere de $upstream"
+    warn "HEAD difiere de $upstream (copia local de la referencia, sin consultar el servidor)"
   fi
 }
 
@@ -303,31 +284,21 @@ check_sshd() {
   done
 
   if ! sudo_check true; then
-    if [ "$severity" = "warn" ]; then
-      warn "no puedo verificar la configuración efectiva de SSH $(sudo_check_label)"
-    else
-      fail "no puedo verificar la configuración efectiva de SSH $(sudo_check_label)"
-    fi
+    report "$severity" "no puedo verificar la configuración efectiva de SSH $(sudo_check_label)"
     return
   fi
 
   if sudo_check sshd -t; then
     ok "sintaxis efectiva de SSH válida"
-  elif [ "$severity" = "warn" ]; then
-    warn "la configuración efectiva de SSH tiene errores de sintaxis"
   else
-    fail "la configuración efectiva de SSH tiene errores de sintaxis"
+    report "$severity" "la configuración efectiva de SSH tiene errores de sintaxis"
   fi
 
   local effective setting expected actual
   effective="$(sudo_check sshd -T \
     -C user=massisalva,host=localhost,addr=127.0.0.1 2>/dev/null || true)"
   if [ -z "$effective" ]; then
-    if [ "$severity" = "warn" ]; then
-      warn "sshd -T no devolvió la configuración efectiva"
-    else
-      fail "sshd -T no devolvió la configuración efectiva"
-    fi
+    report "$severity" "sshd -T no devolvió la configuración efectiva"
     return
   fi
 
@@ -335,10 +306,8 @@ check_sshd() {
     actual="$(printf '%s\n' "$effective" | awk -v key="$setting" 'tolower($1) == key {$1=""; sub(/^ /, ""); print; exit}')"
     if [ "$actual" = "$expected" ]; then
       ok "SSH efectivo: $setting $expected"
-    elif [ "$severity" = "warn" ]; then
-      warn "SSH efectivo: $setting esperado '$expected', actual '${actual:-desconocido}'"
     else
-      fail "SSH efectivo: $setting esperado '$expected', actual '${actual:-desconocido}'"
+      report "$severity" "SSH efectivo: $setting esperado '$expected', actual '${actual:-desconocido}'"
     fi
   done <<'EOF'
 allowusers massisalva
@@ -370,20 +339,16 @@ check_nftables() {
   if [ -z "$output" ]; then
     enabled_output="$(systemctl is-enabled nftables.service 2>&1 || true)"
     if [ "$enabled_output" = "enabled" ]; then
-      warn "nftables no pudo verificarse por permisos del entorno"
+      report "$severity" "nftables no pudo verificarse por permisos del entorno"
       return
     fi
 
     if printf '%s\n' "$enabled_output" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
-      warn "no puedo verificar nftables por permisos del entorno"
+      report "$severity" "no puedo verificar nftables por permisos del entorno"
       return
     fi
 
-    if [ "$severity" = "warn" ]; then
-      warn "nftables no está aplicado o habilitado"
-    else
-      fail "nftables no está aplicado o habilitado"
-    fi
+    report "$severity" "nftables no está aplicado o habilitado"
     return
   fi
 
@@ -395,31 +360,19 @@ check_nftables() {
   if [ "$unit_file_state" = "enabled" ] && [ "$result" = "success" ] && { [ "$active_state" = "inactive" ] || [ "$active_state" = "active" ]; }; then
     ok "nftables aplicado y habilitado"
   else
-    if [ "$severity" = "warn" ]; then
-      warn "nftables no está aplicado o habilitado"
-    else
-      fail "nftables no está aplicado o habilitado"
-    fi
+    report "$severity" "nftables no está aplicado o habilitado"
   fi
 
 
   if ! sudo_check true; then
-    if [ "$severity" = "warn" ]; then
-      warn "no puedo verificar el ruleset vivo de nftables $(sudo_check_label)"
-    else
-      fail "no puedo verificar el ruleset vivo de nftables $(sudo_check_label)"
-    fi
+    report "$severity" "no puedo verificar el ruleset vivo de nftables $(sudo_check_label)"
     return
   fi
 
   local ruleset
   ruleset="$(sudo_check nft list table inet filter || true)"
   if [ -z "$ruleset" ]; then
-    if [ "$severity" = "warn" ]; then
-      warn "no existe el ruleset vivo esperado de nftables"
-    else
-      fail "no existe el ruleset vivo esperado de nftables"
-    fi
+    report "$severity" "no existe el ruleset vivo esperado de nftables"
     return
   fi
 
@@ -427,10 +380,8 @@ check_nftables() {
   while IFS='|' read -r pattern label; do
     if printf '%s\n' "$ruleset" | grep -Eq "$pattern"; then
       ok "nftables vivo: $label"
-    elif [ "$severity" = "warn" ]; then
-      warn "nftables vivo no confirma: $label"
     else
-      fail "nftables vivo no confirma: $label"
+      report "$severity" "nftables vivo no confirma: $label"
     fi
   done <<'EOF'
 hook input .*policy drop|entrada con política drop
@@ -456,30 +407,20 @@ check_iwd() {
     if [ "$output" = "enabled" ]; then
       ok "$service habilitado"
     elif printf '%s\n' "$output" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
-      warn "no puedo verificar $service por permisos del entorno"
-    elif [ "$severity" = "warn" ]; then
-      warn "$service no está habilitado"
+      report "$severity" "no puedo verificar $service por permisos del entorno"
     else
-      fail "$service no está habilitado"
+      report "$severity" "$service no está habilitado"
     fi
   done
 
   if pacman -Q networkmanager >/dev/null 2>&1; then
-    if [ "$severity" = "warn" ]; then
-      warn "NetworkManager sigue instalado junto a iwd"
-    else
-      fail "NetworkManager sigue instalado junto a iwd"
-    fi
+    report "$severity" "NetworkManager sigue instalado junto a iwd"
   else
     ok "NetworkManager no está instalado"
   fi
 
   if pacman -Q tlp-rdw >/dev/null 2>&1; then
-    if [ "$severity" = "warn" ]; then
-      warn "tlp-rdw sigue instalado y requiere NetworkManager"
-    else
-      fail "tlp-rdw sigue instalado y requiere NetworkManager"
-    fi
+    report "$severity" "tlp-rdw sigue instalado y requiere NetworkManager"
   else
     ok "tlp-rdw no está instalado"
   fi
@@ -487,10 +428,8 @@ check_iwd() {
   resolv_target="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
   if [ "$resolv_target" = /run/systemd/resolve/stub-resolv.conf ]; then
     ok "/etc/resolv.conf usa systemd-resolved"
-  elif [ "$severity" = "warn" ]; then
-    warn "/etc/resolv.conf no usa el stub de systemd-resolved"
   else
-    fail "/etc/resolv.conf no usa el stub de systemd-resolved"
+    report "$severity" "/etc/resolv.conf no usa el stub de systemd-resolved"
   fi
 }
 
@@ -503,20 +442,16 @@ check_sysctl() {
   actual="$(sysctl -n kernel.kptr_restrict 2>/dev/null || true)"
   if [ "$actual" = "1" ]; then
     ok "kernel.kptr_restrict = 1"
-  elif [ "$severity" = "warn" ]; then
-    warn "kernel.kptr_restrict esperado 1, actual ${actual:-desconocido}"
   else
-    fail "kernel.kptr_restrict esperado 1, actual ${actual:-desconocido}"
+    report "$severity" "kernel.kptr_restrict esperado 1, actual ${actual:-desconocido}"
   fi
 
   check_same_system_file "$ROOT_DIR/sysctl/99-zram.conf" /etc/sysctl.d/99-zram.conf "$severity"
   actual="$(sysctl -n vm.swappiness 2>/dev/null || true)"
   if [ "$actual" = "100" ]; then
     ok "vm.swappiness = 100"
-  elif [ "$severity" = "warn" ]; then
-    warn "vm.swappiness esperado 100, actual ${actual:-desconocido}"
   else
-    fail "vm.swappiness esperado 100, actual ${actual:-desconocido}"
+    report "$severity" "vm.swappiness esperado 100, actual ${actual:-desconocido}"
   fi
 }
 
@@ -558,35 +493,21 @@ check_zram() {
   fi
 
   if ! has_cmd swapon; then
-    if [ "$severity" = "warn" ]; then
-      warn "falta comando: swapon"
-    else
-      fail "falta comando: swapon"
-    fi
+    report "$severity" "falta comando: swapon"
   else
     swap_info="$(swapon --noheadings --raw --show=NAME,PRIO 2>/dev/null || true)"
     priority="$(printf '%s\n' "$swap_info" | awk '$1 == "/dev/zram0" {print $2; exit}')"
     if [ "$priority" = "100" ]; then
       ok "/dev/zram0 activa como swap con prioridad 100"
     elif [ -n "$priority" ]; then
-      if [ "$severity" = "warn" ]; then
-        warn "/dev/zram0 activa con prioridad inesperada: $priority"
-      else
-        fail "/dev/zram0 activa con prioridad inesperada: $priority"
-      fi
-    elif [ "$severity" = "warn" ]; then
-      warn "/dev/zram0 no está activa como swap"
+      report "$severity" "/dev/zram0 activa con prioridad inesperada: $priority"
     else
-      fail "/dev/zram0 no está activa como swap"
+      report "$severity" "/dev/zram0 no está activa como swap"
     fi
   fi
 
   if [ "$device_present" -eq 0 ] && [ -z "$priority" ]; then
-    if [ "$severity" = "warn" ]; then
-      warn "/dev/zram0 no encontrado"
-    else
-      fail "/dev/zram0 no encontrado"
-    fi
+    report "$severity" "/dev/zram0 no encontrado"
     return
   elif [ "$device_present" -eq 0 ]; then
     ok "/dev/zram0 detectado mediante la swap activa"
@@ -596,15 +517,11 @@ check_zram() {
     comp_algorithm="$(tr '\n' ' ' < /sys/block/zram0/comp_algorithm)"
     if printf '%s\n' "$comp_algorithm" | grep -Eq '(^|[[:space:]])\[zstd\]([[:space:]]|$)'; then
       ok "/dev/zram0 usa compresión zstd"
-    elif [ "$severity" = "warn" ]; then
-      warn "/dev/zram0 no tiene zstd seleccionado: ${comp_algorithm:-desconocido}"
     else
-      fail "/dev/zram0 no tiene zstd seleccionado: ${comp_algorithm:-desconocido}"
+      report "$severity" "/dev/zram0 no tiene zstd seleccionado: ${comp_algorithm:-desconocido}"
     fi
-  elif [ "$severity" = "warn" ]; then
-    warn "no puedo leer el algoritmo de compresión de /dev/zram0"
   else
-    fail "no puedo leer el algoritmo de compresión de /dev/zram0"
+    report "$severity" "no puedo leer el algoritmo de compresión de /dev/zram0"
   fi
 
   if [ -r /sys/block/zram0/disksize ] && [ -r /proc/meminfo ]; then
@@ -613,15 +530,11 @@ check_zram() {
     ratio="$(awk -v zram="$zram_bytes" -v ram="$ram_bytes" 'BEGIN { if (ram > 0) print zram / ram }')"
     if awk -v ratio="$ratio" 'BEGIN { exit !(ratio >= 0.49 && ratio <= 0.51) }'; then
       ok "/dev/zram0 tiene un tamaño equivalente al 50 % de la RAM"
-    elif [ "$severity" = "warn" ]; then
-      warn "/dev/zram0 tiene tamaño inesperado: ${ratio:-desconocido} de la RAM"
     else
-      fail "/dev/zram0 tiene tamaño inesperado: ${ratio:-desconocido} de la RAM"
+      report "$severity" "/dev/zram0 tiene tamaño inesperado: ${ratio:-desconocido} de la RAM"
     fi
-  elif [ "$severity" = "warn" ]; then
-    warn "no puedo calcular el tamaño de /dev/zram0 respecto de la RAM"
   else
-    fail "no puedo calcular el tamaño de /dev/zram0 respecto de la RAM"
+    report "$severity" "no puedo calcular el tamaño de /dev/zram0 respecto de la RAM"
   fi
 }
 

@@ -55,7 +55,9 @@ Opciones:
   --prune       Quita de ~/.local/bin, con backup, los scripts que el proyecto
                 retiró (docs/local-bin-retired.txt). Lo desconocido se conserva.
   --no-backup   No crea backup previo de los archivos reemplazados.
-  --rollback DIR  Restaura los archivos registrados en un backup anterior.
+  --rollback DIR  Restaura los archivos (y permisos) registrados en un backup
+                anterior. No desinstala paquetes ni deshace servicios
+                habilitados, preferencias de gsettings o carpetas creadas.
   --dry-run     Muestra acciones sin ejecutarlas.
   -y, --yes     No pide confirmación.
   -h, --help    Muestra esta ayuda.
@@ -789,3 +791,7 @@ if [ -n "$BACKUP_DIR" ]; then
   fi
 fi
 log "Restauración finalizada"
+if [ "$BACKUP_ENABLED" -eq 1 ] && [ -n "$BACKUP_DIR" ] && [ "$DRY_RUN" -eq 0 ]; then
+  log "Para volver atrás los archivos: ./restore.sh --rollback $BACKUP_DIR"
+  log "El rollback no deshace paquetes, servicios habilitados, gsettings ni carpetas creadas."
+fi
