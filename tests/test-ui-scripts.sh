@@ -561,4 +561,22 @@ ok "discos cifrados: desbloquear y montar, bloquear, y expulsar bloqueando antes
 )
 ok "capturas: si grim falla, avisan"
 
+# H2 (2026-11-20): "No molestar" no oculta lo urgente (batería al 5 %).
+MAKO="$ROOT_DIR/home/.config/mako/config"
+dnd_line="$(grep -nx '\[mode=do-not-disturb\]' "$MAKO" | cut -d: -f1 || true)"
+urgent_line="$(grep -nx '\[mode=do-not-disturb urgency=high\]' "$MAKO" | cut -d: -f1 || true)"
+[ -n "$dnd_line" ] && [ -n "$urgent_line" ] || fail "mako: faltan las secciones de No molestar"
+[ "$urgent_line" -gt "$dnd_line" ] || fail "mako: la excepción urgente tiene que ir después de No molestar"
+sed -n "$((urgent_line + 1))p" "$MAKO" | grep -qx 'invisible=0' || fail "mako: lo urgente sigue invisible con No molestar"
+ok "mako: No molestar deja ver las notificaciones urgentes"
+
+# B2 (2026-11-20): toda ventana con app-id propio tiene su regla en Sway.
+RULES="$ROOT_DIR/home/.config/sway/config.d/50-rules.conf"
+while IFS= read -r app_id; do
+  grep -Fq "app_id=\"$app_id\"" "$RULES" || grep -Fq "app_id=\"^$app_id\$\"" "$RULES" ||
+    fail "sway: la ventana $app_id no tiene regla en 50-rules.conf"
+done < <(grep -rhoE 'app-id[ =]+"?[A-Za-z0-9_-]+' "$ROOT_DIR/home/.local/bin" "$ROOT_DIR/home/.config" |
+  sed -E 's/app-id[ =]+"?//' | sort -u)
+ok "sway: todas las ventanas con app-id propio tienen regla"
+
 printf 'Pruebas de scripts UI: OK\n'

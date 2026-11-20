@@ -38,3 +38,8 @@ default-timeout=0
 
 [mode=do-not-disturb]
 invisible=1
+
+# Lo urgente (batería al 5 %) se ve igual. Tiene que ir después de la
+# sección anterior: en mako gana la última que coincide.
+[mode=do-not-disturb urgency=high]
+invisible=0
