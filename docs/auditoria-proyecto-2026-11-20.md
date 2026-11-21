@@ -387,9 +387,10 @@ arreglo.
 - `check.sh`: 0 fallos.
 
 **Todos los hallazgos de esta auditoría quedan resueltos, aceptados o
-descartados con motivo.** Queda a decisión de Maxi qué hacer con las copias
-viejas de `streamrip/config.toml` en `backups/` (recomendación: dejarlas,
-porque son parte de backups completos que usa `--rollback`).
+descartados con motivo.** Las copias viejas de `streamrip/config.toml` en
+`backups/` **se dejan como están** (decisión de Maxi, 2026-11-20): son parte
+de backups completos que usa `--rollback`, tienen permisos 600 y el riesgo es
+el mismo que el del archivo original.
 
 ### Ajustes de agy sobre lo aplicado (2026-11-20)
 
