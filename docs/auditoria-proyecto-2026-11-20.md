@@ -323,7 +323,11 @@ con Maxi: H2+B2, H1, H3, H4+H5.1, H6 y el resto.
 | H5.1 foco por PID | Resuelto en `4023d9a`: devuelve la terminal que contiene al reproductor, no su padre. |
 | H5.2 y H5.3 prioridad y mpv | Resuelto en `5d762de`: barra, click y teclas usan una sola decisión (`pick_source`): radio, MPD sonando, otro sonando, MPD en pausa, otro en pausa. mpv suelto se ignora (decisión de Maxi). Sin título, la barra muestra el nombre del reproductor. |
 | H6 `restore.sh` | Resuelto en `1d9cad1` (lo recomendado, con OK de Maxi): una pieza suelta no restaura `$HOME` ni Yazi salvo con `--user`/`--yazi`; permisos ya correctos no se respaldan. Las copias viejas de `streamrip/config.toml` en `backups/` siguen ahí (pendiente de decisión). |
-| H7, B1, B3, B4 | Pendientes. |
+| H7 atajos de Yazi | Resuelto en `e9e625b`: se quitaron `l s` y `l m` (inalcanzables: `l` sola es `smart-enter`). Yazi 26.9 ya trae `m s` y `m m` de fábrica (verificado en el binario). Test general de prefijos tapados. |
+| B1 Esc en menús | Resuelto en `50cadef`: `audio-output-menu` y `screenshot-menu` salen con 0 al cancelar; `pactl list sinks` se consulta una vez. |
+| B2 `disk-unlock` | Resuelto en `626bca5` (ver arriba). |
+| B3 señales en Waybar | Resuelto en parte en `50cadef`: «No molestar» usa `SIGRTMIN+9` (consulta de respaldo cada 60 s). **Discos no**: la señal ya se probó y se sacó en `7e4b566` (2026-09-21, «preservar actualización fiable de discos»), con un test que lo protege. |
+| B4 `check.sh` y volumen | Resuelto en `50cadef` lo de `check.sh` (ayuda con UPower, «sin acceso al bus», `report` en Samba, comentario de luz nocturna). `LC_ALL=C` para `wpctl` **no aplica**: `wpctl` imprime punto decimal también en `es_AR` (verificado). |
 
 ### Aplicado en la Conectar (2026-11-20)
 
@@ -371,3 +375,18 @@ reiniciar el servicio correspondiente.
 
 En todos, antes se comparó `home/` con `$HOME`: solo cambiaba el archivo del
 arreglo.
+
+### Aplicado en la Conectar (2026-11-20, bajas y H7)
+
+- **B1, B3, B4:** `./restore.sh --no-yazi -y` (backup `restore-20261120-213147-173077344-449794`)
+  y `systemctl --user restart waybar.service`. Verificado con capturas: «No
+  molestar» aparece y desaparece de la barra en menos de 1 s.
+- **H7:** `./restore.sh --no-yazi -y` (backup `restore-20261120-213441-525840886-476118`);
+  Yazi lo toma al abrirse.
+- `chmod 700 backups/manual-20261116-streamrip` (con OK de Maxi; fuera de Git).
+- `check.sh`: 0 fallos.
+
+**Todos los hallazgos de esta auditoría quedan resueltos, aceptados o
+descartados con motivo.** Queda a decisión de Maxi qué hacer con las copias
+viejas de `streamrip/config.toml` en `backups/` (recomendación: dejarlas,
+porque son parte de backups completos que usa `--rollback`).
