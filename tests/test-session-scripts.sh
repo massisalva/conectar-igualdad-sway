@@ -37,6 +37,8 @@ export XDG_STATE_HOME="$TEST_ROOT/state"
 export WAYLAND_DISPLAY=wayland-test SWAYSOCK="$TEST_ROOT/sway.sock"
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/test
 export XDG_RUNTIME_DIR="$TEST_ROOT/run"
+# Que no se cuele el historial real (fish lo exporta desde H3, 2026-11-20).
+unset CLIPHIST_DB_PATH
 mkdir -p "$XDG_RUNTIME_DIR"
 
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
