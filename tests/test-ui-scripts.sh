@@ -388,6 +388,62 @@ printf 'Radio Nacional,https://radio.example/vivo?token=1\n' \
 )
 ok "waybar-music detecta radio, MPD (playing/paused) y MPRIS"
 
+# H5 (2026-11-20): la barra muestra el mismo reproductor que controlan el
+# click y las teclas multimedia, y mpv suelto no cuenta.
+(
+  export HOME="$MUSIC_TEST_HOME" MUSIC_CALLS="$TEST_ROOT/music-calls"
+  ps() { :; }
+  mpc() {
+    case "$*" in
+      status|'')
+        case "${MOCK_MPD:-stopped}" in
+          playing) printf 'Spinetta - Bajan\n[playing] #1/5   0:42/3:25 (20%%)\nvolume: 100%%\n' ;;
+          paused)  printf 'Charly - Nos siguen pegando abajo\n[paused]  #2/5   1:10/3:15 (35%%)\nvolume: 100%%\n' ;;
+          *)       printf 'volume: 100%%   repeat: off   random: off\n' ;;
+        esac
+        ;;
+      *) printf 'mpc %s\n' "$*" >> "$MUSIC_CALLS" ;;
+    esac
+  }
+  playerctl() {
+    case "$*" in
+      -l) printf '%s\n' $MOCK_MPRIS ;;
+      "-p "*" status") printf '%s\n' "$MOCK_PLAYER_STATUS" ;;
+      "-p "*" metadata artist") printf 'Artista\n' ;;
+      "-p "*" metadata title") printf 'Tema de %s\n' "$2" ;;
+      "-p "*) printf 'playerctl %s %s\n' "$2" "$3" >> "$MUSIC_CALLS" ;;
+    esac
+  }
+  export -f ps mpc playerctl
+  music() {  # estado MPD, reproductores, estado de los reproductores
+    : > "$MUSIC_CALLS"
+    shown="$(MOCK_MPD="$1" MOCK_MPRIS="$2" MOCK_PLAYER_STATUS="$3" bash "$ROOT_DIR/home/.local/bin/waybar-music")"
+    MOCK_MPD="$1" MOCK_MPRIS="$2" MOCK_PLAYER_STATUS="$3" bash "$ROOT_DIR/home/.local/bin/waybar-music" --toggle
+    controlled="$(cat "$MUSIC_CALLS")"
+  }
+
+  music paused ncspot Paused
+  [ "$shown" = "󰏤  Charly - Nos siguen pegando abajo" ] ||
+    fail "con MPD y ncspot en pausa, la barra no muestra MPD ($shown)"
+  [ "$controlled" = "mpc toggle" ] ||
+    fail "con MPD y ncspot en pausa, las teclas no controlan MPD ($controlled)"
+
+  music paused firefox.i1 Playing
+  [ "$shown" = "󰓇  Artista - Tema de firefox.i1" ] ||
+    fail "Firefox sonando no le gana a MPD en pausa en la barra ($shown)"
+  [ "$controlled" = "playerctl firefox.i1 play-pause" ] ||
+    fail "Firefox sonando no le gana a MPD en pausa en las teclas ($controlled)"
+
+  music stopped ncspot Paused
+  [ "$shown" = "󰏤  Artista - Tema de ncspot" ] || fail "no muestra ncspot en pausa ($shown)"
+  [ "$controlled" = "playerctl ncspot play-pause" ] || fail "no controla ncspot en pausa ($controlled)"
+
+  music stopped mpv Playing
+  [ -z "$shown" ] || fail "la barra muestra mpv suelto ($shown)"
+  [ "$controlled" = "mpc toggle" ] || fail "las teclas controlan mpv suelto ($controlled)"
+)
+ok "waybar-music muestra y controla el mismo reproductor, e ignora mpv suelto"
+
 # H5 (2026-11-20): si el árbol de Sway no alcanza, se enfoca por PID la
 # terminal que contiene al reproductor, no el padre de esa terminal.
 (

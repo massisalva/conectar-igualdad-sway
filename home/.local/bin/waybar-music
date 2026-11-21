@@ -29,8 +29,11 @@ shorten() {
   fi
 }
 
+# Reproductores MPRIS que la barra tiene en cuenta: primero uno que suene, si
+# no, uno en pausa. mpv suelto (un video o audio abierto a mano) no cuenta: se
+# maneja desde su ventana y una tecla multimedia no debería pausarlo sin
+# querer. El mpv de PyRadio va por current_radio (auditoría 2026-11-20, H5).
 music_player() {
-  local allow_mpv="${1:-1}"
   local player lower paused_player="" status
 
   command -v playerctl >/dev/null 2>&1 || return 1
@@ -40,7 +43,6 @@ music_player() {
     lower="${player,,}"
     case "$lower" in
       *ncspot*|*spotify*|*firefox*) ;;
-      *mpv*) [ "$allow_mpv" = "1" ] || continue ;;
       *) continue ;;
     esac
 
@@ -80,40 +82,53 @@ read_mpd_status() {
   fi
 }
 
+# Qué reproductor manda, sin contar la radio: lo que la barra muestra es lo
+# mismo que controlan el click y las teclas multimedia (antes cada uno tenía
+# su propio orden; auditoría 2026-11-20, H5). Prioridad: MPD sonando, otro
+# reproductor sonando, MPD en pausa, otro reproductor en pausa.
+# Deja SOURCE (mpd, player:<nombre> o vacío) y SOURCE_STATUS (Playing o
+# Paused, si es un reproductor), y mpd_song y mpd_state de read_mpd_status.
+pick_source() {
+  local player status=""
+  SOURCE=""
+  SOURCE_STATUS=""
+
+  read_mpd_status
+  if [ "$mpd_state" = "playing" ] && [ -n "$mpd_song" ]; then
+    SOURCE="mpd"
+    return
+  fi
+
+  player="$(music_player || true)"
+  [ -z "$player" ] || status="$(playerctl -p "$player" status 2>/dev/null || true)"
+  if [ "$status" = "Playing" ]; then
+    SOURCE="player:$player"
+    SOURCE_STATUS="Playing"
+    return
+  fi
+
+  if [ "$mpd_state" = "paused" ] && [ -n "$mpd_song" ]; then
+    SOURCE="mpd"
+    return
+  fi
+
+  if [ "$status" = "Paused" ]; then
+    SOURCE="player:$player"
+    SOURCE_STATUS="Paused"
+  fi
+}
+
 active_source() {
-  local player status mpd_song mpd_state
+  local mpd_song mpd_state SOURCE SOURCE_STATUS
 
   if current_radio >/dev/null; then
     printf 'radio\n'
     return
   fi
 
-  read_mpd_status
-  if [ "$mpd_state" = "playing" ] && [ -n "$mpd_song" ]; then
-    printf 'mpd\n'
-    return
-  fi
-
-  player="$(music_player 1 || true)"
-  if [ -n "$player" ]; then
-    status="$(playerctl -p "$player" status 2>/dev/null || true)"
-    if [ "$status" = "Playing" ]; then
-      printf 'player:%s\n' "$player"
-      return
-    fi
-  fi
-
-  if [ "$mpd_state" = "paused" ] && [ -n "$mpd_song" ]; then
-    printf 'mpd\n'
-    return
-  fi
-
-  if [ -n "$player" ] && [ "$status" = "Paused" ]; then
-    printf 'player:%s\n' "$player"
-    return
-  fi
-
-  printf 'mpd\n'
+  pick_source
+  # Sin nada sonando ni en pausa, el click y las teclas van a MPD.
+  printf '%s\n' "${SOURCE:-mpd}"
 }
 
 app_is_open_any() {
@@ -487,60 +502,47 @@ current_radio() {
 }
 
 current_song() {
-  local mpd_song mpd_state
-  local player status artist title song
+  local mpd_song mpd_state SOURCE SOURCE_STATUS
+  local player artist title song
 
-  # 0) PyRadio / mpv
+  # PyRadio primero, igual que en active_source.
   if current_radio; then
     return
   fi
 
-  read_mpd_status
-
-  # 1) MPD / ncmpcpp reproduciendo
-  if [ "$mpd_state" = "playing" ] && [ -n "$mpd_song" ]; then
-    song="$(shorten "$mpd_song" 36)"
-    printf "󰎈  %s\n" "$song"
-    return
-  fi
-
-  # 2) ncspot / Spotify / Firefox reproduciendo o pausado
-  if command -v playerctl >/dev/null 2>&1; then
-    player="$(music_player 0 || true)"
-
-    if [ -n "$player" ]; then
-      status="$(playerctl -p "$player" status 2>/dev/null || true)"
-      if [ "$status" = "Playing" ] || [ "$status" = "Paused" ]; then
-        artist="$(playerctl -p "$player" metadata artist 2>/dev/null || true)"
-        title="$(playerctl -p "$player" metadata title 2>/dev/null || true)"
-
-        if [ -n "$title" ]; then
-          if [ -n "$artist" ]; then
-            song="$artist - $title"
-          else
-            song="$title"
-          fi
-
-          song="$(shorten "$song" 36)"
-          if [ "$status" = "Playing" ]; then
-            printf "󰓇  %s\n" "$song"
-          else
-            printf "󰏤  %s\n" "$song"
-          fi
-          return
-        fi
+  pick_source
+  case "$SOURCE" in
+    mpd)
+      song="$(shorten "$mpd_song" 36)"
+      if [ "$mpd_state" = "playing" ]; then
+        printf "󰎈  %s\n" "$song"
+      else
+        printf "󰏤  %s\n" "$song"
       fi
-    fi
-  fi
-
-  # 3) MPD pausado
-  if [ "$mpd_state" = "paused" ] && [ -n "$mpd_song" ]; then
-    song="$(shorten "$mpd_song" 36)"
-    printf "󰏤  %s\n" "$song"
-    return
-  fi
-
-  printf "\n"
+      ;;
+    player:*)
+      player="${SOURCE#player:}"
+      artist="$(playerctl -p "$player" metadata artist 2>/dev/null || true)"
+      title="$(playerctl -p "$player" metadata title 2>/dev/null || true)"
+      if [ -n "$title" ] && [ -n "$artist" ]; then
+        song="$artist - $title"
+      elif [ -n "$title" ]; then
+        song="$title"
+      else
+        # Sin metadatos, el nombre del reproductor (firefox.instance_1 -> firefox).
+        song="${player%%.*}"
+      fi
+      song="$(shorten "$song" 36)"
+      if [ "$SOURCE_STATUS" = "Playing" ]; then
+        printf "󰓇  %s\n" "$song"
+      else
+        printf "󰏤  %s\n" "$song"
+      fi
+      ;;
+    *)
+      printf "\n"
+      ;;
+  esac
 }
 
 case "${1:-}" in
