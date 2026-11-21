@@ -317,7 +317,9 @@ con Maxi: H2+B2, H1, H3, H4+H5.1, H6 y el resto.
 | --- | --- |
 | H2 «No molestar» y batería crítica | Resuelto en `626bca5`. Aplicado y probado: con `makoctl mode -a do-not-disturb`, la notificación `-u critical` se ve y la `-u normal` no (captura de pantalla). |
 | B2 `disk-unlock` flotante | Resuelto en `626bca5`. El test exige regla en Sway para toda ventana con `app-id` propio. |
-| H1, H3-H7, B1, B3, B4 | Pendientes. |
+| H1 carrera en `suspend-if-no-audio` | Resuelto en `11b3c42`. En la Conectar la carrera se daba 1 de cada 200 veces (no 1 de 10). Arreglo con un turno: `--cancel` lo borra antes que nada y la espera solo suspende si sigue vigente; además mata el `sleep` en curso y `before-sleep` cancela. Test determinista con un `setsid` lento (el código viejo falla siempre) y red de seguridad que mata las esperas del test al salir. Medido: 0 esperas vivas en 250 intentos. |
+| H3 portapapeles en el disco | Resuelto en `4f357ce`, test aislado en `fa77cb6`. La base va en `%t/cliphist/db` (RAM): la fija `sway-cliphist.service`, `clipboard-menu` usa la misma ruta y fish la exporta (no `environment.d`: Sway arranca desde fish y no lo lee). `check.sh` avisa si queda la base vieja. |
+| H4-H7, B1, B3, B4 | Pendientes. |
 
 ### Aplicado en la Conectar (2026-11-20)
 
@@ -332,3 +334,21 @@ creyendo que era una simulación. `restore.sh` ignora esa variable (la pone en
 
 Para deshacer: `./restore.sh --rollback backups/restore-20261120-203743-694918160-32176`,
 `git revert 626bca5` y recargar Sway y mako.
+
+### Aplicado en la Conectar (2026-11-20, H1 y H3)
+
+- **H1:** `./restore.sh --no-yazi -y` (backup `restore-20261120-205212-304561877-142214`)
+  y `systemctl --user restart swayidle.service`. Antes, `--dry-run` y comparación
+  con `$HOME`: solo cambiaban `start-idle` y `suspend-if-no-audio`. No había
+  esperas corriendo.
+- **H3:** `./restore.sh --no-yazi -y` (backup `restore-20261120-205830-707774401-207227`),
+  `systemctl --user restart sway-cliphist.service` y, con OK de Maxi,
+  `rm -rf ~/.cache/cliphist`. Verificado: la base está en `/run/user/1000/cliphist/db`
+  y `check.sh` da «historial del portapapeles fuera del disco». En el SSD, lo
+  borrado queda en bloques libres hasta el próximo TRIM (`fstrim.timer`, semanal).
+  El servicio queda con la variable al instante; Sway y las terminales ya
+  abiertas la toman en la próxima sesión (mientras tanto `clipboard-menu` usa
+  la misma ruta por su cuenta).
+
+Para deshacer: `./restore.sh --rollback <backup>`, `git revert <commit>` y
+reiniciar el servicio correspondiente.
