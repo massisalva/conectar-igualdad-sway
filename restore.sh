@@ -9,7 +9,8 @@ DRY_RUN=0
 YES=0
 INSTALL_PACKAGES=0
 INSTALL_AUR=0
-RESTORE_USER=1
+# Vacíos = se deciden después de leer las opciones (ver PIECES_REQUESTED).
+RESTORE_USER=
 INSTALL_POLKIT=0
 INSTALL_BOOTLOADER=0
 INSTALL_SSHD=0
@@ -19,7 +20,7 @@ INSTALL_SYSCTL=0
 INSTALL_ZRAM=0
 INSTALL_SAMBA=0
 INSTALL_POWER=0
-INSTALL_YAZI=1
+INSTALL_YAZI=
 PRUNE=0
 BACKUP_ENABLED=1
 BACKUP_DIR=""
@@ -33,11 +34,14 @@ usage() {
   cat <<'EOF'
 Uso: ./restore.sh [opciones]
 
-Por defecto:
+Sin opciones de piezas:
   - Copia home/ sobre $HOME.
   - Ajusta permisos de ~/.local/bin.
   - Habilita e inicia MPD si está instalado y systemctl está disponible.
   - Instala paquetes/plugins de Yazi si ya está disponible `ya`.
+
+Si pedís solo piezas (--packages, --aur o una de sistema como --power), se
+hace solo eso: $HOME y Yazi quedan como están, salvo que sumes --user o --yazi.
 
 Opciones:
   --packages    Instala paquetes pacman desde docs/pkglist-pacman.txt.
@@ -55,6 +59,8 @@ Opciones:
   --power       Habilita UPower: con batería crítica (2 %) actúa en vez de
                 dejar que la Conectar se apague de golpe.
   --all         Ejecuta packages, aur, user, yazi y todas las piezas de sistema.
+  --user        Copia home/ sobre $HOME también al pedir piezas sueltas.
+  --yazi        Ejecuta ya pkg install también al pedir piezas sueltas.
   --no-user     No copia home/ sobre $HOME.
   --no-yazi     No ejecuta ya pkg install.
   --prune       Quita de ~/.local/bin, con backup, los scripts que el proyecto
@@ -160,6 +166,13 @@ validate_user_parent() {
 # Archivos a los que restore_user_files les cierra los permisos (chmod 700/600).
 # chmod sigue los enlaces y el backup guarda el enlace, no el modo del archivo
 # real: un enlace cambiaría un archivo que el rollback no sabe recuperar.
+# Si los permisos ya son los esperados no hay nada que respaldar ni cambiar.
+# Antes cada restauración volvía a copiar a backups/ el config.toml de
+# Streamrip, que tiene el token de Deezer (auditoría 2026-11-20, H6).
+mode_is() {  # archivo modo
+  [ "$(stat -c '%a' -- "$1" 2>/dev/null)" = "$2" ]
+}
+
 validate_hardened_targets() {
   local target
   for target in "$HOME/.ssh" "$HOME/.ssh/authorized_keys" \
@@ -422,9 +435,11 @@ restore_user_files() {
 
   if [ -d "$HOME/.ssh" ]; then
     log "Ajustando permisos de ~/.ssh"
-    backup_directory_mode "$HOME/.ssh"
-    run chmod 700 "$HOME/.ssh"
-    if [ -f "$HOME/.ssh/authorized_keys" ]; then
+    if ! mode_is "$HOME/.ssh" 700; then
+      backup_directory_mode "$HOME/.ssh"
+      run chmod 700 "$HOME/.ssh"
+    fi
+    if [ -f "$HOME/.ssh/authorized_keys" ] && ! mode_is "$HOME/.ssh/authorized_keys" 600; then
       backup_target "$HOME/.ssh/authorized_keys"
       run chmod 600 "$HOME/.ssh/authorized_keys"
     fi
@@ -441,7 +456,7 @@ restore_user_files() {
   log "Asegurando directorios de MPD/ncmpcpp y Streamrip"
   run mkdir -p "$HOME/.local/share/mpd/playlists" "$HOME/.local/share/ncmpcpp/lyrics" "$HOME/Música/streamrip"
 
-  if [ -f "$HOME/.config/streamrip/config.toml" ]; then
+  if [ -f "$HOME/.config/streamrip/config.toml" ] && ! mode_is "$HOME/.config/streamrip/config.toml" 600; then
     log "Ajustando permisos de ~/.config/streamrip/config.toml"
     backup_target "$HOME/.config/streamrip/config.toml"
     run chmod 600 "$HOME/.config/streamrip/config.toml"
@@ -707,8 +722,12 @@ install_samba_mount() {
   run sudo systemctl enable --now home-massisalva-Compartido.automount
 }
 
+PIECES_REQUESTED=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --packages|--aur|--polkit|--bootloader|--sshd|--nftables|--iwd|--sysctl|--zram|--samba|--power)
+      PIECES_REQUESTED=1
+      ;;&
     --packages) INSTALL_PACKAGES=1 ;;
     --aur) INSTALL_AUR=1 ;;
     --polkit) INSTALL_POLKIT=1 ;;
@@ -720,6 +739,8 @@ while [ "$#" -gt 0 ]; do
     --zram) INSTALL_ZRAM=1 ;;
     --samba) INSTALL_SAMBA=1 ;;
     --power) INSTALL_POWER=1 ;;
+    --user) RESTORE_USER=1 ;;
+    --yazi) INSTALL_YAZI=1 ;;
     --all)
       INSTALL_PACKAGES=1
       INSTALL_AUR=1
@@ -751,6 +772,22 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
+
+# Pedir solo piezas (p. ej. ./restore.sh --power) no restaura $HOME ni Yazi:
+# antes lo hacía sin avisar (auditoría 2026-11-20, H6). Sin piezas, o con
+# --all, sí. --user/--yazi y --no-user/--no-yazi siempre mandan.
+if [ "$PIECES_REQUESTED" -eq 1 ]; then
+  RESTORE_USER="${RESTORE_USER:-0}"
+  INSTALL_YAZI="${INSTALL_YAZI:-0}"
+else
+  RESTORE_USER="${RESTORE_USER:-1}"
+  INSTALL_YAZI="${INSTALL_YAZI:-1}"
+fi
+
+if [ "$PRUNE" -eq 1 ] && [ "$RESTORE_USER" -ne 1 ]; then
+  log "--prune es parte de la restauración de usuario; sumá --user o quitá --no-user"
+  exit 2
+fi
 
 if [ "$PRUNE" -eq 1 ] && [ "$BACKUP_ENABLED" -ne 1 ]; then
   log "--prune requiere backups; quitá --no-backup"

@@ -111,7 +111,9 @@ privilegios solo para los pasos que los requieren.
 ### 4. Aplicar cambios del sistema de forma explícita
 
 Las piezas que requieren privilegios no se instalan durante la restauración
-normal. Cada una tiene su propia opción:
+normal. Cada una tiene su propia opción, y pedirla sola hace solo eso: no
+vuelve a copiar `home/` sobre `$HOME` ni instala lo de Yazi (para sumarlo,
+agregá `--user` o `--yazi`):
 
 ```sh
 ./restore.sh --polkit

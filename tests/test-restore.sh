@@ -314,4 +314,52 @@ HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" \
 grep -Fq 'sudo systemctl enable --now upower.service' "$TEST_ROOT/power-dry-run" || fail "--power no habilita UPower"
 ok "--power habilita UPower"
 
+# H6 (2026-11-20): una pieza suelta hace solo eso; --user/--yazi la amplían.
+# Las tres salidas posibles de install_yazi_packages.
+YAZI_RAN='^==> (No existe .*/yazi/package\.toml|ya no está disponible|Instalando plugins/flavors de Yazi)'
+restore_out() {  # salida de restore.sh --dry-run con las opciones dadas
+  HOME="$TEST_HOME" PATH="$MOCK_BIN:$PATH" "$ROOT_DIR/restore.sh" --dry-run -y "$@" 2>&1
+}
+out="$(restore_out --power)"
+grep -Fq 'upower.service' <<< "$out" || fail "--power solo no habilitó UPower"
+! grep -Fq 'Restaurando archivos de usuario' <<< "$out" || fail "--power solo también restauró \$HOME"
+! grep -Eq "$YAZI_RAN" <<< "$out" || fail "--power solo también instaló lo de Yazi"
+out="$(restore_out --power --user --yazi)"
+grep -Fq 'Restaurando archivos de usuario' <<< "$out" || fail "--power --user no restauró \$HOME"
+grep -Eq "$YAZI_RAN" <<< "$out" || fail "--power --yazi no instaló lo de Yazi"
+out="$(restore_out)"
+grep -Fq 'Restaurando archivos de usuario' <<< "$out" || fail "sin opciones ya no restaura \$HOME"
+grep -Eq "$YAZI_RAN" <<< "$out" || fail "sin opciones ya no instala lo de Yazi"
+if restore_out --power --prune >/dev/null; then
+  fail "--prune con una pieza suelta no avisó que necesita --user"
+fi
+ok "una pieza suelta no restaura \$HOME ni Yazi, salvo con --user/--yazi"
+
+# H6 (2026-11-20): con los permisos ya correctos no se respaldan ni se tocan
+# (antes cada restauración copiaba otra vez el config.toml de Streamrip).
+perm_home="$TEST_ROOT/perm-home"
+perm_backups="$TEST_ROOT/perm-backups"
+mkdir -p "$perm_home/.ssh" "$perm_home/.config/streamrip"
+printf 'clave\n' > "$perm_home/.ssh/authorized_keys"
+printf 'arl = "secreto"\n' > "$perm_home/.config/streamrip/config.toml"
+chmod 700 "$perm_home/.ssh"
+chmod 600 "$perm_home/.ssh/authorized_keys" "$perm_home/.config/streamrip/config.toml"
+in_manifest() {  # ruta -> ¿figura en el último backup?
+  local last
+  last="$(find "$perm_backups" -mindepth 1 -maxdepth 1 -type d | sort | tail -n1)"
+  awk -F'\t' -v p="$1" '$2 == p { found = 1 } END { exit !found }' "$last/manifest.tsv"
+}
+HOME="$perm_home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$perm_backups" \
+  "$ROOT_DIR/restore.sh" --no-yazi -y >/dev/null
+for target in "$perm_home/.ssh" "$perm_home/.ssh/authorized_keys" "$perm_home/.config/streamrip/config.toml"; do
+  ! in_manifest "$target" || fail "respaldó $target aunque sus permisos ya estaban bien"
+done
+chmod 644 "$perm_home/.config/streamrip/config.toml"
+sleep 1  # el nombre del backup lleva la hora: que el segundo sea distinto
+HOME="$perm_home" PATH="$MOCK_BIN:$PATH" RESTORE_BACKUP_ROOT="$perm_backups" \
+  "$ROOT_DIR/restore.sh" --no-yazi -y >/dev/null
+in_manifest "$perm_home/.config/streamrip/config.toml" || fail "no respaldó config.toml antes de cerrarle los permisos"
+[ "$(stat -c '%a' "$perm_home/.config/streamrip/config.toml")" = 600 ] || fail "no cerró los permisos de config.toml"
+ok "permisos ya correctos no se respaldan; los abiertos se respaldan y se cierran"
+
 printf 'Pruebas de restore: OK\n'
