@@ -388,6 +388,30 @@ printf 'Radio Nacional,https://radio.example/vivo?token=1\n' \
 )
 ok "waybar-music detecta radio, MPD (playing/paused) y MPRIS"
 
+# H5 (2026-11-20): si el árbol de Sway no alcanza, se enfoca por PID la
+# terminal que contiene al reproductor, no el padre de esa terminal.
+(
+  # shellcheck source=/dev/null
+  source <(sed -n '/^pid_for_child_process() {$/,/^}$/p' "$ROOT_DIR/home/.local/bin/waybar-music")
+  ps() {
+    printf '%s\n' \
+      '    1     0 /sbin/init' \
+      '  500     1 sway' \
+      '  600   500 foot --app-id foot-music-ncmpcpp -e ncmpcpp' \
+      '  601   600 ncmpcpp' \
+      '  700   500 foot --app-id foot-music-pyradio -e pyradio' \
+      '  701   700 pyradio' \
+      '  702   701 mpv --no-video http://radio'
+  }
+  [ "$(pid_for_child_process ncmpcpp)" = 600 ] ||
+    fail "waybar-music enfoca el padre de la terminal y no la terminal (ncmpcpp)"
+  [ "$(pid_for_child_process 'mpv --no-video')" = 700 ] ||
+    fail "waybar-music no sube por varios niveles hasta la terminal (mpv de pyradio)"
+  ! pid_for_child_process no-existe >/dev/null ||
+    fail "waybar-music inventó una terminal para un proceso que no existe"
+)
+ok "waybar-music enfoca la terminal que contiene al reproductor"
+
 (
   FOOT_CALLS="$TEST_ROOT/foot-calls"
   FLOAT_BIN="$TEST_ROOT/float-bin"

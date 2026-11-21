@@ -178,14 +178,13 @@ for pid in reversed(order):
     if not matches(args):
         continue
 
+    # Subir desde el proceso hasta la primera terminal que lo contiene y
+    # devolver el PID de esa terminal (auditoría 2026-11-20, H5).
     current = pid
     while current in rows:
-        parent_pid, parent_args = rows[current]
-        if term_patterns.search(args):
-            print(pid)
-            raise SystemExit(0)
-        if term_patterns.search(parent_args):
-            print(parent_pid)
+        parent_pid, current_args = rows[current]
+        if term_patterns.search(current_args):
+            print(current)
             raise SystemExit(0)
         if parent_pid <= 1 or parent_pid == current:
             break
