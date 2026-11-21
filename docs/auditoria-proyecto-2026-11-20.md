@@ -390,3 +390,18 @@ arreglo.
 descartados con motivo.** Queda a decisión de Maxi qué hacer con las copias
 viejas de `streamrip/config.toml` en `backups/` (recomendación: dejarlas,
 porque son parte de backups completos que usa `--rollback`).
+
+### Ajustes de agy sobre lo aplicado (2026-11-20)
+
+Revisados por Claude y commiteados en `ef6ddc9` (firma de agy y Claude):
+
+- `screenshot-menu`: sin `fuzzel` vuelve a salir con error (el `|| exit 0`
+  de B1 tapaba ese `exit 1`). Test agregado por Claude.
+- `suspend-if-no-audio`: una espera atrasada con turno vencido sale sin pisar
+  el PID de la vigente; el temporal del turno es por proceso (`.$$`).
+- `check.sh`: `is-active` también distingue «sin acceso al bus».
+- `restore.sh`: «Ajustando permisos» solo se muestra si ajusta.
+- `README.md`: el portapapeles vive en RAM.
+
+Cada test nuevo falla sin su arreglo. Instalado con `./restore.sh --no-yazi -y`
+(backup `restore-20261120-215345-751805296-591933`); no requiere reiniciar servicios.
