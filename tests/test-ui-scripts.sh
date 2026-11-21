@@ -84,6 +84,34 @@ ok "disk-manager abre rutas reales con espacios y barras invertidas, también tr
 )
 ok "disk-status y disk-manager admiten discos USB sin particiones"
 
+# H4 (2026-11-20): un pendrive cifrado desbloqueado se monta en su nodo crypt
+# (/dev/mapper/...); disk-status tiene que verlo montado, como disk-manager.
+disk_class() {  # JSON de lsblk -> class y tooltip de disk-status
+  (
+    export LSBLK_JSON="$1"
+    lsblk() { printf '%s\n' "$LSBLK_JSON"; }
+    export -f lsblk
+    bash "$ROOT_DIR/home/.local/bin/disk-status"
+  )
+}
+luks='{"blockdevices":[{"name":"/dev/sdy","type":"disk","tran":"usb","rm":true,"model":"USB cifrado","children":[{"name":"/dev/sdy1","type":"part","fstype":"crypto_LUKS","label":null,"mountpoint":null,"tran":null,"rm":true,"children":[{"name":"/dev/mapper/luks-prueba","type":"crypt","fstype":"ext4","label":"Seguro","mountpoint":"/run/media/prueba/Seguro","tran":null,"rm":false}]}]}]}'
+disk_json="$(disk_class "$luks")"
+python -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["class"] == "mounted", d; assert "/run/media/prueba/Seguro" in d["tooltip"], d' "$disk_json" ||
+  fail "disk-status no ve montado un disco cifrado desbloqueado"
+luks_locked="${luks//\"mountpoint\":\"\/run\/media\/prueba\/Seguro\"/\"mountpoint\":null}"
+disk_json="$(disk_class "$luks_locked")"
+python -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["class"] == "connected", d' "$disk_json" ||
+  fail "disk-status no distingue un disco cifrado desbloqueado sin montar"
+internal='{"blockdevices":[{"name":"/dev/sda","type":"disk","tran":"sata","rm":false,"children":[{"name":"/dev/sda1","type":"part","fstype":"vfat","mountpoint":"/boot"},{"name":"/dev/sda2","type":"part","fstype":"crypto_LUKS","children":[{"name":"/dev/mapper/root","type":"crypt","fstype":"ext4","mountpoint":"/"}]}]}]}'
+disk_json="$(disk_class "$internal")"
+python -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["class"] == "idle", d' "$disk_json" ||
+  fail "disk-status tomó como externo un disco interno cifrado"
+usb_system='{"blockdevices":[{"name":"/dev/sdx","type":"disk","tran":"usb","rm":true,"children":[{"name":"/dev/sdx1","type":"part","fstype":"vfat","mountpoint":"/boot"},{"name":"/dev/sdx2","type":"part","fstype":"ext4","mountpoint":"/"},{"name":"/dev/sdx3","type":"part","fstype":"swap","mountpoint":"[SWAP]"}]}]}'
+disk_json="$(disk_class "$usb_system")"
+python -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["class"] != "mounted", d' "$disk_json" ||
+  fail "disk-status mostró como montado un disco del sistema"
+ok "disk-status ve los discos cifrados montados e ignora los montajes del sistema"
+
 python -c '
 import json
 import sys

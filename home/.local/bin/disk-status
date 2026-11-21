@@ -20,6 +20,11 @@ def is_external(tran, removable):
     return tran in ("usb", "mmc") or removable is True or removable == "1"
 
 
+def is_system_mount(mountpoint):
+    # Igual que disk-manager: lo del sistema no es un disco para gestionar.
+    return mountpoint in ("/", "/boot", "[SWAP]") or mountpoint.startswith("/boot/")
+
+
 def walk(nodes, parent_external=False, parent_model="", parent_tran="", parent_rm=False):
     global has_external, has_mounted_external, label, fstype, mount
 
@@ -37,7 +42,14 @@ def walk(nodes, parent_external=False, parent_model="", parent_tran="", parent_r
             if not label:
                 label = model or os.path.basename(node.get("name") or "Dispositivo externo")
 
-        if external and device_type in ("part", "disk") and node.get("fstype"):
+        # crypt: el contenido desbloqueado de un disco cifrado (/dev/mapper/...);
+        # es el que se monta, no la partición LUKS (auditoría 2026-11-20, H4).
+        if (
+            external
+            and device_type in ("part", "disk", "crypt")
+            and node.get("fstype")
+            and not is_system_mount(node.get("mountpoint") or "")
+        ):
             part_fstype = node.get("fstype") or ""
             part_mount = node.get("mountpoint") or ""
             part_label = node.get("label") or ""
