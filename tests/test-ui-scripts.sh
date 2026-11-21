@@ -713,6 +713,22 @@ grep -A8 '"custom/dnd": {' "$WAYBAR_CONFIG" | grep -q '"signal": 9,' || fail "Wa
 [ "$(grep -o '"signal": [0-9]*' "$WAYBAR_CONFIG" | sort | uniq -d)" = "" ] || fail "Waybar: dos módulos con la misma señal"
 ok "Waybar muestra No molestar al instante"
 
+# H7 (2026-11-20): en Yazi, una tecla asignada sola se ejecuta al instante, así
+# que un atajo de varias teclas que empiece con ella nunca se alcanza (pasó con
+# "l s" y "l m"; las vistas de tamaño y fecha son "m s" y "m m" de fábrica).
+python -c '
+import sys, tomllib
+keymap = tomllib.load(open(sys.argv[1], "rb"))
+for layer, sections in keymap.items():
+    binds = sections.get("prepend_keymap", [])
+    keys = [[b["on"]] if isinstance(b["on"], str) else b["on"] for b in binds]
+    singles = {k[0] for k in keys if len(k) == 1}
+    bad = [k for k in keys if len(k) > 1 and k[0] in singles]
+    if bad:
+        sys.exit(f"{layer}: {bad} empiezan con una tecla asignada sola")
+' "$ROOT_DIR/home/.config/yazi/keymap.toml" || fail "Yazi: hay atajos de varias teclas inalcanzables"
+ok "Yazi: ningún atajo de varias teclas queda tapado por uno de una tecla"
+
 # H2 (2026-11-20): "No molestar" no oculta lo urgente (batería al 5 %).
 MAKO="$ROOT_DIR/home/.config/mako/config"
 dnd_line="$(grep -nx '\[mode=do-not-disturb\]' "$MAKO" | cut -d: -f1 || true)"

@@ -79,13 +79,3 @@ desc = "Sort naturally"
 on = [ "s", "m" ]
 run = "sort mtime --reverse --dir-first"
 desc = "Sort by modified time"
-
-[[mgr.prepend_keymap]]
-on = [ "l", "s" ]
-run = "linemode size"
-desc = "Line mode: size"
-
-[[mgr.prepend_keymap]]
-on = [ "l", "m" ]
-run = "linemode mtime"
-desc = "Line mode: modified time"
