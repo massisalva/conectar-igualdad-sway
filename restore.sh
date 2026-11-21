@@ -434,12 +434,13 @@ restore_user_files() {
   fi
 
   if [ -d "$HOME/.ssh" ]; then
-    log "Ajustando permisos de ~/.ssh"
     if ! mode_is "$HOME/.ssh" 700; then
+      log "Ajustando permisos de ~/.ssh"
       backup_directory_mode "$HOME/.ssh"
       run chmod 700 "$HOME/.ssh"
     fi
     if [ -f "$HOME/.ssh/authorized_keys" ] && ! mode_is "$HOME/.ssh/authorized_keys" 600; then
+      log "Ajustando permisos de ~/.ssh/authorized_keys"
       backup_target "$HOME/.ssh/authorized_keys"
       run chmod 600 "$HOME/.ssh/authorized_keys"
     fi

@@ -99,11 +99,6 @@ print(f"{x},{y} {w}x{h}")
 }
 
 choose_mode() {
-  if ! command -v fuzzel >/dev/null 2>&1; then
-    notify_info "No encontré fuzzel"
-    exit 1
-  fi
-
   printf "󰍹  Pantalla completa\n󰩭  Seleccionar región\n󰖲  Ventana enfocada\n󰅍  Copiar pantalla completa\n󰅍  Copiar región\n󰜄  Cancelar\n" |
     fuzzel --dmenu --width=34 --lines=6 --prompt="󰄀 Captura: "
 }
@@ -111,7 +106,11 @@ choose_mode() {
 mode="${1:-}"
 
 if [ -z "$mode" ]; then
-  # Esc: fuzzel sale con 1 y no es un error (si faltaba fuzzel, ya avisó).
+  if ! command -v fuzzel >/dev/null 2>&1; then
+    notify_info "No encontré fuzzel"
+    exit 1
+  fi
+  # Esc: fuzzel sale con 1 y no es un error.
   choice="$(choose_mode)" || exit 0
 
   case "$choice" in

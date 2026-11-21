@@ -21,8 +21,9 @@ personas puedan recorrerlo, reutilizar una parte o instalar el entorno completo.
   unidades de `systemd --user`.
 - **Energía cuidada**: avisos de batería al 10 % y al 5 %, UPower actúa al 2 % y la
   suspensión por inactividad espera a que termine la música en vez de no llegar nunca.
-- **Portapapeles con historial acotado**: se vacía al iniciar sesión, guarda hasta 100
-  entradas y no guarda lo que un gestor de contraseñas marca como sensible.
+- **Portapapeles en RAM y acotado**: el historial vive en `$XDG_RUNTIME_DIR` (nunca
+  toca el disco), se vacía al iniciar sesión, guarda hasta 100 entradas y no guarda lo
+  que un gestor de contraseñas marca como sensible.
 - **Música y archivos**, con MPD/ncmpcpp, PyRadio, mpv, Yazi y Thunar tematizados.
 - **Respaldo y restauración**, con vista previa, copia de seguridad automática,
   rollback y verificaciones posteriores.

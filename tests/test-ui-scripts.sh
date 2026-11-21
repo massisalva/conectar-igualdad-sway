@@ -696,6 +696,27 @@ ok "capturas: si grim falla, avisan"
 )
 ok "capturas: Esc no es error"
 
+# Sin fuzzel, el menú de capturas avisa y sale con error (ajuste de agy al B1
+# del 2026-11-20: el "|| exit 0" de Esc tapaba este exit 1).
+(
+  export NOTIFY_LOG="$TEST_ROOT/shot-nofuzzel.log"
+  : > "$NOTIFY_LOG"
+  command() {
+    if [ "${1:-}" = -v ] && [ "${2:-}" = fuzzel ]; then return 1; fi
+    builtin command "$@"
+  }
+  fuzzel() { fail "abrió fuzzel aunque no estaba instalado"; }
+  grim() { fail "capturó sin pasar por el menú"; }
+  notify-send() { printf '%s\n' "$*" >> "$NOTIFY_LOG"; }
+  export -f command fuzzel grim notify-send fail
+  export WAYLAND_DISPLAY=audit-test SWAYSOCK=/tmp/audit-test-sway.sock HOME="$TEST_ROOT/shot-home"
+  if bash "$ROOT_DIR/home/.local/bin/screenshot-menu"; then
+    fail "screenshot-menu sin fuzzel salió sin error"
+  fi
+  grep -q 'No encontré fuzzel' "$NOTIFY_LOG" || fail "screenshot-menu sin fuzzel no avisó"
+)
+ok "capturas: sin fuzzel, avisan y salen con error"
+
 # B3 (2026-11-20): No molestar le avisa a Waybar con una señal. Discos no:
 # se probó y se sacó en 7e4b566 (2026-09-21), ver el assert de custom/disk.
 (

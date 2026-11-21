@@ -468,11 +468,16 @@ check_power() {
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
   enabled="$(systemctl is-enabled upower.service 2>&1 || true)"
   # Sin acceso al bus del sistema no se sabe: no es lo mismo que «apagado».
+  # is-enabled puede leer enlaces en disco y pasar; is-active sí consulta el bus.
   if printf '%s\n' "$enabled" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
     report "$severity" "no puedo verificar upower.service por permisos del entorno"
     return
   fi
-  active="$(systemctl is-active upower.service 2>/dev/null || true)"
+  active="$(systemctl is-active upower.service 2>&1 || true)"
+  if printf '%s\n' "$active" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
+    report "$severity" "no puedo verificar upower.service por permisos del entorno"
+    return
+  fi
   if [ "$enabled" = enabled ] && [ "$active" = active ]; then
     ok "UPower habilitado y activo (actúa con batería crítica)"
   else

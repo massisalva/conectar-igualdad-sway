@@ -58,11 +58,13 @@ wait_for_silence() {
   forget_pid() {
     [ "$(cat -- "$PID_FILE" 2>/dev/null)" != "$$" ] || rm -f -- "$PID_FILE"
   }
+  # Si el turno ya caducó al arrancar, salir sin pisar el PID de una espera nueva.
+  turn_is_current "$turn" || exit 0
   printf '%s\n' "$$" > "$PID_FILE"
   trap forget_pid EXIT
   # Matar también el sleep en curso, para no dejarlo huérfano.
   trap '[ -z "$sleep_pid" ] || kill "$sleep_pid" 2>/dev/null; exit 0' TERM INT
-  # El turno se revisa después de anotar el PID: si --cancel ya pasó, se sale acá.
+  # Volver a revisar tras anotar el PID por si --cancel llegó en el medio.
   while turn_is_current "$turn"; do
     sleep "$INTERVAL" & sleep_pid=$!
     wait "$sleep_pid"
@@ -96,7 +98,7 @@ case "${1:-}" in
       *) status=1 ;;  # La consulta falló: esperar y reintentar, sin suspender ahora.
     esac
     turn="$$-$(date +%s%N)"
-    printf '%s\n' "$turn" > "$TOKEN_FILE.tmp" && mv -f -- "$TOKEN_FILE.tmp" "$TOKEN_FILE"
+    printf '%s\n' "$turn" > "$TOKEN_FILE.$$" && mv -f -- "$TOKEN_FILE.$$" "$TOKEN_FILE"
     setsid -f "$SELF" --wait "$turn" </dev/null >/dev/null 2>&1
     exit "$status"
     ;;

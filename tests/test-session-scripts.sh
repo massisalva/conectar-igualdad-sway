@@ -209,6 +209,13 @@ printf 'inactive\n' > "$AUDIO_CASE_FILE"
 wait_for '[ -z "$(test_waiters)" ]' || fail "una espera sin turno vigente siguió viva"
 ! grep -qx suspend "$TEST_LOG" || fail "una espera sin turno vigente suspendió"
 rm -f "$XDG_RUNTIME_DIR/suspend-if-no-audio.token"
+# Una espera atrasada cuyo turno ya venció no debe pisar ni borrar el PID de otra nueva.
+printf 'turno-nuevo\n' > "$XDG_RUNTIME_DIR/suspend-if-no-audio.token"
+printf '999999\n' > "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid"
+bash "$SUSPEND" --wait turno-viejo
+[ "$(cat "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid" 2>/dev/null)" = 999999 ] ||
+  fail "una espera atrasada pisó o borró el PID de la espera vigente"
+rm -f "$XDG_RUNTIME_DIR/suspend-if-no-audio.token" "$XDG_RUNTIME_DIR/suspend-if-no-audio.pid"
 grep -Eq 'before-sleep .*suspend-if-no-audio --cancel' "$ROOT_DIR/home/.local/bin/start-idle" ||
   fail "start-idle no cancela la espera antes de suspender"
 unset AUDIO_CASE_FILE SUSPEND_AUDIO_INTERVAL
