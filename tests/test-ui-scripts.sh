@@ -164,6 +164,22 @@ bash "$ROOT_DIR/home/.local/bin/audio-output-menu"
 grep -Fxq 'set-default-sink sink.two' "$CALL_FILE" || fail "audio-output-menu eligió una salida incorrecta"
 ok "audio-output-menu distingue descripciones duplicadas sin mezclar APIs"
 
+# B1 (2026-11-20): Esc en el menú no es un error, y la lista de salidas se
+# pide una sola vez.
+(
+  export PACTL_LIST_COUNT="$TEST_ROOT/pactl-list-count"
+  : > "$PACTL_LIST_COUNT"
+  eval "real_$(declare -f pactl)"
+  pactl() { [ "$*" != 'list sinks' ] || printf 'x\n' >> "$PACTL_LIST_COUNT"; real_pactl "$@"; }
+  export -f pactl real_pactl
+  bash "$ROOT_DIR/home/.local/bin/audio-output-menu"
+  [ "$(wc -l < "$PACTL_LIST_COUNT")" -eq 1 ] || fail "audio-output-menu pidió la lista de salidas más de una vez"
+  fuzzel() { cat >/dev/null; return 1; }
+  export -f fuzzel
+  bash "$ROOT_DIR/home/.local/bin/audio-output-menu" || fail "audio-output-menu da error al cancelar con Esc"
+)
+ok "audio-output-menu: Esc no es error y consulta las salidas una vez"
+
 WALLPAPER_TEST_HOME="$TEST_ROOT/wallpaper-home"
 WALLPAPER_CALL_FILE="$TEST_ROOT/swaymsg-call"
 mkdir -p "$WALLPAPER_TEST_HOME/Imágenes" "$WALLPAPER_TEST_HOME/.config/sway/config.d"
@@ -668,6 +684,34 @@ ok "discos cifrados: desbloquear y montar, bloquear, y expulsar bloqueando antes
   done
 )
 ok "capturas: si grim falla, avisan"
+
+# B1 (2026-11-20): cancelar el menú de capturas con Esc no es un error.
+(
+  fuzzel() { cat >/dev/null; return 1; }
+  grim() { fail "capturó aunque se canceló el menú"; }
+  notify-send() { :; }
+  export -f fuzzel grim notify-send fail
+  export WAYLAND_DISPLAY=audit-test SWAYSOCK=/tmp/audit-test-sway.sock HOME="$TEST_ROOT/shot-home"
+  bash "$ROOT_DIR/home/.local/bin/screenshot-menu" || fail "screenshot-menu da error al cancelar con Esc"
+)
+ok "capturas: Esc no es error"
+
+# B3 (2026-11-20): No molestar le avisa a Waybar con una señal. Discos no:
+# se probó y se sacó en 7e4b566 (2026-09-21), ver el assert de custom/disk.
+(
+  export PKILL_LOG="$TEST_ROOT/pkill.log"
+  : > "$PKILL_LOG"
+  pkill() { printf '%s\n' "$*" >> "$PKILL_LOG"; }
+  makoctl() { [ "${1:-} ${2:-}" != 'mode -a' ] || return 0; [ "${1:-}" != mode ] || printf 'default\n'; }
+  notify-send() { :; }
+  export -f pkill makoctl notify-send
+  bash "$ROOT_DIR/home/.local/bin/notification-mode" --toggle
+  grep -Fxq -- '-RTMIN+9 -x waybar' "$PKILL_LOG" || fail "notification-mode no le avisa a Waybar"
+)
+WAYBAR_CONFIG="$ROOT_DIR/home/.config/waybar/config.jsonc"
+grep -A8 '"custom/dnd": {' "$WAYBAR_CONFIG" | grep -q '"signal": 9,' || fail "Waybar no escucha la señal de No molestar"
+[ "$(grep -o '"signal": [0-9]*' "$WAYBAR_CONFIG" | sort | uniq -d)" = "" ] || fail "Waybar: dos módulos con la misma señal"
+ok "Waybar muestra No molestar al instante"
 
 # H2 (2026-11-20): "No molestar" no oculta lo urgente (batería al 5 %).
 MAKO="$ROOT_DIR/home/.config/mako/config"

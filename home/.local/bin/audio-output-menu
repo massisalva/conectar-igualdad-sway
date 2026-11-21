@@ -26,13 +26,15 @@ if [ "${#sinks[@]}" -eq 0 ]; then
 fi
 
 default="$(pactl get-default-sink 2>/dev/null || true)"
+# Una sola consulta para todas las salidas (antes, una por salida).
+sinks_detail="$(pactl list sinks)"
 
 menu="$(
   for line in "${sinks[@]}"; do
     id="${line%%$'\t'*}"
     name="${line#*$'\t'}"
 
-    desc="$(pactl list sinks | awk -v sink="Sink #$id" '
+    desc="$(printf '%s\n' "$sinks_detail" | awk -v sink="Sink #$id" '
       $0 == sink {inside=1; next}
       /^Sink #/ {inside=0}
       inside && /^[[:space:]]*Description:/ {
@@ -56,7 +58,7 @@ menu="$(
 choice="$(
   printf '%s\n' "$menu" \
     | fuzzel --dmenu --width=46 --lines="${#sinks[@]}" --prompt="󰓃 Salida de audio: "
-)"
+)" || exit 0  # Esc: fuzzel sale con 1 y no es un error.
 
 [ -n "$choice" ] || exit 0
 

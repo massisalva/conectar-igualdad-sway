@@ -25,6 +25,9 @@ toggle() {
   else
     makoctl mode -a do-not-disturb
   fi
+  # Que Waybar lo muestre ya (señal 9 de custom/dnd), sin esperar su próxima
+  # consulta, que queda cada 60 s por si el modo se cambia con makoctl directo.
+  pkill -RTMIN+9 -x waybar 2>/dev/null || true
 }
 
 case "${1:---status}" in

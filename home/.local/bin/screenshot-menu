@@ -111,7 +111,8 @@ choose_mode() {
 mode="${1:-}"
 
 if [ -z "$mode" ]; then
-  choice="$(choose_mode)"
+  # Esc: fuzzel sale con 1 y no es un error (si faltaba fuzzel, ya avisó).
+  choice="$(choose_mode)" || exit 0
 
   case "$choice" in
     "󰍹  Pantalla completa") mode="full" ;;

@@ -53,7 +53,8 @@
   "custom/dnd": {
     "exec": "~/.local/bin/notification-mode --status",
     "return-type": "json",
-    "interval": 5,
+    "signal": 9,
+    "interval": 60,
     "format": "{}",
     "on-click": "~/.local/bin/notification-mode --toggle",
     "tooltip": true

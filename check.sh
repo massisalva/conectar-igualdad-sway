@@ -18,10 +18,11 @@ usage() {
 Uso: ./check.sh [opciones]
 
 Por defecto verifica el estado de usuario, paquetes, Yazi, XDG y repo.
-Los archivos de sistema en polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/, zram/ y samba/ se reportan como advertencia.
+Los archivos de sistema en polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/, zram/ y samba/,
+y UPower, se reportan como advertencia.
 
 Opciones:
-  --system    Trata polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/, zram/ y samba/ como checks obligatorios.
+  --system    Trata polkit/, bootloader/, sshd/, nftables/, iwd/, sysctl/, zram/, samba/ y UPower como checks obligatorios.
   --sudo      Permite pedir contraseña para verificar archivos de sistema
               si hay una terminal interactiva disponible.
   -h, --help  Muestra esta ayuda.
@@ -465,7 +466,12 @@ check_sysctl() {
 check_power() {
   local severity="warn" enabled active
   [ "$STRICT_SYSTEM" -eq 1 ] && severity="fail"
-  enabled="$(systemctl is-enabled upower.service 2>/dev/null || true)"
+  enabled="$(systemctl is-enabled upower.service 2>&1 || true)"
+  # Sin acceso al bus del sistema no se sabe: no es lo mismo que «apagado».
+  if printf '%s\n' "$enabled" | grep -Eq 'Operation not permitted|Failed to connect to system scope bus'; then
+    report "$severity" "no puedo verificar upower.service por permisos del entorno"
+    return
+  fi
   active="$(systemctl is-active upower.service 2>/dev/null || true)"
   if [ "$enabled" = enabled ] && [ "$active" = active ]; then
     ok "UPower habilitado y activo (actúa con batería crítica)"
@@ -485,16 +491,16 @@ check_samba() {
   if [ "$perms" = "root 600" ]; then
     ok "credenciales de Samba presentes (root 600)"
   elif [ -z "$perms" ]; then
-    if [ "$severity" = "warn" ]; then warn "faltan credenciales de Samba: $cred"; else fail "faltan credenciales de Samba: $cred"; fi
+    report "$severity" "faltan credenciales de Samba: $cred"
   else
-    if [ "$severity" = "warn" ]; then warn "credenciales de Samba con permisos $perms (esperado root 600)"; else fail "credenciales de Samba con permisos $perms (esperado root 600)"; fi
+    report "$severity" "credenciales de Samba con permisos $perms (esperado root 600)"
   fi
 
   if systemctl is-enabled --quiet home-massisalva-Compartido.automount 2>/dev/null \
      && systemctl is-active --quiet home-massisalva-Compartido.automount 2>/dev/null; then
     ok "automount de ~/Compartido habilitado y activo"
   else
-    if [ "$severity" = "warn" ]; then warn "automount de ~/Compartido no está habilitado/activo"; else fail "automount de ~/Compartido no está habilitado/activo"; fi
+    report "$severity" "automount de ~/Compartido no está habilitado/activo"
   fi
 }
 
@@ -806,7 +812,7 @@ check_session_config() {
   done
 }
 
-# La luz nocturna se apaga a propósito desde Waybar o Super+Ctrl+S
+# La luz nocturna se apaga a propósito con Super+Ctrl+S
 # (nightlight-mode): inactiva es una elección, no una falla. is-active responde
 # "inactive" también si la unidad no existe; LoadState los distingue.
 check_nightlight() {
