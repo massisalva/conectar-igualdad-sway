@@ -319,7 +319,11 @@ con Maxi: H2+B2, H1, H3, H4+H5.1, H6 y el resto.
 | B2 `disk-unlock` flotante | Resuelto en `626bca5`. El test exige regla en Sway para toda ventana con `app-id` propio. |
 | H1 carrera en `suspend-if-no-audio` | Resuelto en `11b3c42`. En la Conectar la carrera se daba 1 de cada 200 veces (no 1 de 10). Arreglo con un turno: `--cancel` lo borra antes que nada y la espera solo suspende si sigue vigente; además mata el `sleep` en curso y `before-sleep` cancela. Test determinista con un `setsid` lento (el código viejo falla siempre) y red de seguridad que mata las esperas del test al salir. Medido: 0 esperas vivas en 250 intentos. |
 | H3 portapapeles en el disco | Resuelto en `4f357ce`, test aislado en `fa77cb6`. La base va en `%t/cliphist/db` (RAM): la fija `sway-cliphist.service`, `clipboard-menu` usa la misma ruta y fish la exporta (no `environment.d`: Sway arranca desde fish y no lo lee). `check.sh` avisa si queda la base vieja. |
-| H4-H7, B1, B3, B4 | Pendientes. |
+| H4 discos cifrados en Waybar | Resuelto en `56f6803`: `disk-status` incluye nodos `crypt` e ignora `/`, `/boot` y swap como `disk-manager`. Tests con `lsblk` simulado (sin verificar contra un LUKS real). |
+| H5.1 foco por PID | Resuelto en `4023d9a`: devuelve la terminal que contiene al reproductor, no su padre. |
+| H5.2 y H5.3 prioridad y mpv | Resuelto en `5d762de`: barra, click y teclas usan una sola decisión (`pick_source`): radio, MPD sonando, otro sonando, MPD en pausa, otro en pausa. mpv suelto se ignora (decisión de Maxi). Sin título, la barra muestra el nombre del reproductor. |
+| H6 `restore.sh` | Resuelto en `1d9cad1` (lo recomendado, con OK de Maxi): una pieza suelta no restaura `$HOME` ni Yazi salvo con `--user`/`--yazi`; permisos ya correctos no se respaldan. Las copias viejas de `streamrip/config.toml` en `backups/` siguen ahí (pendiente de decisión). |
+| H7, B1, B3, B4 | Pendientes. |
 
 ### Aplicado en la Conectar (2026-11-20)
 
@@ -352,3 +356,18 @@ Para deshacer: `./restore.sh --rollback backups/restore-20261120-203743-69491816
 
 Para deshacer: `./restore.sh --rollback <backup>`, `git revert <commit>` y
 reiniciar el servicio correspondiente.
+
+### Aplicado en la Conectar (2026-11-20, H4 y H5)
+
+- **H4:** `./restore.sh --no-yazi -y` (backup `restore-20261120-210308-013072598-260627`).
+  Waybar lo toma en su próxima consulta.
+- **H5.1:** ídem (backup `restore-20261120-210511-798772372-271386`).
+- **H5.2/H5.3:** ídem (backup `restore-20261120-210927-282228254-299260`) y
+  `systemctl --user restart waybar.service`: activo, una sola instancia de
+  `waybar-music --watch`, sin errores en el journal.
+- **H6:** no requiere instalación (`restore.sh` corre desde el repo). Simulado
+  en la Conectar: `--power` solo habilita UPower, y sin opciones ya no respalda
+  `~/.ssh` ni `config.toml` (permisos 700/600 correctos).
+
+En todos, antes se comparó `home/` con `$HOME`: solo cambiaba el archivo del
+arreglo.
